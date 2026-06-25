@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog].
   - AppImage did not include webkitgtk and other libraries pure KDE environment do not likely to have `#2981`
 - Panics when there is repository with no id nor url specified `#3002`
   - We ignore such repositories instead. It's likely be a borken repository.
+- Removed the workaround for VRCDefaultWorldScene generation issue in SDK >=3.10.2, <=3.10.3 `#3005`
+  - The [upstream bug][default-scene-canny] was fixed in 3.10.4, and we continuously use the latest VRCSDK so it is no longer a problem! Thanks to VRChat team for fixing it!
+
+[default-scene-canny]: https://feedback.vrchat.com/sdk-bug-reports/p/3102-3103-vrcscenetemplateinitializer-does-not-create-sample-scene-if-udon-prepr
 
 ### Security
 
