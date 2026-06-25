@@ -107,6 +107,8 @@ const LogRow = memo(function LogRow({ log }: { log: LogEntry }) {
 	const fontColorClass = getFontColorClass(log.level);
 	const typeIconClass = `${fontColorClass} w-5 h-5`;
 
+	const isLong = log.message.split('\n').length >= 3;
+
 	return (
 		<>
 			<td className={`${cellClass} min-w-32 w-32`}>{formatDate(log.time)}</td>
@@ -130,7 +132,23 @@ const LogRow = memo(function LogRow({ log }: { log: LogEntry }) {
 					</div>
 				</div>
 			</td>
-			<td className={`${cellClass} min-w-32 w-full`}>{log.message}</td>
+			{
+				isLong ?(
+					<td className={`${cellClass} min-w-32 w-full`}>
+						<details className={"group/log-text"}>
+							<summary className={"whitespace-pre list-none"}>
+								{log.message.split('\n').splice(0, 1).join("\n")}
+								<div className={"group-open/log-text:hidden mt-[-0.6lh] mb-[-0.4lh] compact:mb-[-0.2lh]"}>...</div>
+							</summary>
+							<p className={"whitespace-pre"}>
+								{log.message.split('\n').splice(1, Infinity).join("\n")}
+							</p>
+						</details>
+					</td>
+				): (
+					<td className={`${cellClass} min-w-32 w-full whitespace-pre`}>{log.message}</td>
+				)
+			}
 		</>
 	);
 });
