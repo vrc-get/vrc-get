@@ -29,7 +29,7 @@ jobs:
             bundles: setup-exe,setup-exe-zip,exe-updater
 
           - triple: universal-apple-darwin
-            on: macos-14
+            on: macos-26
             setup: |
               rustup target add aarch64-apple-darwin
               rustup target add x86_64-apple-darwin

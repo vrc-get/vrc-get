@@ -57,7 +57,7 @@ jobs:
             # Arm64 runner on macOS is not available for open source repositories with macos-14!
             # https://github.blog/changelog/2024-01-30-github-actions-introducing-the-new-m1-macos-runner-available-to-open-source/
           - triple: aarch64-apple-darwin
-            on: macos-14
+            on: macos-latest
         triple:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
