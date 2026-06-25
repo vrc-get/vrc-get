@@ -89,6 +89,7 @@ pub async fn environment_repositories_info(
         .get_user_repos()
         .iter()
         .enumerate()
+        .filter(|(_, repo)| repo.id().is_some() || repo.url().is_some())
         .map(|(index, x)| {
             let id = x.id().or(x.url().map(Url::as_str)).unwrap();
             TauriUserRepository {

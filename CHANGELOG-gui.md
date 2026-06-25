@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog].
 - Several Linux Distributions are broken
   - RPM was broken and unable to install because it includes several directories for bundle `#2970`
   - AppImage did not include webkitgtk and other libraries pure KDE environment do not likely to have `#2981`
+- Panics when there is repository with no id nor url specified `#3002`
+  - We ignore such repositories instead. It's likely be a borken repository.
 
 ### Security
 
