@@ -298,6 +298,10 @@ pub async fn collect_notable_project_files_tree(
                 is_dir = true;
             } else {
                 if backup {
+                    if is_os_metadata_file(&file_name) {
+                        continue;
+                    }
+
                     // for backups, we exclude the library directory
                     if relative.starts_with_ascii_ignore("library") {
                         // some people use multiple library folder to speed up switching platforms,
@@ -383,6 +387,12 @@ pub async fn collect_notable_project_files_tree(
     .await
 }
 
+fn is_os_metadata_file(file_name: &str) -> bool {
+    file_name.eq_ignore_ascii_case(".DS_Store")
+        || file_name.eq_ignore_ascii_case("Thumbs.db")
+        || file_name.eq_ignore_ascii_case("desktop.ini")
+}
+
 pub trait StrExt {
     fn starts_with_ascii_ignore(&self, pat: &str) -> bool;
 }
@@ -393,6 +403,63 @@ impl StrExt for str {
             return false;
         };
         heading.eq_ignore_ascii_case(pat)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn backup_collection_excludes_os_metadata_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let project_path = temp_dir.path();
+
+        std::fs::create_dir(project_path.join("Assets")).unwrap();
+        std::fs::write(project_path.join(".DS_Store"), b"metadata").unwrap();
+        std::fs::write(project_path.join("Assets").join(".DS_Store"), b"metadata").unwrap();
+        std::fs::write(project_path.join("Assets").join("Thumbs.db"), b"metadata").unwrap();
+        std::fs::write(project_path.join("Assets").join("desktop.ini"), b"metadata").unwrap();
+        std::fs::write(project_path.join("Assets").join("scene.unity"), b"scene").unwrap();
+
+        let tree = collect_notable_project_files_tree(project_path.to_path_buf(), false, true)
+            .await
+            .unwrap();
+
+        let paths = tree
+            .recursive()
+            .map(FileSystemTree::relative_path)
+            .collect::<Vec<_>>();
+
+        assert!(paths.contains(&"Assets/"));
+        assert!(paths.contains(&"Assets/scene.unity"));
+        assert!(!paths.contains(&".DS_Store"));
+        assert!(!paths.contains(&"Assets/.DS_Store"));
+        assert!(!paths.contains(&"Assets/Thumbs.db"));
+        assert!(!paths.contains(&"Assets/desktop.ini"));
+    }
+
+    #[tokio::test]
+    async fn non_backup_collection_keeps_os_metadata_files() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let project_path = temp_dir.path();
+
+        std::fs::write(project_path.join(".DS_Store"), b"metadata").unwrap();
+        std::fs::write(project_path.join("Thumbs.db"), b"metadata").unwrap();
+        std::fs::write(project_path.join("desktop.ini"), b"metadata").unwrap();
+
+        let tree = collect_notable_project_files_tree(project_path.to_path_buf(), false, false)
+            .await
+            .unwrap();
+
+        let paths = tree
+            .recursive()
+            .map(FileSystemTree::relative_path)
+            .collect::<Vec<_>>();
+
+        assert!(paths.contains(&".DS_Store"));
+        assert!(paths.contains(&"Thumbs.db"));
+        assert!(paths.contains(&"desktop.ini"));
     }
 }
 
