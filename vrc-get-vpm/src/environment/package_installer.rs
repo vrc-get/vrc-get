@@ -86,11 +86,11 @@ async fn get_package<T: HttpClient>(
     repository: &LocalCachedRepository,
     package: &PackageManifest,
 ) -> io::Result<TokioFile> {
-    let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name(), package.version());
+    let zip_file_name = format!("vrc-get-{}-{}.zip", package.name(), package.version());
     let zip_path = PathBuf::from(format!(
         "{REPO_CACHE_FOLDER}/{}/{}",
         package.name(),
-        &zip_file_name
+        zip_file_name
     ));
     let sha_path = zip_path.with_extension("zip.sha256");
 

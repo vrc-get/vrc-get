@@ -743,10 +743,7 @@ impl Outdated {
         match self.json_format.map(|x| x.get()).unwrap_or(0) {
             0 => {
                 for (name, (found, installed)) in &outdated_packages {
-                    println!(
-                        "{name}: installed: {installed}, found: {}",
-                        &found.version()
-                    );
+                    println!("{name}: installed: {installed}, found: {}", found.version());
                 }
             }
             1 => {
