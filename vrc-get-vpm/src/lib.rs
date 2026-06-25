@@ -206,6 +206,7 @@ impl Display for ProjectType {
 }
 
 fn unity_compatible(package: &PackageManifest, unity: UnityVersion) -> bool {
+    // Keep in sync with js logic
     fn is_vrcsdk_for_2019(version: &Version) -> bool {
         version.major == 3 && version.minor <= 4
     }

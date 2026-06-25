@@ -69,15 +69,18 @@ export function combinePackagesAndProjectDetails(
 		pkg: TauriPackage,
 		unityVersion: [number, number] | null,
 	) {
+		// Keep in sync with rust logic
 		if (unityVersion == null) return true;
 		if (pkg.unity == null) return true;
 
 		// vrcsdk exceptions for unity version
-		if (VRCSDK_PACKAGES.includes(pkg.name)) {
+		const isVrcSdk = VRCSDK_PACKAGES.includes(pkg.name);
+		const isResolver = pkg.name === "com.vrchat.core.vpm-resolver";
+		if (isVrcSdk) {
 			if (pkg.version.major === 3 && pkg.version.minor <= 4) {
 				return unityVersion[0] === 2019;
 			}
-		} else if (pkg.name === "com.vrchat.core.vpm-resolver") {
+		} else if (isResolver) {
 			if (
 				pkg.version.major === 0 &&
 				pkg.version.minor === 1 &&
@@ -85,6 +88,12 @@ export function combinePackagesAndProjectDetails(
 			) {
 				return unityVersion[0] === 2019;
 			}
+		}
+
+		if ((isVrcSdk || isResolver) && pkg.unity != null) {
+			return (
+				unityVersion[0] === pkg.unity[0] && unityVersion[1] === pkg.unity[1]
+			);
 		}
 
 		return compareUnityVersion(pkg.unity, unityVersion) <= 0;
