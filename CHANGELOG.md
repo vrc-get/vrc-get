@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog].
   - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
 - Backslashes in path in zip file are now treated as path separator on unix `#2845`
   - This fixes problem with Gesture Manager 3.9.7
+- ALCOM / vrc-get now prevents installing VRCSDK for Unity 2022 to Unity 6000.x `#3006`
+  - This prevents installing VRCSDK to incompatible Unity.
+  - This check is not enforced error, you can ignore the error for testing purposes.
 
 ### Deprecated
 

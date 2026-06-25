@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Added "Duplicate Template" action in template row menu `#2990`
+- ALCOM / vrc-get now prevents installing VRCSDK for Unity 2022 to Unity 6000.x `#3006`
+  - This prevents installing VRCSDK to incompatible Unity.
+  - This check is not enforced error, you can ignore the error for testing purposes.
 
 ### Deprecated
 
