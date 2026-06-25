@@ -403,6 +403,7 @@
     "templates:tooltip:remove builtin template": "您不能删除内置模板。",
     "templates:tooltip:remove vcc template": "您不能在这里删除 VCC 模板。您应该直接删除该模板的目录。",
     "templates:menuitem:edit template": "编辑模板",
+    "templates:menuitem:duplicate template": "复制模板",
     "templates:menuitem:export template": "导出模板",
     "templates:tooltip:export template with unitypackage": "该模板使用了不可移植的 Unity 资源包（.unitypackage），所以您不可以导出它。",
     "templates:menuitem:open vcc template": "打开模板目录",
