@@ -1,3 +1,9 @@
+alcom (1.1.7~beta.1-1) stable;
+
+  * Upgraded version to 1.1.7-beta.1
+
+ -- anatawa12 <i@anatawa12.com>  Thu, 25 Jun 2026 15:43:43 +0000
+
 alcom (1.1.6-1) UNRELEASED; urgency=low
 
   * No changelog are provided for this package
