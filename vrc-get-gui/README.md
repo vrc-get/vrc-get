@@ -5,23 +5,21 @@
 [![Scoop Version][shields-scoop-version]][scoop-alcom]
 [![AUR Version][shields-aur-version]][aur-alcom]
 [![WinGet Version][shields-winget-version]][winget-alcom]
-<!-- [![MacPorts Version][shields-macports-vrc-get]][macports-vrc-get] -->
+[![MacPorts Version][shields-macports-version]][macports-alcom]
 
 [shields-github-version]: https://img.shields.io/github/v/release/vrc-get/vrc-get?filter=gui-v*
 [shields-homebrew-version]: https://img.shields.io/homebrew/cask/v/alcom
 [shields-scoop-version]: https://img.shields.io/scoop/v/vrc-alcom?bucket=https%3A%2F%2Fgithub.com%2Fbabo4d%2Fscoop-xrtools
 [shields-aur-version]: https://img.shields.io/aur/version/alcom
 [shields-winget-version]: https://img.shields.io/winget/v/anatawa12.ALCOM
-<!-- [shields-macports-vrc-get]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fports.macports.org%2Fapi%2Fv1%2Fports%2Falcom%2F&query=%24.version&label=macports -->
-
-<!-- TODO: macports: https://github.com/badges/shields/issues/9588 -->
+[shields-macports-version]: https://img.shields.io/macports/v/alcom
 
 [release-alcom]: https://github.com/vrc-get/vrc-get/releases?q=gui-v1
 [homebrew-alcom]: https://formulae.brew.sh/cask/alcom
 [scoop-alcom]: https://github.com/babo4d/scoop-xrtools/blob/master/bucket/vrc-alcom.json
 [aur-alcom]: https://aur.archlinux.org/packages/alcom
 [winget-alcom]: https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/anatawa12/ALCOM
-<!-- [macports-vrc-get]: https://ports.macports.org/port/alcom -->
+[macports-alcom]: https://ports.macports.org/port/alcom
 
 [scoop-xrtools]: https://github.com/babo4d/scoop-xrtools/
 
