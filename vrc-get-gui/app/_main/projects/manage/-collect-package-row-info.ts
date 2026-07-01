@@ -412,6 +412,8 @@ export function combinePackagesAndProjectDetails(
 			const pkgId = [...toRemove].pop()!;
 			toRemove.delete(pkgId);
 
+			const packageRowInfo = packagesTable.get(pkgId);
+			if (packageRowInfo?.installed != null) continue;
 			if (!packagesTable.delete(pkgId)) continue; // already removed
 
 			const dependants = dependantPackages.get(pkgId);
@@ -423,6 +425,7 @@ export function combinePackagesAndProjectDetails(
 	if (project) {
 		for (const [_, pkg] of project.installed_packages) {
 			for (const legacyPackage of pkg.legacy_packages) {
+				if (packagesTable.get(legacyPackage)?.installed != null) continue;
 				packagesTable.delete(legacyPackage);
 			}
 		}
