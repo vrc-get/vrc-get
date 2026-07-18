@@ -312,10 +312,20 @@ impl Settings {
     }
 
     pub fn export_repositories(&self) -> String {
+        self.export_repositories_matching(|_| true)
+    }
+
+    pub fn export_repositories_matching(
+        &self,
+        mut filter: impl FnMut(&UserRepoSetting) -> bool,
+    ) -> String {
         let mut builder = String::new();
 
         for setting in self.get_user_repos() {
             let Some(url) = setting.url() else { continue };
+            if !filter(setting) {
+                continue;
+            }
             if setting.headers().is_empty() {
                 writeln!(builder, "{url}").unwrap();
             } else {
