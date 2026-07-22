@@ -191,6 +191,7 @@ impl serde::Serialize for UnityVersion {
     }
 }
 
+#[cfg(feature = "version-serde")]
 impl<'de> serde::Deserialize<'de> for UnityVersion {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
