@@ -10,8 +10,16 @@
   #error WebView2SetupPath is not defined. Define with -DWebView2SetupPath=
 #endif
 
-#ifndef ApplicationPath
-  #error ApplicationPath is not defined. Define with -DApplicationPath=LicensePath
+#if !Defined(ApplicationPath) && !Defined(ApplicationPathX64) && !Defined(ApplicationPathArm64)
+  #error None of ApplicationPath, ApplicationPathX64, nor ApplicationPathArm64 are not defined. Define with -DApplicationPath=
+#endif
+
+#if Defined(ApplicationPath) && (Defined(ApplicationPathX64) || Defined(ApplicationPathArm64))
+  #error ApplicationPath is defined but ApplicationPathX64 or ApplicationPathArm64 is also defined. Only one of them should be defined.
+#endif
+
+#if (Defined(ApplicationPathX64) || Defined(ApplicationPathArm64)) && (!Defined(ApplicationPathX64) || !Defined(ApplicationPathArm64))
+  #error One of ApplicationPathX64 or ApplicationPathArm64 is defined but not all of them.
 #endif
 
 #ifndef LicensePath
@@ -57,6 +65,7 @@ WizardStyle=modern dynamic
 ; this would cause ALCOM to be installed to multiple location, but user may move ALCOM
 ; without uninstalling ALCOM so this is 'safer' option than normal one.
 DisableDirPage=no
+// SetupArchitecture=x64 # We'll enable when inno setup 7 is released
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -66,8 +75,13 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
+#if Defined(ApplicationPath)
 Source: "{#ApplicationPath}"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
-Source: "{#WebView2SetupPath}"; DestName: "MicrosoftEdgeWebView2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+#else
+Source: "{#ApplicationPathX64}"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion; Check: IsX64Compatible and not IsArm64
+Source: "{#ApplicationPathArm64}"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion; Check: IsArm64
+#endif
+Source: "{#WebView2SetupPath}"; DestName: "MicrosoftEdgeWebView2Setup.exe"; Flags: dontcopy noencryption
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -162,6 +176,10 @@ var
   ResultCode: Integer;
 begin
   Result := False;
+
+  Log('Installing WebView2 since it is not installed.');
+
+  ExtractTemporaryFile('MicrosoftEdgeWebView2Setup.exe');
 
   InstallerPath :=
     ExpandConstant('{tmp}\MicrosoftEdgeWebView2Setup.exe');

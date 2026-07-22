@@ -14,6 +14,12 @@ export function toastNormal(message: ToastContent) {
 	});
 }
 
+export function toastWarning(message: ToastContent) {
+	toast.warning(wrapWithDiv(message), {
+		pauseOnFocusLoss: false,
+	});
+}
+
 export function toastInfo(message: ToastContent) {
 	toast.info(wrapWithDiv(message), {
 		pauseOnFocusLoss: false,

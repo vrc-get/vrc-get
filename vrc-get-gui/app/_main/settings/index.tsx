@@ -8,7 +8,7 @@ import {
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
 import type React from "react";
-import { Suspense, useEffect, useTransition } from "react";
+import { Suspense, useEffect, useEffectEvent, useTransition } from "react";
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import {
@@ -50,7 +50,6 @@ import {
 	toastSuccess,
 	toastThrownError,
 } from "@/lib/toast";
-import { useEffectEvent } from "@/lib/use-effect-event";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_main/settings/")({

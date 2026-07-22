@@ -1,32 +1,134 @@
 use crate::io;
 use crate::io::DefaultProjectIo;
 use crate::unity_project::LockedDependencyInfo;
-use crate::utils::{SaveController, load_json_or_default, save_json};
+use crate::utils::SaveController;
+use crate::utils::json::{
+    JsonError, JsonObject, JsonValue, save_json, to_vec_pretty_os_eol, try_load_json,
+};
 use crate::version::{DependencyRange, Version, VersionRange};
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 const MANIFEST_PATH: &str = "Packages/vpm-manifest.json";
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 struct AsJson {
-    #[serde(default)]
     dependencies: IndexMap<Box<str>, VpmDependency>,
-    #[serde(default)]
     locked: IndexMap<Box<str>, VpmLockedDependency>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 struct VpmDependency {
     pub version: DependencyRange,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 struct VpmLockedDependency {
     pub version: Version,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dependencies: Option<IndexMap<Box<str>, VersionRange>>,
+}
+
+impl AsJson {
+    fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        let object = value.into_object()?;
+        Ok(Self {
+            dependencies: object
+                .get_opt("dependencies")
+                .try_map(|value| {
+                    (value.into_object())?
+                        .into_iter()
+                        .map(|(key, value)| {
+                            Ok((key.into(), VpmDependency::from_json_value(value)?))
+                        })
+                        .collect::<Result<_, JsonError>>()
+                })?
+                .unwrap_or_else(IndexMap::new),
+
+            locked: object
+                .get_opt("locked")
+                .try_map(|value| {
+                    (value.into_object())?
+                        .into_iter()
+                        .map(|(key, value)| {
+                            Ok((key.into(), VpmLockedDependency::from_json_value(value)?))
+                        })
+                        .collect::<Result<_, JsonError>>()
+                })?
+                .unwrap_or_else(IndexMap::new),
+        })
+    }
+
+    fn to_json_value(&self) -> JsonValue {
+        let mut object = JsonObject::new();
+
+        object.insert(
+            "dependencies",
+            self.dependencies
+                .iter()
+                .map(|(name, dep)| (name.to_string(), dep.to_json_value()))
+                .collect::<JsonObject>(),
+        );
+        object.insert(
+            "locked",
+            self.locked
+                .iter()
+                .map(|(name, dep)| (name.to_string(), dep.to_json_value()))
+                .collect::<JsonObject>(),
+        );
+        object.into()
+    }
+}
+
+impl VpmDependency {
+    fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        let mut object = value.into_object()?;
+        Ok(Self {
+            version: object
+                .get_req("version")?
+                .parse_req(|s| DependencyRange::from_str(&s))?,
+        })
+    }
+
+    fn to_json_value(&self) -> JsonValue {
+        let mut object = JsonObject::new();
+        object.insert("version", self.version.to_string());
+        object.into()
+    }
+}
+
+impl VpmLockedDependency {
+    fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        let mut object = value.into_object()?;
+        Ok(Self {
+            version: object
+                .get_req("version")?
+                .parse_req(|s| Version::from_str(&s))?,
+
+            dependencies: object.get_opt("dependencies").try_map(|value| {
+                (value.into_object())?
+                    .into_iter()
+                    .map(|(key, value)| {
+                        Ok((key.into(), value.parse_req(|s| VersionRange::from_str(&s))?))
+                    })
+                    .collect::<Result<_, JsonError>>()
+            })?,
+        })
+    }
+
+    fn to_json_value(&self) -> JsonValue {
+        let mut object = JsonObject::new();
+        object.insert("version", self.version.to_string());
+        if let Some(dependencies) = &self.dependencies {
+            object.insert(
+                "dependencies",
+                dependencies
+                    .iter()
+                    .map(|(name, value)| (name.as_ref(), value.to_string()))
+                    .collect::<JsonObject>(),
+            );
+        }
+        object.into()
+    }
 }
 
 #[derive(Debug)]
@@ -38,7 +140,9 @@ impl VpmManifest {
     pub(super) async fn load(io: &DefaultProjectIo) -> io::Result<Self> {
         Ok(Self {
             controller: SaveController::new(
-                load_json_or_default(io, MANIFEST_PATH.as_ref()).await?,
+                try_load_json(io, MANIFEST_PATH.as_ref(), AsJson::from_json_value)
+                    .await?
+                    .unwrap_or_else(Default::default),
             ),
         })
     }
@@ -107,11 +211,11 @@ impl VpmManifest {
 
     pub(super) async fn save(&mut self, io: &DefaultProjectIo) -> io::Result<()> {
         self.controller
-            .save(|json| save_json(io, MANIFEST_PATH.as_ref(), json))
+            .save(|json| save_json(io, MANIFEST_PATH.as_ref(), json.to_json_value()))
             .await
     }
 
     pub(super) fn to_json(&self) -> io::Result<Vec<u8>> {
-        crate::utils::to_vec_pretty_os_eol(&*self.controller)
+        to_vec_pretty_os_eol(&self.controller.to_json_value())
     }
 }

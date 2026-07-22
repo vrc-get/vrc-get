@@ -1,14 +1,43 @@
 "use client";
 
 import {
+	type CollisionDetection,
+	closestCenter,
+	DndContext,
+	type DragEndEvent,
+	type DragOverEvent,
+	DragOverlay,
+	type DragStartEvent,
+	defaultDropAnimation,
+	defaultDropAnimationSideEffects,
+	type Modifier,
+	PointerSensor,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
+import {
+	arrayMove,
+	SortableContext,
+	useSortable,
+	verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
 	queryOptions,
 	useMutation,
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, CircleX } from "lucide-react";
-import { Suspense, useCallback, useEffect, useId, useMemo } from "react";
+import { ChevronDown, CircleX, GripVertical } from "lucide-react";
+import {
+	Suspense,
+	useCallback,
+	useEffect,
+	useId,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { HNavBar, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Button } from "@/components/ui/button";
@@ -41,6 +70,8 @@ export const Route = createFileRoute("/_main/packages/repositories/")({
 	component: Page,
 });
 
+type UserRepoWithListId = TauriUserRepository & { listId: string };
+
 function Page() {
 	return (
 		<Suspense>
@@ -49,10 +80,98 @@ function Page() {
 	);
 }
 
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({
+	...transform,
+	x: 0,
+});
+
+const DRAG_OVERLAY_MODIFIERS = [restrictToVerticalAxis];
+
+const customDropAnimation: typeof defaultDropAnimation = {
+	...defaultDropAnimation,
+	sideEffects: defaultDropAnimationSideEffects({
+		styles: {
+			active: { opacity: "0" },
+		},
+	}),
+};
+
+const TABLE_HEAD = [
+	"", // checkbox
+	"general:name",
+	"vpm repositories:url",
+	"", // actions
+	"", // grip handle
+] as const;
+
 const environmentRepositoriesInfo = queryOptions({
 	queryKey: ["environmentRepositoriesInfo"],
 	queryFn: commands.environmentRepositoriesInfo,
 });
+
+// Scrolls the given viewport element when the pointer is near the top or bottom
+// edge during drag. dnd-kit's built-in autoscroll is disabled because it causes
+// jitter with Radix UI ScrollArea (wrong container detection + double-smoothing).
+function useDragAutoScroll(
+	viewportRef: React.RefObject<HTMLElement | null>,
+	isActive: boolean,
+): void {
+	useEffect(() => {
+		if (!isActive) return;
+
+		const THRESHOLD = 80; // px from edge to begin scrolling
+		const MAX_SPEED = 15; // px/frame at the very edge
+
+		let pointerY = 0;
+		const onPointerMove = (e: PointerEvent) => {
+			pointerY = e.clientY;
+		};
+		window.addEventListener("pointermove", onPointerMove, { passive: true });
+
+		let rafId: number;
+		const tick = () => {
+			const viewport = viewportRef.current;
+			if (viewport) {
+				const { top, bottom } = viewport.getBoundingClientRect();
+				const distFromTop = pointerY - top;
+				const distFromBottom = bottom - pointerY;
+
+				let delta = 0;
+				if (distFromTop >= 0 && distFromTop < THRESHOLD) {
+					delta = -MAX_SPEED * (1 - distFromTop / THRESHOLD);
+				} else if (distFromBottom >= 0 && distFromBottom < THRESHOLD) {
+					delta = MAX_SPEED * (1 - distFromBottom / THRESHOLD);
+				}
+
+				if (delta !== 0) {
+					viewport.scrollTo({
+						top: viewport.scrollTop + delta,
+						behavior: "instant",
+					});
+				}
+			}
+			rafId = requestAnimationFrame(tick);
+		};
+		rafId = requestAnimationFrame(tick);
+
+		return () => {
+			window.removeEventListener("pointermove", onPointerMove);
+			cancelAnimationFrame(rafId);
+		};
+	}, [isActive, viewportRef]);
+}
+
+function computeSlotKey(repo: TauriUserRepository, used: Set<string>): string {
+	const base = `${repo.id} ${repo.url ?? ""}`;
+	let key = base;
+	let counter = 0;
+	while (used.has(key)) {
+		counter++;
+		key = `${base} ${counter}`;
+	}
+	used.add(key);
+	return key;
+}
 
 function PageBody() {
 	const result = useQuery(environmentRepositoriesInfo);
@@ -95,140 +214,110 @@ function PageBody() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	const bodyAnimation = usePrevPathName().startsWith("/packages")
-		? "slide-right"
-		: "";
+	const guiAnimation = useQuery({
+		queryKey: ["environmentGuiAnimation"],
+		queryFn: commands.environmentGuiAnimation,
+		initialData: true,
+	}).data;
 
-	return (
-		<VStack>
-			<HNavBar
-				className="shrink-0"
-				leading={<HeadingPageName pageType={"/packages/repositories"} />}
-				trailing={
-					<DropdownMenu>
-						<div className={"flex divide-x"}>
-							<Button
-								className={"rounded-r-none compact:h-10"}
-								onClick={() => openAddRepositoryDialog()}
-							>
-								{tc("vpm repositories:button:add repository")}
-							</Button>
-							<DropdownMenuTrigger
-								asChild
-								className={"rounded-l-none pl-2 pr-2 compact:h-10"}
-							>
-								<Button>
-									<ChevronDown className={"w-4 h-4"} />
-								</Button>
-							</DropdownMenuTrigger>
-						</div>
-						<DropdownMenuContent>
-							<DropdownMenuItem
-								onClick={() => importRepositoriesMutation.mutate()}
-							>
-								{tc("vpm repositories:button:import repositories")}
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => exportRepositories.mutate()}>
-								{tc("vpm repositories:button:export repositories")}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				}
-			/>
-			<main
-				className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
-			>
-				<ScrollableCardTable className={"h-full w-full"}>
-					<RepositoryTableBody
-						userRepos={result.data?.user_repositories || []}
-						hiddenUserRepos={hiddenUserRepos}
-					/>
-				</ScrollableCardTable>
-			</main>
-		</VStack>
+	const userRepos = result.data?.user_repositories;
+
+	const listIdMapRef = useRef<Map<string, string>>(new Map());
+
+	const augmentedUserRepos = useMemo<UserRepoWithListId[]>(() => {
+		if (!userRepos) {
+			listIdMapRef.current = new Map();
+			return [];
+		}
+		const prev = listIdMapRef.current;
+		const next = new Map<string, string>();
+		const usedKeys = new Set<string>();
+		const result: UserRepoWithListId[] = [];
+
+		for (const r of userRepos) {
+			const key = computeSlotKey(r, usedKeys);
+			const listId = prev.get(key) ?? crypto.randomUUID();
+			next.set(key, listId);
+			result.push({ ...r, listId });
+		}
+
+		listIdMapRef.current = next;
+		return result;
+	}, [userRepos]);
+
+	const [orderedListIds, setOrderedListIds] = useState<string[]>(() =>
+		augmentedUserRepos.map((r) => r.listId),
 	);
-}
 
-function RepositoryTableBody({
-	userRepos,
-	hiddenUserRepos,
-}: {
-	userRepos: TauriUserRepository[];
-	hiddenUserRepos: Set<string>;
-}) {
-	const TABLE_HEAD = [
-		"", // checkbox
-		"general:name",
-		"vpm repositories:url",
-		"", // actions
-	];
+	useEffect(() => {
+		setOrderedListIds(augmentedUserRepos.map((r) => r.listId));
+	}, [augmentedUserRepos]);
 
-	return (
-		<>
-			<thead>
-				<tr>
-					{TABLE_HEAD.map((head, index) => (
-						<th
-							// biome-ignore lint/suspicious/noArrayIndexKey: static array
-							key={index}
-							className={
-								"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground px-2.5 py-1.5"
-							}
-						>
-							<small className="font-normal leading-none">{tc(head)}</small>
-						</th>
-					))}
-				</tr>
-			</thead>
-			<tbody>
-				<RepositoryRow
-					repoId={"com.vrchat.repos.official"}
-					url={"https://packages.vrchat.com/official?download"}
-					displayName={tt("vpm repositories:source:official")}
-					hiddenUserRepos={hiddenUserRepos}
-					canRemove={false}
-				/>
-				<RepositoryRow
-					repoId={"com.vrchat.repos.curated"}
-					url={"https://packages.vrchat.com/curated?download"}
-					displayName={tt("vpm repositories:source:curated")}
-					hiddenUserRepos={hiddenUserRepos}
-					className={"border-b border-primary/10"}
-					canRemove={false}
-				/>
-				{userRepos.map((repo) => (
-					<RepositoryRow
-						key={repo.id}
-						repoId={repo.id}
-						displayName={repo.display_name}
-						url={repo.url}
-						hiddenUserRepos={hiddenUserRepos}
-					/>
-				))}
-			</tbody>
-		</>
+	const userRepoByListId = useMemo(
+		() => new Map(augmentedUserRepos.map((r) => [r.listId, r])),
+		[augmentedUserRepos],
 	);
-}
 
-function RepositoryRow({
-	repoId,
-	displayName,
-	url,
-	hiddenUserRepos,
-	className,
-	canRemove = true,
-}: {
-	repoId: TauriUserRepository["id"];
-	displayName: TauriUserRepository["display_name"];
-	url: TauriUserRepository["url"];
-	hiddenUserRepos: Set<string>;
-	className?: string;
-	canRemove?: boolean;
-}) {
-	const cellClass = "p-2.5 compact:py-1";
-	const id = useId();
+	const userRepoByListIdRef =
+		useRef<Map<string, UserRepoWithListId>>(userRepoByListId);
+	useEffect(() => {
+		userRepoByListIdRef.current = userRepoByListId;
+	}, [userRepoByListId]);
+
+	const [activeId, setActiveId] = useState<string | null>(null);
+	const [overId, setOverId] = useState<string | null>(null);
+	const [columnWidths, setColumnWidths] = useState<number[]>([]);
+	const theadRowRef = useRef<HTMLTableRowElement>(null);
+	const scrollViewportRef = useRef<HTMLDivElement>(null);
+
+	const sensors = useSensors(useSensor(PointerSensor));
+
+	const orderedListIdsSet = useMemo(
+		() => new Set(orderedListIds),
+		[orderedListIds],
+	);
+
+	const collisionDetection = useCallback<CollisionDetection>(
+		(args) =>
+			closestCenter({
+				...args,
+				droppableContainers: args.droppableContainers.filter((c) =>
+					orderedListIdsSet.has(c.id as string),
+				),
+			}),
+		[orderedListIdsSet],
+	);
 
 	const queryClient = useQueryClient();
+	const reorderMutation = useMutation({
+		mutationFn: (listIds: string[]) => {
+			const repos = listIds
+				.map((lid) => userRepoByListId.get(lid))
+				.filter((r): r is UserRepoWithListId => r !== undefined)
+				.map((r) => ({ index: r.index, id: r.id }));
+			return commands.environmentReorderRepositories(repos);
+		},
+		// Pin listIds to the new positions so duplicate-keyed rows don't swap their listIds on refetch.
+		onMutate: (newListIds: string[]) => {
+			const prevMap = new Map(listIdMapRef.current);
+			const rebuilt = new Map<string, string>();
+			const usedKeys = new Set<string>();
+			for (const lid of newListIds) {
+				const repo = userRepoByListIdRef.current.get(lid);
+				if (!repo) continue;
+				const key = computeSlotKey(repo, usedKeys);
+				rebuilt.set(key, lid);
+			}
+			listIdMapRef.current = rebuilt;
+			return { prevMap };
+		},
+		onSettled: () => queryClient.invalidateQueries(environmentRepositoriesInfo),
+		onError: (e, _newListIds, ctx) => {
+			if (ctx?.prevMap) listIdMapRef.current = ctx.prevMap;
+			toastThrownError(e);
+		},
+	});
+
 	const setHideRepository = useMutation({
 		mutationFn: async ({ id, shown }: { id: string; shown: boolean }) => {
 			if (shown) {
@@ -273,72 +362,483 @@ function RepositoryRow({
 		},
 	});
 
+	const activeVisualIndex = useMemo(() => {
+		if (!activeId) return 0;
+		const effectiveId = overId ?? activeId;
+		return orderedListIds.indexOf(effectiveId) + 2; // +2 for the 2 fixed rows
+	}, [activeId, overId, orderedListIds]);
+
+	function handleDragStart(event: DragStartEvent) {
+		setActiveId(event.active.id as string);
+		if (theadRowRef.current) {
+			const widths = Array.from(
+				theadRowRef.current.querySelectorAll("th"),
+				(th) => th.getBoundingClientRect().width,
+			);
+			setColumnWidths(widths);
+		}
+	}
+
+	function handleDragOver(event: DragOverEvent) {
+		setOverId((event.over?.id as string | null) ?? null);
+	}
+
+	function handleDragEnd(event: DragEndEvent) {
+		setActiveId(null);
+		setOverId(null);
+		const { active, over } = event;
+		if (over && active.id !== over.id) {
+			const oldIndex = orderedListIds.indexOf(active.id as string);
+			const newIndex = orderedListIds.indexOf(over.id as string);
+			const newListIds = arrayMove(orderedListIds, oldIndex, newIndex);
+			setOrderedListIds(newListIds);
+			reorderMutation.mutate(newListIds);
+		}
+	}
+
+	function handleDragCancel() {
+		setActiveId(null);
+		setOverId(null);
+	}
+
+	useDragAutoScroll(scrollViewportRef, activeId !== null);
+
+	const bodyAnimation = usePrevPathName().startsWith("/packages")
+		? "slide-right"
+		: "";
+
+	return (
+		<DndContext
+			sensors={sensors}
+			collisionDetection={collisionDetection}
+			autoScroll={false}
+			onDragStart={handleDragStart}
+			onDragOver={handleDragOver}
+			onDragEnd={handleDragEnd}
+			onDragCancel={handleDragCancel}
+		>
+			<VStack>
+				<div style={activeId !== null ? { pointerEvents: "none" } : undefined}>
+					<HNavBar
+						className="shrink-0"
+						leading={<HeadingPageName pageType={"/packages/repositories"} />}
+						trailing={
+							<DropdownMenu>
+								<div className={"flex divide-x"}>
+									<Button
+										className={"rounded-r-none compact:h-10"}
+										onClick={() => openAddRepositoryDialog()}
+									>
+										{tc("vpm repositories:button:add repository")}
+									</Button>
+									<DropdownMenuTrigger
+										asChild
+										className={"rounded-l-none pl-2 pr-2 compact:h-10"}
+									>
+										<Button>
+											<ChevronDown className={"w-4 h-4"} />
+										</Button>
+									</DropdownMenuTrigger>
+								</div>
+								<DropdownMenuContent>
+									<DropdownMenuItem
+										onClick={() => importRepositoriesMutation.mutate()}
+									>
+										{tc("vpm repositories:button:import repositories")}
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => exportRepositories.mutate()}>
+										{tc("vpm repositories:button:export repositories")}
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						}
+					/>
+				</div>
+				<main
+					className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
+				>
+					<ScrollableCardTable
+						className={"h-full w-full"}
+						viewportRef={scrollViewportRef}
+					>
+						<RepositoryTableBody
+							orderedListIds={orderedListIds}
+							userRepoByListId={userRepoByListId}
+							hiddenUserRepos={hiddenUserRepos}
+							theadRowRef={theadRowRef}
+							guiAnimation={guiAnimation}
+							onToggleVisibility={(id, shown) =>
+								setHideRepository.mutate({ id, shown })
+							}
+							isDragActive={activeId !== null}
+						/>
+					</ScrollableCardTable>
+				</main>
+			</VStack>
+			<DragOverlay
+				modifiers={DRAG_OVERLAY_MODIFIERS}
+				dropAnimation={guiAnimation ? customDropAnimation : null}
+			>
+				{activeId ? (
+					<RepositoryDragOverlay
+						repo={userRepoByListId.get(activeId)}
+						selected={
+							!hiddenUserRepos.has(userRepoByListId.get(activeId)?.id ?? "")
+						}
+						columnWidths={columnWidths}
+						visualIndex={activeVisualIndex}
+						guiAnimation={guiAnimation}
+					/>
+				) : null}
+			</DragOverlay>
+		</DndContext>
+	);
+}
+
+function RepositoryTableBody({
+	orderedListIds,
+	userRepoByListId,
+	hiddenUserRepos,
+	theadRowRef,
+	guiAnimation,
+	onToggleVisibility,
+	isDragActive,
+}: {
+	orderedListIds: string[];
+	userRepoByListId: Map<string, UserRepoWithListId>;
+	hiddenUserRepos: Set<string>;
+	theadRowRef: React.RefObject<HTMLTableRowElement | null>;
+	guiAnimation: boolean;
+	onToggleVisibility: (id: string, shown: boolean) => void;
+	isDragActive: boolean;
+}) {
+	return (
+		<>
+			<thead>
+				<tr ref={theadRowRef}>
+					{TABLE_HEAD.map((head, index) => (
+						<th
+							// biome-ignore lint/suspicious/noArrayIndexKey: static array
+							key={index}
+							className={
+								"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground px-2.5 py-1.5"
+							}
+						>
+							<small className="font-normal leading-none">{tc(head)}</small>
+						</th>
+					))}
+				</tr>
+			</thead>
+			<tbody>
+				<RepositoryRow
+					repoId={"com.vrchat.repos.official"}
+					url={"https://packages.vrchat.com/official?download"}
+					displayName={tt("vpm repositories:source:official")}
+					hiddenUserRepos={hiddenUserRepos}
+					canRemove={false}
+					rowIndex={0}
+					guiAnimation={guiAnimation}
+					onToggleVisibility={onToggleVisibility}
+					isDragActive={isDragActive}
+				/>
+				<RepositoryRow
+					repoId={"com.vrchat.repos.curated"}
+					url={"https://packages.vrchat.com/curated?download"}
+					displayName={tt("vpm repositories:source:curated")}
+					hiddenUserRepos={hiddenUserRepos}
+					className={"border-b border-primary/10"}
+					canRemove={false}
+					rowIndex={1}
+					guiAnimation={guiAnimation}
+					onToggleVisibility={onToggleVisibility}
+					isDragActive={isDragActive}
+				/>
+				<SortableContext
+					items={orderedListIds}
+					strategy={verticalListSortingStrategy}
+				>
+					{orderedListIds.map((listId, index) => {
+						const repo = userRepoByListId.get(listId);
+						if (!repo) return null;
+						return (
+							<RepositoryRow
+								key={listId}
+								listId={listId}
+								repoId={repo.id}
+								repoIndex={repo.index}
+								displayName={repo.display_name}
+								url={repo.url}
+								hiddenUserRepos={hiddenUserRepos}
+								rowIndex={2 + index}
+								guiAnimation={guiAnimation}
+								onToggleVisibility={onToggleVisibility}
+								isDragActive={isDragActive}
+							/>
+						);
+					})}
+				</SortableContext>
+			</tbody>
+		</>
+	);
+}
+
+const CELL_CLASS = "p-2.5 compact:py-1 align-middle";
+
+function RepositoryRowCells({
+	labelId,
+	displayName,
+	url,
+	canRemove,
+	selected,
+	onCheckedChange,
+	onRemove,
+	dragListeners,
+	dragAttributes,
+}: {
+	labelId?: string;
+	displayName: string;
+	url: string | null | undefined;
+	canRemove: boolean;
+	selected: boolean;
+	onCheckedChange?: (shown: boolean) => void;
+	onRemove?: () => void;
+	dragListeners?: ReturnType<typeof useSortable>["listeners"];
+	dragAttributes?: ReturnType<typeof useSortable>["attributes"];
+}) {
+	const interactive = onCheckedChange !== undefined;
+	return (
+		<>
+			<td className={CELL_CLASS}>
+				{interactive ? (
+					<div className="flex">
+						<Checkbox
+							id={labelId}
+							checked={selected}
+							onCheckedChange={(x) => onCheckedChange(x === true)}
+						/>
+					</div>
+				) : (
+					<div className="pointer-events-none flex">
+						<Checkbox checked={selected} />
+					</div>
+				)}
+			</td>
+			<td className={CELL_CLASS}>
+				{interactive ? (
+					<label htmlFor={labelId}>
+						<p className="font-normal">{displayName}</p>
+					</label>
+				) : (
+					<p className="font-normal">{displayName}</p>
+				)}
+			</td>
+			<td className={CELL_CLASS}>
+				<p className="font-normal">{url}</p>
+			</td>
+			<td className={`${CELL_CLASS} w-0`}>
+				{interactive ? (
+					<Tooltip>
+						<TooltipTrigger asChild={canRemove}>
+							<Button
+								disabled={!canRemove}
+								onClick={onRemove}
+								variant={"ghost"}
+								size={"icon"}
+							>
+								<CircleX className={"size-5 text-destructive"} />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							{canRemove
+								? tc("vpm repositories:remove repository")
+								: tc(
+										"vpm repositories:tooltip:remove curated or official repository",
+									)}
+						</TooltipContent>
+					</Tooltip>
+				) : (
+					<Button variant={"ghost"} size={"icon"} disabled>
+						<CircleX className={"size-5 text-destructive"} />
+					</Button>
+				)}
+			</td>
+			<td
+				className={cn(
+					CELL_CLASS,
+					"w-0",
+					canRemove ? "cursor-move" : "cursor-not-allowed",
+				)}
+				{...(canRemove ? dragListeners : undefined)}
+				{...(canRemove ? dragAttributes : undefined)}
+			>
+				<GripVertical
+					className={cn(
+						"size-5 text-muted-foreground",
+						!canRemove && "opacity-50",
+					)}
+				/>
+			</td>
+		</>
+	);
+}
+
+function RepositoryRow({
+	listId,
+	repoId,
+	repoIndex,
+	displayName,
+	url,
+	hiddenUserRepos,
+	className,
+	canRemove = true,
+	rowIndex,
+	guiAnimation,
+	onToggleVisibility,
+	isDragActive,
+}: {
+	listId?: string;
+	repoId: TauriUserRepository["id"];
+	repoIndex?: number;
+	displayName: TauriUserRepository["display_name"];
+	url: TauriUserRepository["url"];
+	hiddenUserRepos: Set<string>;
+	className?: string;
+	canRemove?: boolean;
+	rowIndex: number;
+	guiAnimation: boolean;
+	onToggleVisibility: (id: string, shown: boolean) => void;
+	isDragActive: boolean;
+}) {
+	const labelId = useId();
+
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable({ id: listId ?? repoId, disabled: !canRemove });
+
+	const visualIndex = useMemo(() => {
+		if (isDragging) return rowIndex;
+		const dy = transform?.y ?? 0;
+		if (dy < 0) return rowIndex - 1;
+		if (dy > 0) return rowIndex + 1;
+		return rowIndex;
+	}, [rowIndex, transform?.y, isDragging]);
+
+	const dragStyle = useMemo<React.CSSProperties>(
+		() => ({
+			transform: transform ? `translateY(${transform.y}px)` : undefined,
+			transition: guiAnimation
+				? [transition, isDragActive ? undefined : "background-color 200ms ease"]
+						.filter(Boolean)
+						.join(", ") || undefined
+				: undefined,
+			opacity: isDragging ? 0 : 1,
+			position: "relative",
+		}),
+		[transform, transition, isDragging, guiAnimation, isDragActive],
+	);
+
 	const selected = !hiddenUserRepos.has(repoId);
 
 	return (
-		<tr className={cn("even:bg-secondary/30", className)}>
-			<td className={cellClass}>
-				<Checkbox
-					id={id}
-					checked={selected}
-					onCheckedChange={(x) =>
-						setHideRepository.mutate({ id: repoId, shown: x === true })
-					}
-				/>
-			</td>
-			<td className={cellClass}>
-				<label htmlFor={id}>
-					<p className="font-normal">{displayName}</p>
-				</label>
-			</td>
-			<td className={cellClass}>
-				<p className="font-normal">{url}</p>
-			</td>
-			<td className={`${cellClass} w-0`}>
-				<Tooltip>
-					<TooltipTrigger asChild={canRemove}>
-						<Button
-							disabled={!canRemove}
-							onClick={() => {
-								void openSingleDialog(RemoveRepositoryDialog, {
-									displayName,
-									id: repoId,
-								});
-							}}
-							variant={"ghost"}
-							size={"icon"}
-						>
-							<CircleX className={"size-5 text-destructive"} />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent>
-						{canRemove
-							? tc("vpm repositories:remove repository")
-							: tc(
-									"vpm repositories:tooltip:remove curated or official repository",
-								)}
-					</TooltipContent>
-				</Tooltip>
-			</td>
+		<tr
+			ref={setNodeRef}
+			style={dragStyle}
+			className={cn(visualIndex % 2 === 1 ? "bg-secondary/30" : "", className)}
+		>
+			<RepositoryRowCells
+				labelId={labelId}
+				displayName={displayName}
+				url={url}
+				canRemove={canRemove}
+				selected={selected}
+				onCheckedChange={(shown) => onToggleVisibility(repoId, shown)}
+				onRemove={() =>
+					void openSingleDialog(RemoveRepositoryDialog, {
+						displayName,
+						index: repoIndex ?? 0,
+						id: repoId,
+					})
+				}
+				dragListeners={listeners}
+				dragAttributes={attributes}
+			/>
 		</tr>
+	);
+}
+
+function RepositoryDragOverlay({
+	repo,
+	selected,
+	columnWidths,
+	visualIndex,
+	guiAnimation,
+}: {
+	repo: TauriUserRepository | undefined;
+	selected: boolean;
+	columnWidths: number[];
+	visualIndex: number;
+	guiAnimation: boolean;
+}) {
+	const style = useMemo<React.CSSProperties>(
+		() => ({
+			transition: guiAnimation ? "background-color 200ms ease" : undefined,
+		}),
+		[guiAnimation],
+	);
+
+	if (!repo) return null;
+	return (
+		<table
+			className={cn(
+				"w-full table-fixed text-left",
+				visualIndex % 2 === 1 ? "bg-secondary/30" : "",
+			)}
+			style={style}
+		>
+			{columnWidths.length > 0 && (
+				<colgroup>
+					{columnWidths.map((w, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: fixed column order
+						<col key={i} style={{ width: w }} />
+					))}
+				</colgroup>
+			)}
+			<tbody>
+				<tr>
+					<RepositoryRowCells
+						displayName={repo.display_name}
+						url={repo.url}
+						canRemove={true}
+						selected={selected}
+					/>
+				</tr>
+			</tbody>
+		</table>
 	);
 }
 
 function RemoveRepositoryDialog({
 	dialog,
 	displayName,
+	index,
 	id,
 }: {
 	dialog: DialogContext<void>;
 	displayName: string;
+	index: number;
 	id: string;
 }) {
 	const queryClient = useQueryClient();
 
 	const removeRepository = useMutation({
-		mutationFn: async (id: string) =>
-			await commands.environmentRemoveRepository(id),
-		onMutate: async (id) => {
+		mutationFn: async (args: { index: number; id: string }) =>
+			await commands.environmentRemoveRepository(args.index, args.id),
+		onMutate: async ({ index }) => {
 			await queryClient.cancelQueries(environmentRepositoriesInfo);
 			const data = queryClient.getQueryData(
 				environmentRepositoriesInfo.queryKey,
@@ -346,10 +846,18 @@ function RemoveRepositoryDialog({
 			if (data !== undefined) {
 				queryClient.setQueryData(environmentRepositoriesInfo.queryKey, {
 					...data,
-					user_repositories: data.user_repositories.filter((x) => x.id !== id),
+					user_repositories: data.user_repositories.filter(
+						(x) => x.index !== index,
+					),
 				});
 			}
+			return data;
 		},
+		onError: (e, _args, ctx) => {
+			queryClient.setQueryData(environmentRepositoriesInfo.queryKey, ctx);
+			toastThrownError(e);
+		},
+		onSettled: () => queryClient.invalidateQueries(environmentRepositoriesInfo),
 	});
 
 	return (
@@ -369,7 +877,7 @@ function RemoveRepositoryDialog({
 				<Button
 					onClick={() => {
 						dialog.close();
-						removeRepository.mutate(id);
+						removeRepository.mutate({ index, id });
 					}}
 					className={"ml-2"}
 				>

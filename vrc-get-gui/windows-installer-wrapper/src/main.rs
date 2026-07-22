@@ -13,12 +13,15 @@ use core::{
 use windows_sys::w;
 
 use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::Security::Cryptography::{
+    BCRYPT_USE_SYSTEM_PREFERRED_RNG, BCryptGenRandom,
+};
 use windows_sys::Win32::Storage::FileSystem::*;
-use windows_sys::Win32::System::Console::{GetStdHandle, STD_ERROR_HANDLE, WriteConsoleW};
+use windows_sys::Win32::System::Console::{GetStdHandle, STD_ERROR_HANDLE};
 use windows_sys::Win32::System::Environment::*;
 use windows_sys::Win32::System::Memory::*;
 use windows_sys::Win32::System::Threading::*;
-use windows_sys::Win32::UI::WindowsAndMessaging::SW_HIDE;
+use windows_sys::Win32::UI::WindowsAndMessaging::{MB_OK, MessageBoxW, SW_HIDE};
 
 static INSTALLER: &[u8] = include_bytes!(env!("INSTALLER_EXE"));
 
@@ -53,25 +56,27 @@ pub extern "system" fn WinMainCRTStartup() -> ! {
 
 fn main() -> ! {
     unsafe {
-        let path = match create_temp_file() {
+        let mut temps = TempInfo::default();
+        let handle = match create_temp_file(&mut temps) {
             Some(p) => p,
             None => {
                 error_out(wc!("Failed to create temporary file\n"));
                 ExitProcess(1)
             }
         };
-        let path = path.as_wcstr();
 
-        if write_installer(path).is_err() {
+        if write_installer(&handle).is_err() {
             error_out(wc!("writing to temporary file failed\n"));
             ExitProcess(2);
         }
+        drop(handle);
 
         let command_line = WCstr::from_cstr(GetCommandLineW());
         let command_line = command_line.remove_until(b' ' as u16).unwrap_or(wc!(""));
 
         let replace = command_line.contains(wc!("/UPDATE")) || command_line.contains(wc!("/P"));
 
+        let path = temps.tempfile.as_wcstr();
         let mut cmdline = match build_cmdline(path, replace) {
             Some(c) => c,
             None => ExitProcess(3),
@@ -79,45 +84,91 @@ fn main() -> ! {
 
         let code = run_and_wait(path, cmdline.as_mut());
 
-        DeleteFileW(path.as_ptr());
+        DeleteFileW(temps.tempfile.as_ptr());
+        DeleteFileW(temps.tempdir.as_ptr());
 
         ExitProcess(code);
     }
 }
 
-unsafe fn create_temp_file() -> Option<StackPath> {
-    unsafe {
-        let mut temp = StackPath::new();
-        if GetTempPathW(temp.capacity(), temp.as_mut_ptr()) == 0 {
-            return None;
-        }
-
-        let mut name = StackPath::new();
-
-        if GetTempFileNameW(temp.as_ptr(), w!("upd"), 0, name.as_mut_ptr()) == 0 {
-            return None;
-        }
-
-        Some(name)
-    }
+#[derive(Default)]
+struct TempInfo {
+    tempdir: StackPath,
+    tempfile: StackPath,
 }
 
-unsafe fn write_installer(path: &WCstr) -> Result<(), ()> {
+unsafe fn create_temp_file(temp_info: &mut TempInfo) -> Option<Handle> {
     unsafe {
-        let file = Handle::new(CreateFileW(
-            path.as_ptr(),
-            GENERIC_WRITE,
-            FILE_SHARE_READ,
-            null_mut(),
-            OPEN_EXISTING,
+        let mut temp_base = StackPath::new();
+        if GetTempPath2W(temp_base.capacity(), temp_base.as_mut_ptr()) == 0 {
+            return None;
+        }
+
+        const RAND_CHARS: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        const RANDOM_LEN: usize = 8;
+        const FILE_NAME: &WCstr = wc!("alcom-updater.exe");
+
+        let temp_base_len = temp_base.as_wcstr().len();
+        if temp_base_len + const { RANDOM_LEN + FILE_NAME.len() + 2 }
+            >= temp_info.tempfile.capacity() as _
+        {
+            return None;
+        }
+
+        // append random part
+        {
+            let mut rand_bytes = [0u8; RANDOM_LEN];
+            let status = BCryptGenRandom(
+                null_mut(),
+                rand_bytes.as_mut_ptr(),
+                rand_bytes.len() as u32,
+                BCRYPT_USE_SYSTEM_PREFERRED_RNG,
+            );
+            if status != STATUS_SUCCESS {
+                return None;
+            }
+
+            temp_info.tempdir = temp_base.copy();
+            for i in 0..RANDOM_LEN {
+                let index = (rand_bytes[i] as usize) % RAND_CHARS.len();
+                temp_info.tempdir.buf[temp_base_len + i] = RAND_CHARS[index] as _;
+            }
+            temp_info.tempdir.buf[temp_base_len + RANDOM_LEN] = 0; // typically no-op
+        }
+
+        // append file name
+        {
+            temp_info.tempfile = temp_info.tempdir.copy();
+            temp_info.tempfile.buf[temp_base_len + RANDOM_LEN] = b'\\' as _;
+            let base = temp_base_len + RANDOM_LEN + 1;
+            temp_info.tempfile.buf[base..][..FILE_NAME.len()].copy_from_slice(FILE_NAME.contents());
+            temp_info.tempfile.buf[base + FILE_NAME.len()] = 0; // typically no-op
+        }
+
+        if CreateDirectoryW(temp_info.tempdir.as_ptr(), null()) == FALSE {
+            return None;
+        }
+
+        let handle = Handle::new(CreateFileW(
+            temp_info.tempfile.as_ptr(),
+            FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+            FILE_SHARE_NONE,
+            null(),
+            CREATE_NEW,
             FILE_ATTRIBUTE_TEMPORARY,
             null_mut(),
         ));
-
-        if file.raw == INVALID_HANDLE_VALUE {
-            return Err(());
+        if handle.raw == INVALID_HANDLE_VALUE {
+            DeleteFileW(temp_info.tempdir.as_ptr());
+            return None;
         }
 
+        return Some(handle);
+    }
+}
+
+unsafe fn write_installer(file: &Handle) -> Result<(), ()> {
+    unsafe {
         let mut written = 0;
 
         if WriteFile(
@@ -264,10 +315,22 @@ struct StackPath {
     buf: [u16; MAX_PATH as usize],
 }
 
+impl core::default::Default for StackPath {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StackPath {
     fn new() -> StackPath {
         Self {
             buf: [0; MAX_PATH as usize],
+        }
+    }
+
+    fn copy(&self) -> StackPath {
+        StackPath {
+            buf: self.buf.clone(),
         }
     }
 
@@ -340,7 +403,7 @@ impl WCstr {
         ))
     }
 
-    fn len(&self) -> usize {
+    const fn len(&self) -> usize {
         self.0.len() - 1
     }
 
@@ -392,7 +455,7 @@ fn error_out(out: &WCstr) {
     unsafe {
         let stderr = GetStdHandle(STD_ERROR_HANDLE);
         let mut written = 0;
-        WriteConsoleW(stderr, out.as_ptr(), out.len() as u32, &mut written, null());
+        MessageBoxW(null_mut(), out.as_ptr(), w!("ALCOM UPDATER"), MB_OK);
     }
 }
 

@@ -55,6 +55,9 @@ export default defineConfig({
 			"@/build": path.join(__dirname, "./build"),
 		},
 	},
+	oxc: {
+		target: "es2025",
+	},
 	build: {
 		outDir: "out",
 		chunkSizeWarningLimit: Number.POSITIVE_INFINITY,

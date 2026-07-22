@@ -1,14 +1,12 @@
 use crate::utils::{self, build_dir, build_target, target_os};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 mod app;
 mod appimage;
-mod deb;
 mod dmg;
 mod linux;
-mod rpm;
 mod setup_exe;
 
 /// Individual bundle artifact that can be produced.
@@ -17,15 +15,21 @@ mod setup_exe;
 /// If `--bundles` is not specified, all artifacts for the target platform are produced.
 ///
 /// **macOS** artifacts:
-/// - `app` — `ALCOM.app` application bundle
-/// - `dmg` — `ALCOM_<version>_<arch>.dmg` disk image
-/// - `app-updater` — `ALCOM.app.tar.gz` updater payload
+/// - `app` - `ALCOM.app` application bundle
+/// - `dmg` - `ALCOM_<version>_<arch>.dmg` disk image
+/// - `app-updater` - `ALCOM.app.tar.gz` updater payload
 ///
 /// **Linux** artifacts:
-/// - `app-image` — `ALCOM_<version>_<arch>.AppImage`
-/// - `app-image-updater` — `ALCOM_<version>_<arch>.AppImage.tar.gz` updater payload
-/// - `deb` — `ALCOM_<version>_<arch>.deb` Debian package
-/// - `rpm` — `ALCOM-<version>-1.<arch>.rpm` RPM package
+/// - `app-image` - `ALCOM_<version>_<arch>.AppImage`
+/// - `app-image-updater` - `ALCOM_<version>_<arch>.AppImage.tar.gz` updater payload
+/// - `deb` - `ALCOM_<version>_<arch>.deb` Debian package
+/// - `rpm` - `ALCOM-<version>-1.<arch>.rpm` RPM package
+/// - `buildroot` - The package manager independent buildroot for external package managers.
+///
+/// **Windows** artifacts:
+/// - `setup-exe` - `-setup.exe` for first-time installation
+/// - `setup-exe-zip` - `-setup.exe.zip` to workaround warning from browsers
+/// - `exe-updater` - `-updater.exe` for the updater. This includes
 #[derive(clap::ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum BundleKind {
     // --- macOS ---
@@ -46,14 +50,18 @@ pub(crate) enum BundleKind {
     ///
     /// Unlike dmg depends on app, deb/rpm doesn't depend on this bundle.
     Buildroot,
-    /// Debian package
-    Deb,
-    /// RPM package
-    Rpm,
     /// Windows setup.exe
     SetupExe,
+    /// Windows setup.exe in zip (requires setup.exe to already exist in bundle dir)
+    SetupExeZip,
     /// Windows setup.exe for updater
     ExeUpdater,
+
+    // deleted
+    #[value(hide = true)]
+    Deb,
+    #[value(hide = true)]
+    Rpm,
 }
 
 /// Bundles the ALCOM application for the target platform.
@@ -87,7 +95,7 @@ pub(super) struct Command {
     /// Specific bundle artifacts to produce (comma-separated or repeated).
     ///
     /// When not specified, all artifacts for the target platform are produced.
-    /// Use this to split the bundling process — e.g. produce only `app` first,
+    /// Use this to split the bundling process - e.g. produce only `app` first,
     /// then sign it, then produce `dmg` and `app-updater`.
     #[arg(long, value_delimiter = ',')]
     bundles: Vec<BundleKind>,
@@ -104,6 +112,12 @@ impl crate::Command for Command {
         let ctx = BundleContext::new(self.target.as_deref(), self.profile.name())?;
 
         let bundles = self.bundles.as_slice();
+
+        if bundles.contains(&BundleKind::Deb) || bundles.contains(&BundleKind::Rpm) {
+            bail!(
+                "--bundles deb and --bundles rpm are removed. Please use native packaging configuration at vrc-get-gui/bundles"
+            )
+        }
 
         if bundles.is_empty() {
             println!("Note: no bundles are specified");
@@ -133,16 +147,12 @@ impl crate::Command for Command {
             linux::create_install_build_root(&ctx, self.buildroot.as_deref())?;
         }
 
-        if bundles.contains(&BundleKind::Deb) {
-            deb::create_deb(&ctx)?;
-        }
-
-        if bundles.contains(&BundleKind::Rpm) {
-            rpm::create_rpm(&ctx)?;
-        }
-
         if bundles.contains(&BundleKind::SetupExe) {
             setup_exe::create_setup_exe(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::SetupExeZip) {
+            setup_exe::create_setup_exe_zip(&ctx)?;
         }
 
         if bundles.contains(&BundleKind::ExeUpdater) {
@@ -164,31 +174,26 @@ pub(crate) struct BundleContext<'a> {
     pub target: Option<&'a str>,
     pub target_tuple: &'a str,
     pub profile: &'a str,
-    version: String,
+    version: &'static str,
 }
 
 impl<'a> BundleContext<'a> {
     pub fn new(target: Option<&'a str>, profile: &'a str) -> Result<Self> {
-        let metadata = utils::cargo::cargo_metadata();
-        let workspace_root = metadata.workspace_root.as_std_path();
+        let workspace_root = utils::cargo::workspace_root();
 
         let target_tuple = build_target(target);
         let build_dir = build_dir(target, profile);
 
         let gui_dir = workspace_root.join("vrc-get-gui");
 
-        let version = (metadata.packages.iter())
-            .find(|p| p.name == "vrc-get-gui")
-            .context("finding vrc-get-gui")?
-            .version
-            .to_string();
+        let version = utils::cargo::gui_version();
 
         let bundle_dir = build_dir.join("bundle");
 
         Ok(BundleContext {
             workspace_root,
             gui_dir,
-            host_build_dir: metadata.target_directory.as_std_path(),
+            host_build_dir: utils::cargo::target_directory(),
             build_dir,
             bundle_dir,
             target,
@@ -199,15 +204,7 @@ impl<'a> BundleContext<'a> {
     }
 
     pub fn version(&self) -> &str {
-        self.version.as_str()
-    }
-
-    pub fn short_description(&self) -> &str {
-        "ALCOM - Alternative Creator Companion"
-    }
-
-    pub fn long_description(&self) -> &str {
-        "ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
+        self.version
     }
 
     /// Binary name without extension (e.g. `ALCOM`).
@@ -238,6 +235,15 @@ impl<'a> BundleContext<'a> {
             self.build_dir.join(format!("{}.exe", self.binary_name()))
         } else {
             self.build_dir.join(self.binary_name())
+        }
+    }
+
+    /// Path to the compiled binary in the build directory.
+    pub fn binary_path_target(&self, target_tuple: &str) -> PathBuf {
+        if target_os(target_tuple) == "windows" {
+            build_dir(target_tuple, self.profile).join(format!("{}.exe", self.binary_name()))
+        } else {
+            build_dir(target_tuple, self.profile).join(self.binary_name())
         }
     }
 
@@ -284,4 +290,64 @@ pub(crate) fn create_tar_gz(src: &Path, archive_name: &str, out_path: &Path) -> 
 
     println!("created: {}", out_path.display());
     Ok(())
+}
+
+impl BundleContext<'_> {
+    // Linux only. We only support building "full" appimage on debian package world.
+    pub fn is_debian_like(&self) -> bool {
+        utils::dpkg::dpkg_apt_available()
+    }
+
+    // dpkg-query --listfiles -- libwebkit2gtk-4.1-0
+
+    pub fn debian_triple(&self) -> String {
+        let arch = match self.target_tuple.split_once('-').unwrap().0 {
+            "i486" | "i586" | "i686" => "i386", // i386 means x86 32bit
+            "armv7" => "arm",                   // arm means any arm 32bit
+            // most arch use as-is
+            default => default,
+        };
+        #[allow(clippy::match_single_binding)]
+        let abi = match self.target_tuple.rsplit_once('-').unwrap().1 {
+            // no known difference
+            default => default,
+        };
+        format!("{arch}-linux-{abi}")
+    }
+
+    pub fn find_library(&self, lib_name: &str) -> Option<Vec<String>> {
+        let triple = self.debian_triple();
+
+        for o_find_path in [
+            "/usr/local/lib/{triple}/",
+            "/lib/{triple}/",
+            "/usr/lib/{triple}/",
+            "/usr/local/lib/",
+            "/lib/",
+            "/usr/lib/",
+            "/usr/{triple}/lib/",
+        ] {
+            let orig_library_path = o_find_path.replace("{triple}", &triple);
+            let Ok(library_path) = fs::canonicalize(&orig_library_path) else {
+                continue;
+            };
+            let mut library_path = library_path.to_string_lossy().into_owned();
+            if !library_path.ends_with("/") {
+                library_path.push('/');
+            }
+            library_path.push_str(lib_name);
+            if Path::new(&library_path).exists() {
+                let should_add_orig = orig_library_path != library_path;
+                let mut paths = vec![library_path];
+                if should_add_orig {
+                    let mut new_library_path = orig_library_path.clone();
+                    new_library_path.push_str(lib_name);
+                    paths.push(new_library_path)
+                }
+                return Some(paths);
+            }
+        }
+
+        None
+    }
 }

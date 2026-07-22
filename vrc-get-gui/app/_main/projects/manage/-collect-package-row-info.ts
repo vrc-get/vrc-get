@@ -44,6 +44,7 @@ export interface PackageRowInfo {
 	unityIncompatible: Map<string, TauriPackage>;
 	sources: Set<string>;
 	isThereSource: boolean; // this will be true even if all sources are hidden
+	visibleSources: Set<string>;
 	installed: null | {
 		version: TauriVersion;
 		yanked: boolean;
@@ -68,15 +69,18 @@ export function combinePackagesAndProjectDetails(
 		pkg: TauriPackage,
 		unityVersion: [number, number] | null,
 	) {
+		// Keep in sync with rust logic
 		if (unityVersion == null) return true;
 		if (pkg.unity == null) return true;
 
 		// vrcsdk exceptions for unity version
-		if (VRCSDK_PACKAGES.includes(pkg.name)) {
+		const isVrcSdk = VRCSDK_PACKAGES.includes(pkg.name);
+		const isResolver = pkg.name === "com.vrchat.core.vpm-resolver";
+		if (isVrcSdk) {
 			if (pkg.version.major === 3 && pkg.version.minor <= 4) {
 				return unityVersion[0] === 2019;
 			}
-		} else if (pkg.name === "com.vrchat.core.vpm-resolver") {
+		} else if (isResolver) {
 			if (
 				pkg.version.major === 0 &&
 				pkg.version.minor === 1 &&
@@ -86,13 +90,21 @@ export function combinePackagesAndProjectDetails(
 			}
 		}
 
+		if ((isVrcSdk || isResolver) && pkg.unity != null) {
+			return (
+				unityVersion[0] === pkg.unity[0] && unityVersion[1] === pkg.unity[1]
+			);
+		}
+
 		return compareUnityVersion(pkg.unity, unityVersion) <= 0;
 	}
 
 	const yankedVersions = new Set<`${string}:${string}`>();
 	const knownPackages = new Set<string>();
 	const packagesPerRepository = new Map<string, TauriPackage[]>();
+	const hiddenPackagesPerRepository = new Map<string, TauriPackage[]>();
 	const userPackages: TauriPackage[] = [];
+	const hiddenUserPackages: TauriPackage[] = [];
 
 	for (const pkg of packages) {
 		if (!showPrereleasePackages && pkg.version.pre) continue;
@@ -107,13 +119,19 @@ export function combinePackagesAndProjectDetails(
 		let packages: TauriPackage[];
 		// check the repository is visible
 		if (pkg.source === "LocalUser") {
-			if (hideLocalUserPackages) continue;
-			packages = userPackages;
+			if (hideLocalUserPackages) {
+				packages = hiddenUserPackages;
+			} else {
+				packages = userPackages;
+			}
 		} else if ("Remote" in pkg.source) {
-			if (hiddenRepositoriesSet.has(pkg.source.Remote.id)) continue;
-
-			packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
-			packagesPerRepository.set(pkg.source.Remote.id, packages);
+			if (hiddenRepositoriesSet.has(pkg.source.Remote.id)) {
+				packages = hiddenPackagesPerRepository.get(pkg.source.Remote.id) ?? [];
+				hiddenPackagesPerRepository.set(pkg.source.Remote.id, packages);
+			} else {
+				packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
+				packagesPerRepository.set(pkg.source.Remote.id, packages);
+			}
 		} else {
 			assertNever(pkg.source);
 		}
@@ -138,6 +156,7 @@ export function combinePackagesAndProjectDetails(
 					unityIncompatible: new Map(),
 					sources: new Set(),
 					isThereSource: false,
+					visibleSources: new Set(),
 					installed: null,
 					latest: { status: "none" },
 					stableLatest: { status: "none" },
@@ -178,8 +197,14 @@ export function combinePackagesAndProjectDetails(
 
 		if (pkg.source === "LocalUser") {
 			packageRowInfo.sources.add("User");
+			if (!hideLocalUserPackages) {
+				packageRowInfo.visibleSources.add("User");
+			}
 		} else if ("Remote" in pkg.source) {
 			packageRowInfo.sources.add(pkg.source.Remote.display_name);
+			if (!hiddenRepositoriesSet.has(pkg.source.Remote.id)) {
+				packageRowInfo.visibleSources.add(pkg.source.Remote.display_name);
+			}
 		}
 	}
 
@@ -187,6 +212,13 @@ export function combinePackagesAndProjectDetails(
 	packagesPerRepository.get("com.vrchat.repos.official")?.forEach(addPackage);
 	packagesPerRepository.get("com.vrchat.repos.curated")?.forEach(addPackage);
 	userPackages.forEach(addPackage);
+	hiddenUserPackages.forEach((pkg) => {
+		const packageRowInfo = getRowInfo(pkg);
+		packageRowInfo.isThereSource = true;
+		if (pkg.source === "LocalUser") {
+			packageRowInfo.sources.add("User");
+		}
+	});
 	packagesPerRepository.delete("com.vrchat.repos.official");
 	packagesPerRepository.delete("com.vrchat.repos.curated");
 
@@ -199,6 +231,17 @@ export function combinePackagesAndProjectDetails(
 	// in case of repository is not defined
 	for (const packages of packagesPerRepository.values()) {
 		packages.forEach(addPackage);
+	}
+
+	// process hidden repositories - only add to sources, not to version calculations
+	for (const packages of hiddenPackagesPerRepository.values()) {
+		packages.forEach((pkg) => {
+			const packageRowInfo = getRowInfo(pkg);
+			packageRowInfo.isThereSource = true;
+			if (pkg.source !== "LocalUser") {
+				packageRowInfo.sources.add(pkg.source.Remote.display_name);
+			}
+		});
 	}
 
 	// sort versions
@@ -299,7 +342,7 @@ export function combinePackagesAndProjectDetails(
 					pkg.is_yanked ||
 					yankedVersions.has(`${pkg.name}:${toVersionString(pkg.version)}`),
 			};
-			packageRowInfo.isThereSource = knownPackages.has(pkg.name);
+			packageRowInfo.isThereSource = true;
 
 			// if we have the latest version, check if it's upgradable
 			if (packageRowInfo.latest.status !== "none") {
@@ -369,6 +412,8 @@ export function combinePackagesAndProjectDetails(
 			const pkgId = [...toRemove].pop()!;
 			toRemove.delete(pkgId);
 
+			const packageRowInfo = packagesTable.get(pkgId);
+			if (packageRowInfo?.installed != null) continue;
 			if (!packagesTable.delete(pkgId)) continue; // already removed
 
 			const dependants = dependantPackages.get(pkgId);
@@ -380,6 +425,7 @@ export function combinePackagesAndProjectDetails(
 	if (project) {
 		for (const [_, pkg] of project.installed_packages) {
 			for (const legacyPackage of pkg.legacy_packages) {
+				if (packagesTable.get(legacyPackage)?.installed != null) continue;
 				packagesTable.delete(legacyPackage);
 			}
 		}

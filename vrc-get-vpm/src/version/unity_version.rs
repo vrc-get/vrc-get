@@ -4,8 +4,6 @@ use std::num::NonZeroU8;
 use std::str::FromStr;
 
 use crate::version::Version;
-use serde::de::Unexpected;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct UnityVersion {
@@ -183,19 +181,20 @@ impl fmt::Display for UnityVersion {
     }
 }
 
-impl Serialize for UnityVersion {
+#[cfg(feature = "version-serde")]
+impl serde::Serialize for UnityVersion {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: serde::Serializer,
     {
         serializer.serialize_str(&self.to_string())
     }
 }
 
-impl<'de> Deserialize<'de> for UnityVersion {
+impl<'de> serde::Deserialize<'de> for UnityVersion {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer<'de>,
+        D: serde::Deserializer<'de>,
     {
         struct Visitor;
 
@@ -209,8 +208,9 @@ impl<'de> Deserialize<'de> for UnityVersion {
             where
                 E: serde::de::Error,
             {
-                UnityVersion::parse(v)
-                    .ok_or_else(|| E::invalid_value(Unexpected::Str(v), &"invalid unity version"))
+                UnityVersion::parse(v).ok_or_else(|| {
+                    E::invalid_value(serde::de::Unexpected::Str(v), &"invalid unity version")
+                })
             }
         }
 

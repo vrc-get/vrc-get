@@ -37,6 +37,8 @@
     "general:error:failed to create dir": "Failed to create directory (missing permission?): {{err}}",
     "general:error:failed to create dir missing drive": "Failed to create directory. You may forget to connect the drive.",
 
+    "general:created at": "Added",
+
     "general:last modified": "Last Modified",
     "general:last modified:moments": "Moments ago",
     "general:last modified:minutes_one": "{{count}} minute ago",
@@ -218,6 +220,7 @@
     "projects:manage:button:unity migrate": "Migrate Project",
 
     "projects:manage:manage packages": "Manage Packages",
+    "projects:manage:hidden packages": "Hidden Packages",
     "projects:manage:tooltip:refresh packages": "Refresh Packages",
     "projects:manage:button:upgrade all": "Upgrade All (Latest)",
     "projects:manage:button:upgrade all stable": "Upgrade All (Stable)",
@@ -234,6 +237,7 @@
     "projects:manage:source not selected": "Not selected",
     "projects:manage:multiple sources": "Multiple sources",
     "projects:manage:tooltip:add package": "Add Package",
+    "projects:manage:tooltip:select repository to install": "Select repository to install package",
     "projects:manage:tooltip:upgrade package": "Upgrade Package",
     "projects:manage:tooltip:remove packages": "Remove Package",
     "projects:manage:tooltip:incompatible with unity": "Incompatible with Unity",
@@ -408,6 +412,7 @@
     "templates:tooltip:remove builtin template": "You cannot remove Builtin Templates.",
     "templates:tooltip:remove vcc template": "You cannot remove VCC templates here. You should remove from Templates directory instead.",
     "templates:menuitem:edit template": "Edit Template",
+    "templates:menuitem:duplicate template": "Duplicate Template",
     "templates:menuitem:export template": "Export Template",
     "templates:tooltip:export template with unitypackage": "You cannot export templates with unity packages since it's not portable.",
     "templates:menuitem:open vcc template": "Open Template Directory",

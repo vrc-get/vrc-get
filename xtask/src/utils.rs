@@ -1,35 +1,18 @@
 #![allow(dead_code)]
 
-use crate::utils;
 use crate::utils::rustc::rustc_host_triple;
 use anyhow::Context;
 use std::io::IoSlice;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 use std::{fs, io};
 
 pub mod cargo;
 pub mod command;
+pub mod dpkg;
 pub mod ds_store;
+mod http;
 pub mod rustc;
 pub mod tar;
-
-pub fn ureq() -> &'static ureq::Agent {
-    static AGENT: OnceLock<ureq::Agent> = OnceLock::new();
-
-    AGENT.get_or_init(|| {
-        ureq::Agent::new_with_config(
-            ureq::Agent::config_builder()
-                .user_agent("cargo-xtask of vrc-get (https://github.com/vrc-get/vrc-get)")
-                .tls_config(
-                    ureq::tls::TlsConfig::builder()
-                        .provider(ureq::tls::TlsProvider::NativeTls)
-                        .build(),
-                )
-                .build(),
-        )
-    })
-}
 
 pub trait MayOption<T> {
     fn into_option(self) -> Option<T>;
@@ -53,8 +36,7 @@ pub fn build_target<'a>(target: impl MayOption<&'a str>) -> &'a str {
 }
 
 pub fn build_dir<'a>(target: impl MayOption<&'a str>, profile: &str) -> PathBuf {
-    let metadata = cargo::cargo_metadata();
-    let target_dir = metadata.target_directory.as_std_path();
+    let target_dir = cargo::target_directory();
     // https://github.com/rust-lang/cargo/blob/b54fe551a982d75d299e0d54daeac70cb854eef0/src/cargo/core/profiles.rs#L119
     // built-in profiles have different dir name
     let profile_dir = match profile {
@@ -184,17 +166,7 @@ pub fn download_file_cached(url: &str, dest: &Path, what: &str) -> anyhow::Resul
     }
     fs::create_dir_all(dest.parent().unwrap())?;
 
-    let mut response = utils::ureq()
-        .get(url)
-        .call()
-        .with_context(|| format!("{what}: downloading {url}"))?;
-
-    std::io::copy(
-        &mut response.body_mut().as_reader(),
-        &mut fs::File::create(dest)
-            .with_context(|| format!("{what}: creating {}", dest.display()))?,
-    )
-    .with_context(|| format!("{what}: saving {url}"))?;
+    http::download_file(url, dest, what)?;
 
     println!("downloaded: {}", dest.display());
     Ok(())
@@ -203,6 +175,11 @@ pub fn download_file_cached(url: &str, dest: &Path, what: &str) -> anyhow::Resul
 #[allow(clippy::iter_nth_zero)] // actually we're accessing 0th element
 pub fn target_arch(target: &str) -> &str {
     target.split('-').nth(0).unwrap()
+}
+
+pub fn replace_arch(tuple: &str, arch: &str) -> String {
+    let hyphen = tuple.find('-').unwrap_or(tuple.len());
+    format!("{}{}", arch, &tuple[hyphen..])
 }
 
 pub fn target_vendor(target: &str) -> &str {

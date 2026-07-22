@@ -1,20 +1,60 @@
 use crate::PackageManifest;
 use crate::repository::{RemotePackages, RemoteRepository};
+use crate::utils::json::{JsonError, JsonObject, JsonValue};
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct LocalCachedRepository {
     pub(crate) repo: RemoteRepository,
-    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub(crate) headers: IndexMap<Box<str>, Box<str>>,
-    #[serde(rename = "vrc-get")]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) vrc_get: Option<VrcGetMeta>,
 }
 
 impl LocalCachedRepository {
+    pub(crate) fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        let object = value.into_object()?;
+        let repo = RemoteRepository::from_json_value(object.get_opt("repo"))?;
+        let headers = (object.get_opt("headers"))
+            .try_map(|value| {
+                (value.into_object())?
+                    .into_iter()
+                    .map(|(key, value)| {
+                        let value = value.into_string()?;
+                        Ok((key.into(), value.into()))
+                    })
+                    .collect::<Result<_, JsonError>>()
+            })?
+            .unwrap_or_default();
+        let vrc_get = (object.get_opt("vrc-get")).try_map(VrcGetMeta::from_json_value)?;
+        Ok(Self {
+            repo,
+            headers,
+            vrc_get,
+        })
+    }
+
+    pub(crate) fn to_json_value(&self) -> JsonValue {
+        let mut object = JsonObject::new();
+        object.insert("repo", self.repo.to_json_value());
+        if !self.headers.is_empty() {
+            object.insert(
+                "headers",
+                self.headers
+                    .iter()
+                    .map(|(k, v)| (&**k, v))
+                    .collect::<JsonObject>(),
+            );
+        }
+        if let Some(vrc_get) = &self.vrc_get
+            && let value = vrc_get.to_json_value()
+            && !value.is_empty()
+        {
+            object.insert("vrc-get", value);
+        }
+        object.into()
+    }
+
     pub fn new(repo: RemoteRepository, headers: IndexMap<Box<str>, Box<str>>) -> Self {
         Self {
             repo,
@@ -77,8 +117,27 @@ impl LocalCachedRepository {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct VrcGetMeta {
-    #[serde(default, skip_serializing_if = "str::is_empty")]
     pub etag: Box<str>,
+}
+
+impl VrcGetMeta {
+    fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        let object = value.into_object()?;
+        Ok(Self {
+            etag: (object.get_opt("etag"))
+                .try_map(JsonValue::into_string)?
+                .unwrap_or_default()
+                .into(),
+        })
+    }
+
+    fn to_json_value(&self) -> JsonObject {
+        let mut object = JsonObject::new();
+        if !self.etag.is_empty() {
+            object.insert("etag", &self.etag);
+        }
+        object
+    }
 }

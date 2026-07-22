@@ -16,7 +16,17 @@ jobs:
         include:
           - triple: x86_64-unknown-linux-gnu
             on: ubuntu-22.04
-            bundles: appimage,appimage-updater,deb,rpm
+            bundles: appimage,appimage-updater
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              ld.lld --version
+
+              sudo apt update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+            rustflags: "-C link-arg=-fuse-ld=lld"
+
+          - triple: aarch64-unknown-linux-gnu
+            on: ubuntu-22.04-arm
+            bundles: appimage,appimage-updater
             setup: |
               sudo apt update && sudo apt install -y lld
               ld.lld --version
@@ -26,19 +36,23 @@ jobs:
 
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
-            bundles: setup-exe,exe-updater
+            bundles: setup-exe,setup-exe-zip,exe-updater
+
+          - triple: aarch64-pc-windows-msvc
+            on: windows-latest
+            bundles: setup-exe,setup-exe-zip,exe-updater
 
           - triple: universal-apple-darwin
-            on: macos-14
+            on: macos-26
             setup: |
               rustup target add aarch64-apple-darwin
               rustup target add x86_64-apple-darwin
             bundles: app,dmg,app-updater
         triple:
           - x86_64-unknown-linux-gnu
-          #- aarch64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
           - x86_64-pc-windows-msvc
-          #- aarch64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
           - universal-apple-darwin
 
     runs-on: ${{ matrix.on }}
@@ -61,7 +75,7 @@ jobs:
           git init
           git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - run: rustup update stable
@@ -74,7 +88,7 @@ jobs:
         with:
           key: ci-build-gui-${{ matrix.triple }}
       - name: Cache javascript essentials
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.npm
@@ -122,10 +136,57 @@ jobs:
             target/${{ matrix.triple }}/release/bundle/*/ALCOM*
             target/${{ matrix.triple }}/release/bundle/*/alcom*
 
+  build-online-installer:
+    runs-on: windows-latest
+    env:
+      RUSTFLAGS: '-Ctarget-feature=+crt-static'
+
+    steps:
+      - uses: samypr100/setup-dev-drive@v4
+        with:
+          drive-size: 12GB # github actions grantees 14 GB of disk space. we have few GB for action environment
+          drive-path: "/dev_drive.vhdx"
+          mount-path: ${{ github.workspace }}
+          trusted-dev-drive: true
+      - name: Preinitialize git repository
+        shell: bash
+        run: |
+          # hopefully for non-cleaning environments, actions/checkout will tries to clean existing repository
+          # if existing dir is not git repository nor for specified repository.
+          # this step creates git directory to workaround the behavior
+          git init
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          GIT_AUTHOR_NAME="none" GIT_AUTHOR_EMAIL="none@example.com" GIT_COMMITTER_NAME="none" GIT_COMMITTER_EMAIL="none@example.com" git commit --allow-empty -m "Dummy"
+
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - run: rustup update stable
+
+      - name: add commit hash to version name
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(cargo metadata --format-version 1 --no-deps | jq --raw-output '.packages[] | select(.name == "vrc-get-gui") | .version')"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          cp vrc-get-gui/online-installer/Cargo.toml vrc-get-gui/online-installer/Cargo.toml.bak
+          sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/online-installer/Cargo.toml.bak > vrc-get-gui/online-installer/Cargo.toml
+
+      - name: Build online installer binary
+        run:
+          cargo build -p online-installer --target x86_64-pc-windows-msvc --profile online-installer
+
+      - name: Upload built binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: online-installer
+          path: |
+            target/x86_64-pc-windows-msvc/online-installer/online-installer*
+
   conclude-gui:
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [ build-gui ]
+    needs: [ build-gui, build-online-installer ]
     steps:
       - name: Conclude Tests
         env: { NEEDS: "${{ toJSON(needs) }}" }

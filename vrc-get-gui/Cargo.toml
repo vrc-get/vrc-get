@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get-gui"
-version = "1.1.6-beta.0"
+version = "1.1.9-beta.0"
 description = "A fast open-source alternative of VRChat Creator Companion"
 
 homepage.workspace = true
@@ -22,8 +22,8 @@ tauri-build = { version = "2", features = [ "config-toml" ] }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 serde_with = { version = "3", features = ["base64"] }
-tauri = { version = "=2.10.3", features = [ "config-toml" ] } # = for sync version between npm and cargo
-vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management"] }
+tauri = { version = "=2.11.5", features = [ "config-toml" ] } # = for sync version between npm and cargo
+vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "version-serde"] }
 reqwest = { version = "0.13", features = ["gzip", "brotli", "json"] }
 specta = { version = "2.0.0-rc.24", features = [ "chrono", "url", "indexmap" ] }
 tauri-specta = { version = "2.0.0-rc.24", features = ["typescript"] }
@@ -36,7 +36,7 @@ ringbuffer = "0.16"
 tokio = { version = "1", features = ["process"] }
 tokio-util = "0.7"
 fs_extra = "1"
-indexmap = "2"
+indexmap = { version = "2", features = ["serde"] }
 futures = "0.3"
 tar = "0.4"
 flate2 = "1"
@@ -60,8 +60,8 @@ dirs-next = "2"
 yoke = { version = "0.8", features = ["derive"] }
 atomicbox = "0.4"
 stable_deref_trait = "1"
-itertools = "0.14"
-sysinfo = "0.38.4"
+itertools = "0.15"
+sysinfo = "0.39.3"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }

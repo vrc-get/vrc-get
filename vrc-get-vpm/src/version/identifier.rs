@@ -1,4 +1,3 @@
-use serde::Serializer;
 use std::fmt::{Debug, Formatter};
 
 /// backend for BuildMeta or Prerelease
@@ -39,6 +38,6 @@ impl Default for Identifier {
 
 impl Debug for Identifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.serialize_str(self.as_str())
+        f.write_str(self.as_str())
     }
 }

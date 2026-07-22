@@ -10,28 +10,42 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- Improved saving interacting with setting files `#2485` `#2710`
-    - This should reduce "EOF while parsing a value at line 1 column 0" error on launch.
-    - This should reduce losing settings after crashing ALCOM or PC.
-- null as vpmDependencies value is not allowed `#2709`
-    - It's not recommended, but we allow null for `vpmDependencies` as a alias of `{}`
-- Improved robustness for package installation errors `#2844`
-  - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
-- Backslashes in path in zip file are now treated as path separator on unix `#2845`
-  - This fixes problem with Gesture Manager 3.9.7
+- Softened `vrc-get-vpm` JSON serialization/deserialization and removed serde feature coupling from its manifest and settings parsing
+  - `vrc-get-vpm` now routes these JSON reads/writes through `serde_json::Value`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Fix 'Detected Loop' panic with valid database file `#2607`
-- Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
-- Warning for backup/project path in AppData folder not shown when path is in Roaming or LocalLow [`#2827`](https://github.com/vrc-get/vrc-get/pull/2827)
-- Unclear error message for invalid version name or version range `#2842`
 
 ### Security
-- Package hash checks are now enforced when installing packages `#2849`
+
+## [1.9.2] - 2026-07-12
+### Changed
+- Improved saving interacting with setting files [`#2485`](https://github.com/vrc-get/vrc-get/pull/2485) [`#2710`](https://github.com/vrc-get/vrc-get/pull/2710)
+    - This should reduce "EOF while parsing a value at line 1 column 0" error on launch.
+    - This should reduce losing settings after crashing ALCOM or PC.
+- null as vpmDependencies value is not allowed [`#2709`](https://github.com/vrc-get/vrc-get/pull/2709)
+    - It's not recommended, but we allow null for `vpmDependencies` as a alias of `{}`
+- Improved robustness for package installation errors [`#2844`](https://github.com/vrc-get/vrc-get/pull/2844)
+  - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
+- Backslashes in path in zip file are now treated as path separator on unix [`#2845`](https://github.com/vrc-get/vrc-get/pull/2845)
+  - This fixes problem with Gesture Manager 3.9.7
+- ALCOM / vrc-get now prevents installing VRCSDK for Unity 2022 to Unity 6000.x [`#3006`](https://github.com/vrc-get/vrc-get/pull/3006)
+  - This prevents installing VRCSDK to incompatible Unity.
+  - This check is not enforced error, you can ignore the error for testing purposes.
+
+### Fixed
+- Fix 'Detected Loop' panic with valid database file [`#2607`](https://github.com/vrc-get/vrc-get/pull/2607)
+- Panic when resolving projects where dependency packages depend on newer versions of locked packages [`#2822`](https://github.com/vrc-get/vrc-get/pull/2822)
+- Warning for backup/project path in AppData folder not shown when path is in Roaming or LocalLow [`#2827`](https://github.com/vrc-get/vrc-get/pull/2827)
+- Unclear error message for invalid version name or version range [`#2842`](https://github.com/vrc-get/vrc-get/pull/2842)
+- Empty string for `documentationUrl` and `changelogUrl` are now allowed and ignored [`#2930`](https://github.com/vrc-get/vrc-get/pull/2930)
+  - They are formerly rejected as invalid url
+
+### Security
+- Package hash checks are now enforced when installing packages [`#2849`](https://github.com/vrc-get/vrc-get/pull/2849)
   - It has been about two years since the error message for package hash mismatches was introduced.
   - It is now enforced for security.
 
@@ -504,7 +518,8 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.9.1...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.9.2...HEAD
+[1.9.2]: https://github.com/vrc-get/vrc-get/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/vrc-get/vrc-get/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/vrc-get/vrc-get/compare/v1.8.2...v1.9.0
 [1.8.2]: https://github.com/vrc-get/vrc-get/compare/v1.8.1...v1.8.2

@@ -13,7 +13,8 @@ mod vpm_manifest;
 
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::utils::{PathBufExt, try_load_json};
+use crate::utils::PathBufExt;
+use crate::utils::json::try_load_json;
 use crate::version::{DependencyRange, UnityVersion, Version, VersionRange};
 use crate::{PackageManifest, io};
 use futures::future::try_join;
@@ -27,7 +28,6 @@ use std::path::{Path, PathBuf};
 // there are module for each complex operations.
 
 use crate::io::{DefaultProjectIo, DirEntry, IoTrait, TokioDirEntry};
-use crate::package_manifest::LooseManifest;
 pub use add_package::AddPackageErr;
 pub use add_package::AddPackageOperation;
 pub use migrate_unity_2022::MigrateUnity2022Error;
@@ -139,11 +139,15 @@ impl UnityProject {
         let package_json_path = PathBuf::from("Packages")
             .joined(dir_entry.file_name())
             .joined("package.json");
-        let parsed = try_load_json::<LooseManifest>(io, &package_json_path)
-            .await
-            .ok()
-            .flatten();
-        (name, parsed.map(|x| x.0))
+        let parsed = try_load_json(
+            io,
+            &package_json_path,
+            PackageManifest::from_loose_json_value,
+        )
+        .await
+        .ok()
+        .flatten();
+        (name, parsed)
     }
 
     async fn read_unity_version(

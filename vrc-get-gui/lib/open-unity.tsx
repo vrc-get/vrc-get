@@ -149,7 +149,7 @@ function UnityInstallWindow({
 	dialog: DialogContext<void>;
 }) {
 	const openUnityHub = async () => {
-		await commands.utilOpenUrl(installWithUnityHubLink);
+		await commands.utilOpenUrlNocheck(installWithUnityHubLink);
 	};
 
 	return (

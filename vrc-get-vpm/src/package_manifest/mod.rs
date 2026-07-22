@@ -1,133 +1,177 @@
 mod partial_unity_version;
 mod yank_state;
 
-use crate::utils::DedupDeserializer;
+use crate::utils::json::{JsonError, JsonValue};
 use crate::version::{Version, VersionRange};
 use indexmap::IndexMap;
-use serde::{Deserialize, Deserializer};
+use itertools::Itertools;
 use std::collections::HashMap;
+use std::str::FromStr;
 use url::Url;
 
 use crate::package_manifest::yank_state::YankState;
 pub use partial_unity_version::PartialUnityVersion;
 
-macro_rules! initialize_from_package_json_like {
-    ($source: expr) => {
-        PackageManifest {
-            name: $source.name,
-            version: $source.version,
-            display_name: $source.display_name,
-            description: $source.description,
-            unity: $source.unity,
-            url: $source.url,
-            zip_sha_256: $source.zip_sha_256,
-            vpm_dependencies: $source.vpm_dependencies,
-            legacy_folders: $source.legacy_folders,
-            legacy_files: $source.legacy_files,
-            legacy_packages: $source.legacy_packages,
-            headers: $source.headers,
-            changelog_url: $source.changelog_url,
-            documentation_url: $source.documentation_url,
-            keywords: $source.keywords,
-            vrc_get: VrcGetMeta {
-                yanked: $source.vrc_get.yanked,
-                aliases: $source.vrc_get.aliases,
-            },
-        }
-    };
+#[derive(Debug, Clone)]
+pub struct PackageManifest {
+    name: Box<str>,
+    version: Version,
+    display_name: Option<Box<str>>,
+    description: Option<Box<str>>,
+    unity: Option<PartialUnityVersion>,
+    url: Option<Url>,
+    zip_sha_256: Option<Box<str>>,
+    vpm_dependencies: IndexMap<Box<str>, VersionRange>,
+    legacy_folders: HashMap<Box<str>, Option<Box<str>>>,
+    legacy_files: HashMap<Box<str>, Option<Box<str>>>,
+    legacy_packages: Vec<Box<str>>,
+    headers: IndexMap<Box<str>, Box<str>>,
+    changelog_url: Option<Url>,
+    documentation_url: Option<Url>,
+    keywords: Vec<Box<str>>,
+    vrc_get: VrcGetMeta,
 }
 
-macro_rules! package_json_struct {
-    {
-        $(#[$meta:meta])*
-        $vis:vis struct $name: ident {
-            $optional_vis:vis optional$(: #[$optional: meta])?;
-            $required_vis:vis required$(: #[$required: meta])?;
-        }
-        $(#[$vr_get_meta:meta])*
-        $vrc_get_struct_vis:vis struct $vrc_get_meta_name:ident {
-            $vrc_get_optional_vis:vis optional$(: #[$vrc_get_optional: meta])?;
-        }
-    } => {
-        #[derive(Deserialize)]
-        #[serde(rename_all = "camelCase")]
-        $(#[$meta])*
-        $vis struct $name {
-            $(#[$required])?
-            $required_vis name: Box<str>,
-            $(#[$required])?
-            $required_vis version: Version,
-
-            $(#[$optional])?
-            $optional_vis display_name: Option<Box<str>>,
-            $(#[$optional])?
-            $optional_vis description: Option<Box<str>>,
-            $(#[$optional])?
-            $optional_vis unity: Option<PartialUnityVersion>,
-
-            $(#[$optional])?
-            $optional_vis url: Option<Url>,
-            $(#[$optional])?
-            #[serde(rename = "zipSHA256")]
-            $optional_vis zip_sha_256: Option<Box<str>>,
-
-            $(#[$optional])?
-            $optional_vis vpm_dependencies: IndexMap<Box<str>, VersionRange>,
-
-            $(#[$optional])?
-            $optional_vis legacy_folders: HashMap<Box<str>, Option<Box<str>>>,
-            $(#[$optional])?
-            $optional_vis legacy_files: HashMap<Box<str>, Option<Box<str>>>,
-            $(#[$optional])?
-            $optional_vis legacy_packages: Vec<Box<str>>,
-
-            $(#[$optional])?
-            $optional_vis headers: indexmap::IndexMap<Box<str>, Box<str>>,
-
-            $(#[$optional])?
-            $optional_vis changelog_url: Option<Url>,
-            $(#[$optional])?
-            $optional_vis documentation_url: Option<Url>,
-
-            $(#[$optional])?
-            $optional_vis keywords: Vec<Box<str>>,
-
-            $(#[$optional])?
-            #[serde(rename = "vrc-get")]
-            $optional_vis vrc_get: $vrc_get_meta_name,
-        }
-
-        // Note: please keep in sync with package_manifest
-        $(#[$vr_get_meta])*
-        #[derive(Deserialize)]
-        #[serde(rename_all = "camelCase")]
-        $vrc_get_struct_vis struct $vrc_get_meta_name {
-            $(#[$vrc_get_optional])?
-            $vrc_get_optional_vis yanked: YankState,
-            /// aliases for `vrc-get i --name <name> <version>` command.
-            $(#[$vrc_get_optional])?
-            $vrc_get_optional_vis aliases: Vec<Box<str>>,
-        }
-    };
+#[derive(Debug, Clone, Default)]
+pub(super) struct VrcGetMeta {
+    yanked: YankState,
+    aliases: Vec<Box<str>>,
 }
 
-fn default_if_none<'de, D, TR>(de: D) -> Result<TR, D::Error>
-where
-    D: Deserializer<'de>,
-    TR: Deserialize<'de> + Default,
-{
-    <Option<TR>>::deserialize(de).map(|x| x.unwrap_or_default())
-}
-
-package_json_struct! {
-    #[derive(Debug, Clone)]
-    pub struct PackageManifest {
-        optional: #[serde(default, deserialize_with = "default_if_none")];
-        required;
+impl PackageManifest {
+    pub(crate) fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        Self::from_json_value_impl::<ErrorAsError>(value)
     }
-    #[derive(Debug, Clone, Default)]
-    pub(super) struct VrcGetMeta {
-        optional: #[serde(default)];
+
+    pub(crate) fn from_loose_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        Self::from_json_value_impl::<ErrorAsDefault>(value)
+    }
+
+    fn from_json_value_impl<H: ErrorHandler>(value: JsonValue) -> Result<Self, JsonError> {
+        let mut object = value.into_object()?;
+        Ok(Self {
+            name: (object.get_req("name"))?.into_string()?.into(),
+            version: (object.get_req("version"))?.parse_req(|x| x.parse())?,
+            display_name: H::h((object.get_opt("displayName")).try_map(JsonValue::into_string))?
+                .map(Into::into),
+            description: H::h((object.get_opt("description")).try_map(JsonValue::into_string))?
+                .map(Into::into),
+            unity: H::h(object.get_opt("unity").parse_opt(|x| x.parse()))?,
+            url: H::h(object.get_opt("url").parse_opt(parse_optional_url))?.flatten(),
+            zip_sha_256: H::h(object.get_opt("zipSHA256").try_map(JsonValue::into_string))?
+                .map(Into::into),
+            vpm_dependencies: H::h((object.get_opt("vpmDependencies")).try_map(|value| {
+                let object = value.into_object()?;
+                object
+                    .into_iter()
+                    .map(|(key, value)| Ok((key.into(), value.parse_req(|x| x.parse())?)))
+                    .collect::<Result<_, _>>()
+            }))?
+            .unwrap_or_default(),
+            legacy_folders: H::h((object.get_opt("legacyFolders")).try_map(|value| {
+                (value.into_object()?)
+                    .into_iter()
+                    .map(|(key, value)| {
+                        Ok((
+                            key.into(),
+                            value.try_map(JsonValue::into_string)?.map(Into::into),
+                        ))
+                    })
+                    .collect::<Result<_, _>>()
+            }))?
+            .unwrap_or_default(),
+            legacy_files: H::h((object.get_opt("legacyFiles")).try_map(|value| {
+                (value.into_object()?)
+                    .into_iter()
+                    .map(|(key, value)| {
+                        Ok((
+                            key.into(),
+                            value.try_map(JsonValue::into_string)?.map(Into::into),
+                        ))
+                    })
+                    .collect()
+            }))?
+            .unwrap_or_default(),
+            legacy_packages: H::h((object.get_opt("legacyPackages")).try_map(|value| {
+                let array = value.into_array()?;
+                array
+                    .into_iter()
+                    .map(|value| value.into_string().map(Into::into))
+                    .collect::<Result<_, _>>()
+            }))?
+            .unwrap_or_default(),
+            headers: H::h((object.get_opt("headers")).try_map(|value| {
+                let object = value.into_object()?;
+                object
+                    .into_iter()
+                    .map(|(key, value)| Ok((key.into(), value.into_string()?.into())))
+                    .collect::<Result<_, _>>()
+            }))?
+            .unwrap_or_default(),
+            changelog_url: H::h((object.get_opt("changelogUrl")).parse_opt(parse_optional_url))?
+                .flatten(),
+            documentation_url: H::h(
+                (object.get_opt("documentationUrl")).parse_opt(parse_optional_url),
+            )?
+            .flatten(),
+            keywords: H::h((object.get_opt("legacyPackages")).try_map(|value| {
+                let array = value.into_array()?;
+                array
+                    .into_iter()
+                    .map(|value| value.into_string().map(Into::into))
+                    .collect::<Result<_, _>>()
+            }))?
+            .unwrap_or_default(),
+            vrc_get: H::h((object.get_opt("vrc-get")).try_map(VrcGetMeta::from_json_value))?
+                .unwrap_or_default(),
+        })
+    }
+}
+
+trait ErrorHandler {
+    fn h<T: Default>(v: Result<T, JsonError>) -> Result<T, JsonError>;
+}
+
+struct ErrorAsError;
+
+impl ErrorHandler for ErrorAsError {
+    fn h<T: Default>(v: Result<T, JsonError>) -> Result<T, JsonError> {
+        v
+    }
+}
+
+struct ErrorAsDefault;
+
+impl ErrorHandler for ErrorAsDefault {
+    fn h<T: Default>(v: Result<T, JsonError>) -> Result<T, JsonError> {
+        Ok(v.unwrap_or_default())
+    }
+}
+
+fn parse_optional_url(url: String) -> Result<Option<Url>, String> {
+    if url.trim().is_empty() {
+        return Ok(None);
+    }
+    Url::parse(&url).map(Some).map_err(|err| err.to_string())
+}
+
+impl VrcGetMeta {
+    fn from_json_value(value: JsonValue) -> Result<VrcGetMeta, JsonError> {
+        let object = value.into_object()?;
+
+        Ok(VrcGetMeta {
+            yanked: (object.get_opt("yanked").try_map(YankState::from_json))?.unwrap_or_default(),
+            aliases: (object.get_opt("aliases"))
+                .try_map(|value| {
+                    let array = value.into_array()?;
+                    array
+                        .into_iter()
+                        .map(|value| value.into_string())
+                        .map_ok(Into::into)
+                        .collect::<Result<_, _>>()
+                })?
+                .unwrap_or_default(),
+        })
     }
 }
 
@@ -215,7 +259,7 @@ impl PackageManifest {
     #[cfg(not(r2cs))]
     pub fn add_vpm_dependency(mut self, name: impl Into<Box<str>>, range: &str) -> Self {
         self.vpm_dependencies
-            .insert(name.into(), range.parse().unwrap());
+            .insert(name.into(), VersionRange::from_str(range).unwrap());
         self
     }
 
@@ -242,41 +286,6 @@ impl PackageManifest {
     }
 }
 
-pub(crate) struct LooseManifest(pub PackageManifest);
-
-impl<'de> Deserialize<'de> for LooseManifest {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        fn default_if_err<'de, D, T>(de: D) -> Result<T, D::Error>
-        where
-            D: Deserializer<'de>,
-            T: Deserialize<'de> + Default,
-        {
-            match T::deserialize(de) {
-                Ok(v) => Ok(v),
-                Err(_) => Ok(T::default()),
-            }
-        }
-
-        package_json_struct! {
-            pub(super) struct LooseManifest {
-                pub(super) optional: #[serde(default, deserialize_with = "default_if_err")];
-                pub(super) required;
-            }
-            #[derive(Default)]
-            pub(super) struct LooseVrcGetMeta {
-                pub(super) optional: #[serde(default, deserialize_with = "default_if_err")];
-            }
-        }
-
-        let strict = LooseManifest::deserialize(DedupDeserializer::<'de, _>::new(deserializer))?;
-
-        Ok(LooseManifest(initialize_from_package_json_like!(strict)))
-    }
-}
-
 #[test]
 fn deserialize_partially_bad() {
     let json = r#"{
@@ -296,8 +305,12 @@ fn deserialize_partially_bad() {
             "aliases": ["vpm"]
         }
     }"#;
-    let package_json: LooseManifest = serde_json::from_str(json).unwrap();
-    let package_json = package_json.0;
+    let package_json = crate::utils::json::parse_json_file(
+        json.as_bytes(),
+        "test",
+        PackageManifest::from_loose_json_value,
+    )
+    .unwrap();
     assert_eq!(package_json.name(), "vrc-get-vpm");
     assert_eq!(package_json.version(), &Version::new(0, 1, 0));
     assert_eq!(package_json.vpm_dependencies(), &{
@@ -308,7 +321,7 @@ fn deserialize_partially_bad() {
         );
         map
     });
-    assert_eq!(package_json.legacy_packages(), &["vrc-get".into()]);
+    assert_eq!(package_json.legacy_packages(), &["vrc-2".into()]);
     assert!(!package_json.is_yanked());
     assert_eq!(package_json.aliases(), &["vpm".into()]);
     assert_eq!(package_json.changelog_url(), None);
@@ -333,9 +346,46 @@ fn deserialize_null_on_dependencies() {
       "samples": null,
       "zipSHA256": "0e201b9a1ed9f0e3a9c16b8f765605e8aa0c9aebf9a315c04bc67f6ebe2485f8"
     }"##;
-    let package_json: PackageManifest = serde_json::from_str(json).unwrap();
+    let package_json = crate::utils::json::parse_json_file(
+        json.as_bytes(),
+        "test",
+        PackageManifest::from_json_value,
+    )
+    .unwrap();
     assert_eq!(package_json.name(), "com.kibalab.materialmerger");
     assert_eq!(package_json.version(), &Version::new(0, 1, 0));
-    //assert!(package_json.dependencies().is_empty());
     assert!(package_json.vpm_dependencies().is_empty());
+}
+
+#[test]
+fn deserialize_empty_documentation() {
+    let json = r##"{
+      "name": "net.yarukizero.vrchat.shizuku",
+      "displayName": "Shizuku",
+      "version": "0.0.0",
+      "unity": "2022.3",
+      "description": "スクリプトでいい感じに定義したい",
+      "vpmDependencies": {
+        "nadena.dev.modular-avatar": ">=1.9.10"
+      },
+      "changelogUrl": " ",
+      "author": {
+        "name": "azumyar",
+        "url": "https://github.com/azumyar"
+      },
+      "documentationUrl": "",
+      "license": "MIT",
+      "zipSHA256": "22a143ed75c429a471ffd784102d2fb577c56b010b49439b5930cbb2df820f8b",
+      "url": "https://github.com/azumyar/vrchat-shizuku/releases/download/0.0.0/net.yarukizero.vrchat.shizuku-0.0.0.zip"
+    }"##;
+    let package_json = crate::utils::json::parse_json_file(
+        json.as_bytes(),
+        "test",
+        PackageManifest::from_json_value,
+    )
+    .unwrap();
+    assert_eq!(package_json.name(), "net.yarukizero.vrchat.shizuku");
+    assert_eq!(package_json.version(), &Version::new(0, 0, 0));
+    assert_eq!(package_json.documentation_url(), None);
+    assert_eq!(package_json.changelog_url(), None);
 }

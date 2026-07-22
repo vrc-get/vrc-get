@@ -27,14 +27,17 @@
     "general:dialog:select file or directory header": "選擇檔案或資料夾",
     "general:dialog:select file or directory": "請選擇一個檔案或資料夾。",
     "general:toast:invalid directory": "選擇了無效路徑。",
+    "general:toast:invalid file": "選擇了無效檔案。",
 
     "general:toast:not supported": "尚未支援 {{name}}。",
     "general:not implemented": "未實現",
 
     "search:placeholder": "搜尋...",
 
-    "general:error:failed to create dir": "創建資料夾失敗（沒有權限？）： {{err}}",
-    "general:error:failed to create dir missing drive": "創建資料夾失敗。你是否忘記連接硬碟？",
+    "general:error:failed to create dir": "建立資料夾失敗（權限不足？）： {{err}}",
+    "general:error:failed to create dir missing drive": "建立資料夾失敗。你是否忘了連接詞碟機？",
+
+    "general:created at": "新增於",
 
     "general:last modified": "最後修改",
     "general:last modified:moments": "剛剛",
@@ -64,18 +67,18 @@
 
     "setup:steps card:UnityHub": "Unity Hub",
     "setup:unity-hub:heading": "安裝 Unity Hub",
-    "setup:unity-hub:description": "首先，你需要安裝 Unity Hub。Unity Hub 是安裝和管理各種 Unity 版本的首選方式。<br/>如果你還沒有專案，ALCOM 會建議你使用 Unity Hub 來安裝 Unity。",
+    "setup:unity-hub:description": "首先，你需要安裝 Unity Hub。Unity Hub 是安裝和管理各種 Unity 版本的首選方式。<br/>如果你還沒有安裝 Unity，ALCOM 會建議你使用 Unity Hub 來安裝 Unity。",
     "setup:unity-hub:using this unity hub": "Unity Hub 位置",
     "setup:unity-hub:download unity hub from unity.com": "從 unity.com 下載 Unity Hub",
     "setup:unity-hub:unity hub link": "https://unity.com/cn/download",
     "setup:unity-hub:recheck installation": "重新檢測",
     "setup:unity-hub:detection failed collapse": "你是否確定你已經安裝了 Unity Hub？",
-    "setup:unity-hub:detection failed description": "請點擊上方的 \"重新檢測\" 按鈕以檢測 Unity Hub。如果這不起作用，代表 ALCOM 無法檢測到你的 Unity Hub。請在下方手動設置 Unity Hub。",
+    "setup:unity-hub:detection failed description": "請點擊上方的 \"重新檢測\" 按鈕以檢測 Unity Hub。如果這不起作用，代表 ALCOM 無法檢測到你的 Unity Hub。請在下方手動設定 Unity Hub。",
     "setup:unity-hub:not found": "找不到 Unity Hub。",
 
     "setup:steps card:ProjectPath": "儲存位置",
     "setup:project-path:heading": "專案儲存位置",
-    "setup:project-path:description": "當你使用 ALCOM 創建專案時，專案將儲存於此。",
+    "setup:project-path:description": "當你使用 ALCOM 建立專案時，專案將儲存於此。",
 
     "setup:steps card:Backups": "備份設定",
     "setup:backups:heading": "專案備份設定",
@@ -86,7 +89,7 @@
     "setup:steps card:SystemSetting": "系統設定",
     "setup:system-setting:heading": "系統設定",
     "setup:system-setting:vcc scheme description": "你可以使用 ALCOM 來代替 VCC 處理 vcc:// 快捷方式，以便將儲存庫安裝到你的電腦上。ALCOM 和 VCC 共享相同的儲存庫列表，但使用 ALCOM 可以讓你在不打開 VCC 的情況下快速安裝。",
-    "setup:system-setting:macos bug message": "macOS 上無需進行設定。（不應該顯示此頁面，顯示此頁面是一個錯誤）",
+    "setup:system-setting:macos bug message": "macOS 上無需進行設定。（此頁面不應顯示；若顯示即為程式錯誤。）",
     "setup:system-setting:hostname-with-non-ascii": "你的裝置名稱（電腦名稱）裡有非 ASCII 字元。這可能會引起一些 Unity 問題，強烈建議將你的電腦名稱換成 ASCII 字元。（不使用中文或全形字元）",
 
     "setup:finish:heading": "完成設定！",
@@ -105,14 +108,15 @@
 // Projects Page
     "projects": "專案",
     "projects:tooltip:refresh": "刷新專案",
-    "projects:create new project": "創建新專案",
+    "projects:create new project": "建立新專案",
     "projects:add existing project": "新增已有專案",
     "projects:type": "類型",
     "projects:unity": "Unity 版本",
-    "projects:list view": "清單視圖",
-    "projects:grid view": "網格視圖",
+    "projects:list view": "清單檢視",
+    "projects:grid view": "網格檢視",
     "projects:sort by": "排序方式：",
     "projects:error:load error": "加載專案時發生錯誤： {{msg}}",
+    "projects:error:noexec filesystem": "此專案目前位於一個啟用了 noexec 掛載設定的檔案系統中。這個設定會阻止 Unity 載入原生外掛，可能導致專案無法正常運作，甚至造成素材或資源損毀。請把專案移到沒有啟用 noexec 的磁碟或資料夾中。",
     "projects:toast:project added": "專案已添加成功。",
     "projects:toast:project already exists": "已添加過此專案。",
 
@@ -133,7 +137,7 @@
     "projects:hint:warn symbol in project name": "使用這樣的符號可能會導致問題。（不要使用中文或全形字元）",
     "projects:hint:warn multibyte char in project name": "使用多位元組字元可能會導致問題。（不要使用中文或全形字元）",
     "projects:hint:project already exists": "此路徑已存在。",
-    "projects:hint:create project ready": "已準備好創建新專案！",
+    "projects:hint:create project ready": "已準備好建立新專案！",
     "projects:template": "範本：",
     "projects:template-category:favorites": "收藏",
     "projects:template-category:builtin": "內建",
@@ -147,9 +151,9 @@
     "projects:tooltip:template-no-unity": "此範本未使用可用的 Unity 版本",
     "projects:latest": "最新版本",
     "projects:hint:path of creating project": "這個新專案將位於 <path>{{path}}</path>。",
-    "projects:button:create": "創建",
-    "projects:creating project...": "專案創建中 ...",
-    "projects:toast:project created": "專案已創建成功。",
+    "projects:button:create": "建立",
+    "projects:creating project...": "專案建立中 ...",
+    "projects:toast:project created": "專案已建立成功。",
 
     "projects:toast:opening unity...": "開啟 Unity 中 ...",
     "projects:dialog:unity not found": "找不到 Unity",
@@ -186,10 +190,10 @@
     "projects:toast:project migrated": "專案遷移成功。",
 
     "projects:dialog:backup header": "備份專案",
-    "projects:dialog:creating backup...": "創建備份中...",
+    "projects:dialog:creating backup...": "建立備份中...",
     "projects:dialog:proceed k/n": "正在處理 {{count}}/{{total}} 個項目",
     "projects:toast:backup canceled": "已取消備份。",
-    "projects:toast:backup succeeded": "備份已創建成功。",
+    "projects:toast:backup succeeded": "備份已建立成功。",
 
     "projects:dialog:warn removing project": "你將移除專案 <b>{{name}}</b>。你確定嗎？",
     "projects:button:remove from list": "從列表中移除",
@@ -216,6 +220,7 @@
     "projects:manage:button:unity migrate": "遷移專案",
 
     "projects:manage:manage packages": "管理套件",
+    "projects:manage:hidden packages": "隱藏套件",
     "projects:manage:tooltip:refresh packages": "刷新套件",
     "projects:manage:button:upgrade all": "升級全部（最新版）",
     "projects:manage:button:upgrade all stable": "升級全部（穩定版）",
@@ -232,6 +237,7 @@
     "projects:manage:source not selected": "未選擇",
     "projects:manage:multiple sources": "多個來源",
     "projects:manage:tooltip:add package": "添加套件",
+    "projects:manage:tooltip:select repository to install": "選擇儲存庫以安裝套件",
     "projects:manage:tooltip:upgrade package": "升級套件",
     "projects:manage:tooltip:remove packages": "移除套件",
     "projects:manage:tooltip:incompatible with unity": "與 Unity 不相容",
@@ -245,8 +251,8 @@
     "projects:manage:button:reinstall selected": "重新安裝所選",
     "projects:manage:button:uninstall selected": "解除安裝所選",
     "projects:manage:button:clear selection": "清除選取",
-    "projects:manage:n packages selected_one": " 已選取 {{count}} 個套件 ",
-    "projects:manage:n packages selected_other": " 已選取 {{count}} 個套件 ",    
+    "projects:manage:n packages selected_one": "已選取 {{count}} 個套件",
+    "projects:manage:n packages selected_other": "已選取 {{count}} 個套件",    
     "projects:manage:toast:no upgradable": "無可升級的套件",
     "projects:manage:toast:package installed": "{{name}} 的 {{version}} 版本安裝成功。",
     // V used in single operation
@@ -273,7 +279,7 @@
     "projects:manage:dialog:downgrade minor vrchat unsupported": "你正在降級 Unity 版本。 這是不受支援的操作，且可能會破壞你的專案。<br/>在繼續操作前，請先備份專案。<br/>此外，你將使用 VRChat 不支援的 Unity 版本，降級後將無法上傳內容至 VRChat。<br/>你要繼續嗎？",
     "projects:manage:dialog:upgrade minor": "你正在升級 Unity 版本。這可能會改變你的腳本，並且可能需要重新建置 Library。<br/>在繼續操作前，請先備份專案。<br/>你要繼續嗎？",
     "projects:manage:dialog:upgrade minor vrchat unsupported": "你正在升級 Unity 版本。這可能會改變你的腳本，並且可能需要重新建置 Library。<br/>在繼續操作前，請先備份專案。<br/>此外，你將使用 VRChat 不支援的 Unity 版本，升級後將無法上傳內容至 VRChat。<br/>你要繼續嗎？",
-    "projects:manage:dialog:upgrade major": "You're upgrading Unity major version.這可能會改變你的腳本，並且可能需要重新建置 Library。<br/>在繼續操作前，請先備份專案。<br/>你要繼續嗎？",
+    "projects:manage:dialog:upgrade major": "你正在升級 Unity 的主要版本。這可能會改變你的腳本，並且可能需要重新建置 Library。<br/>在繼續操作前，請先備份專案。<br/>你要繼續嗎？",
     "projects:manage:dialog:upgrade major vrchat supported": "你正在遷移 Unity 版本。將會升級 VRCSDK，並且可能會更改您的腳本和需要重新建置 Library。<br/>在繼續操作前，請先備份專案。<br/>你要繼續嗎？",
     "projects:manage:dialog:upgrade major vrchat unsupported": "你正在遷移 Unity 版本。將會升級 VRCSDK，並且可能會更改您的腳本和需要重新建置 Library。<br/>在繼續操作前，請先備份專案。<br/>此外，你將使用 VRChat 不支援的 Unity 版本，升級後將無法上傳內容至 VRChat。<br/>你要繼續嗎？",
     "projects:manage:dialog:changing china releases": "你正在變更中國版與國際版之間的 Unity 版本。這可能會改變你的腳本，並且可能需要重新建置 Library。<br/>在繼續操作前，請先備份專案。<br/>你要繼續嗎？",
@@ -288,11 +294,11 @@
 
     "projects:manage:dialog:unity migrate header": "Unity 遷移",
     "projects:dialog:migrate unity2022 patch description": "專案將會遷移到 Unity {{unity}}。",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "找不到 Unity 2022 的精確推薦版本進行補丁遷移。請使用 Unity Hub 安裝 Unity {{unity}}，然後重新啟動 ALCOM。",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "找不到 Unity 2022 的精確推薦版本進行補丁遷移。<br>請使用 Unity Hub 安裝 Unity {{unity}}，然後重新啟動 ALCOM。",
     "projects:manage:dialog:unity migrate finalizing...": "正在背景中啟動 Unity 2022 以完成遷移...",
     "projects:toast:unity migrate failed by unity not found": "專案遷移失敗：找不到 Unity 2022",
     "projects:toast:unity migration finalize failed by unity not found": "無法完成遷移：找不到 Unity 2022",
-    "projects:toast:unity migrated": "此專案已遷移到 Unity 20222",
+    "projects:toast:unity migrated": "此專案已遷移到 Unity 2022",
 
     "projects:manage:dialog:confirm changes description": "你正在對專案套用以下變更。",
     "projects:manage:dialog:note breaking changes": "部分套件之間存在重大變更。<br/>專案中的資產、設定與工具可能不再相容。<br/>請查閱相容性資訊並小心升級。",
@@ -386,31 +392,32 @@
     "user packages:dialog:remove package": "移除套件",
     "user packages:dialog:confirm remove description": "你要移除位於 {{path}} 的套件 <b>{{name}}</b> 嗎？",
     "user packages:dialog:button:remove package": "移除套件",
-    "user packages:toast:invalid selection": "選定的套件無效。",
+    "user packages:toast:invalid selection": "所選套件無效。",
     "user packages:toast:package already added": "已添加過此套件。",
     "user packages:toast:package added": "套件添加成功",
     "user packages:toast:package removed": "套件移除成功。",
 
     "packages:templates": "範本",
-    "templates:create template": "創建範本",
+    "templates:create template": "建立範本",
     "templates:category": "類別",
     "templates:id": "範本 ID",
     "template:no id": "無 ID",
     "templates:category:builtin": "內建",
-    "templates:tooltip:category:builtin": "內建範本由 ALCOM 開發者創建、隨 ALCOM 一同提供。",
+    "templates:tooltip:category:builtin": "內建範本由 ALCOM 開發者建立、隨 ALCOM 一同提供。",
     "templates:category:alcom": "自訂",
-    "templates:tooltip:category:alcom": "自訂範本由你創建、可在 ALCOM 內編輯。",
+    "templates:tooltip:category:alcom": "自訂範本由你建立、可在 ALCOM 內編輯。",
     "templates:category:vcc": "VCC",
-    "templates:tooltip:category:vcc": "VCC 範本由你手動為 VCC 創建。",
+    "templates:tooltip:category:vcc": "VCC 範本由你手動為 VCC 建立。",
     "templates:tooltip:remove template": "刪除範本",
     "templates:tooltip:remove builtin template": "不可刪除內建範本。",
     "templates:tooltip:remove vcc template": "你無法在此刪除 VCC 範本，請至範本資料夾裡刪除。",
     "templates:menuitem:edit template": "編輯範本",
-    "templates:menuitem:export template": "匯出 範本",
+    "templates:menuitem:duplicate template": "複製範本",
+    "templates:menuitem:export template": "匯出範本",
     "templates:tooltip:export template with unitypackage": "由於 Unity 套件（Unity packages）不具備可攜性，所以你無法匯出含有它們的模板。",
     "templates:menuitem:open vcc template": "開啟範本資料夾",
     "templates:dialog:edit template": "編輯範本",
-    "templates:dialog:create template": "創建範本",
+    "templates:dialog:create template": "建立範本",
     "templates:dialog:general information": "基本資料",
     "templates:dialog:base template": "基於",
     "templates:dialog:unity version": "Unity 版本",
@@ -440,7 +447,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "這個位置在資料夾 LocalAppData 中，如果在電腦的設定中執行「重設此電腦」並選擇「保留我的檔案」，此資料夾將被刪除。<br>建議你將資料保存到其他位置。",
+    "settings:warning:in-app-data": "此路徑位於 AppData 資料夾中，即使在「重設此電腦」時選擇「保留我的檔案」，該資料夾仍會被刪除。<br>建議你將資料保存到其他位置。",
     "settings:warning:whitespace": "此位置含有空格。這可能導致 Unity 和其他工具出現問題。請考慮使用其他位置。",
     "settings:warning:non-ascii": "此位置含有非 ASCII 字元。這可能導致 Unity 出現問題。請考慮使用其他位置。（不要使用中文或全形字元）",
 
@@ -467,7 +474,7 @@
     "settings:dialog:default launch arguments": "預設命令列參數",
 
     "settings:default project path": "專案預設路徑",
-    "settings:default project path description": "專案預設路徑是創建新專案時的預設位置。",
+    "settings:default project path description": "專案預設路徑是建立新專案時的預設位置。",
     "settings:toast:default project path updated": "更新專案預設路徑成功！",
 
     "settings:backup:path": "備份路徑",
@@ -480,7 +487,7 @@
     "settings:backup:format:zip-store": "未壓縮的 zip（快）",
     "settings:backup:format:zip-fast": "低壓縮率的 zip（慢）",
     "settings:backup:format:zip-best": "高壓縮率的 zip（最慢）",
-    "settings:backup:exclude vpm packages from backup": "備份裡不含有 VPM 套件",
+    "settings:backup:exclude vpm packages from backup": "備份裡不含 VPM 套件",
     "settings:backup:exclude vpm packages from backup description": "這樣可以減少備份的大小，但若套件作者違反建議，從他們的儲存庫中移除了某套件，那在還原備份時你就必須改用其他版本的該套件。",
 
     "settings:packages": "套件",
@@ -489,6 +496,10 @@
 
     "settings:show prerelease": "顯示預先發行版套件",
     "settings:show prerelease description": "啟用「顯示預先發行版套件」將在套件清單中顯示預先發行版的套件。此外，在解析依賴關係時也將使用預先發行版的套件。",
+
+    "settings:dialog:show prerelease packages": "顯示預先發行版套件",
+    "settings:dialog:show prerelease packages description": "預先發行版套件可能比穩定版套件更容易出現問題。<br>確定要顯示預先發行版套件嗎？",
+    "settings:dialog:enable show prerelease packages": "顯示",
 
     "settings:gui animation": "啟用 GUI 動畫",
     "settings:gui animation description": "啟用 GUI 動畫時，頁面切換將帶有動畫效果。但 Webview 版本過舊時可能無效。",
@@ -503,7 +514,7 @@
     "settings:theme:light": "淺色",
     "settings:theme:dark": "深色",
 
-    "settings:files and directories": "檔案 & 資料夾",
+    "settings:files and directories": "檔案和資料夾",
     "settings:files and directories:description": "快速訪問與 ALCOM 相關的檔案及資料夾。",
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
@@ -517,11 +528,17 @@
     "check update:toast:no updates": "無可用更新。",
 
     "check update:dialog:title": "ALCOM 更新",
-    "check update:dialog:new version description": "有可用的新版 ALCOM",
+    "check update:dialog:new version description": "ALCOM 有新版本可用",
+    // note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "ALCOM 有新版本可用，但已不再支援你的平台。<br>如果你的系統支援其他平台版本，請下載對應版本。",
+    "check update:dialog:new version not updatable description": "ALCOM 有新版本可用。<br>但你目前使用的安裝方式無法自動更新。<br>請手動安裝新版本。",
+    "check update:dialog:new version updater disabled base description": "ALCOM 有新版本可用。",
+    "check update:dialog:new version updater how to upgrade fallback": "自動更新已停用。請透過套件管理器升級。",
     "check update:dialog:current version": "目前版本：",
     "check update:dialog:latest version": "最新版本：",
     "check update:dialog:changelog": "變更日誌",
     "check update:dialog:dismiss": "忽略",
+    "check update:dialog:open download page": "開啟下載頁面",
     "check update:dialog:update": "下載並更新！",
     "check update:dialog:downloading...": "下載更新中...",
     "check update:dialog:relaunching...": "重新啟動 ALCOM 中...",
@@ -531,8 +548,8 @@
     "settings:register vcc scheme now": "立即註冊 URL 快捷方式",
     "settings:toast:vcc scheme installed": "ALCOM 已註冊為 URL <code>vcc:</code> 的預設啟動程式。",
 
-    "settings:licenses": "許可證",
-    "settings:licenses description": "點擊 <l>此處</l> 查看在 ALCOM 中使用的相關項目的許可證。",
+    "settings:licenses": "授權條款",
+    "settings:licenses description": "點擊 <l>此處</l> 查看在 ALCOM 中使用的相關項目的授權條款。",
 
     "settings:system information": "系統資訊",
     "settings:os": "作業系統",

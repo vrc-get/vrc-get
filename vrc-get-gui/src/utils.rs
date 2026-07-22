@@ -63,10 +63,7 @@ pub(crate) fn find_existing_parent_dir(path: &Path) -> Option<&Path> {
             return Some(parent);
         }
 
-        match parent.parent() {
-            Some(p) => parent = p,
-            None => return None,
-        }
+        parent = parent.parent()?
     }
 }
 

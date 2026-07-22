@@ -6,6 +6,8 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import {
+	ChevronDown,
+	ChevronRight,
 	CircleArrowUp,
 	CircleMinus,
 	CirclePlus,
@@ -16,6 +18,7 @@ import type React from "react";
 import {
 	memo,
 	useCallback,
+	useEffect,
 	useLayoutEffect,
 	useMemo,
 	useRef,
@@ -91,6 +94,8 @@ export const PackageListCard = memo(function PackageListCard({
 	const [bulkUpdatePackageIdsRaw, setBulkUpdatePackageIds] = useState<string[]>(
 		[],
 	);
+	const [showHiddenPackages, setShowHiddenPackages] = useState(false);
+	const lastSelectedPackageIdRef = useRef<string | null>(null);
 
 	const bulkUpdatePackageIds = useMemo(() => {
 		const packageIds = new Set(packageRowsData.map((p) => p.id));
@@ -98,11 +103,16 @@ export const PackageListCard = memo(function PackageListCard({
 		return bulkUpdatePackageIdsRaw.filter((pkgId) => packageIds.has(pkgId));
 	}, [packageRowsData, bulkUpdatePackageIdsRaw]);
 
-	useDocumentEvent(
-		"post-package-changes",
-		() => setBulkUpdatePackageIds([]),
-		[],
-	);
+	useDocumentEvent("post-package-changes", () => {
+		setBulkUpdatePackageIds([]);
+		lastSelectedPackageIdRef.current = null;
+	}, []);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies(search): watched to trigger the reset, not read in the body
+	// biome-ignore lint/correctness/useExhaustiveDependencies(packageRowsData): watched to trigger the reset, not read in the body
+	useEffect(() => {
+		lastSelectedPackageIdRef.current = null;
+	}, [search, packageRowsData]);
 
 	const bulkUpdateMode = useMemo(() => {
 		const packageRowByPackageId = new Map(
@@ -134,20 +144,95 @@ export const PackageListCard = memo(function PackageListCard({
 		);
 	}, [packageRowsData, search]);
 
+	const hiddenPackages = useMemo(() => {
+		return packageRowsData.filter(
+			(pkg) =>
+				pkg.visibleSources.size === 0 && pkg.isThereSource && !pkg.installed,
+		);
+	}, [packageRowsData]);
+
+	const visibleHiddenPackagesCount = useMemo(() => {
+		return hiddenPackages.filter((pkg) => filteredPackageIds.has(pkg.id))
+			.length;
+	}, [hiddenPackages, filteredPackageIds]);
+
+	const toggleShowHiddenPackages = useCallback(() => {
+		setShowHiddenPackages((prev) => !prev);
+	}, []);
+
 	const hiddenUserRepositories = useMemo(
 		() => new Set(repositoriesInfo?.hidden_user_repositories ?? []),
 		[repositoriesInfo],
 	);
 
-	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
-		setBulkUpdatePackageIds((prev) => {
-			return prev.some((id) => id === row.id) ? prev : [...prev, row.id];
-		});
-	}, []);
+	const onBulkUpdateCheckboxClick = useCallback(
+		(row: PackageRowInfo, shiftKey: boolean) => {
+			const anchorId = lastSelectedPackageIdRef.current;
 
-	const removeBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
-		setBulkUpdatePackageIds((prev) => prev.filter((id) => id !== row.id));
-	}, []);
+			setBulkUpdatePackageIds((prev) => {
+				const nextChecked = !prev.includes(row.id);
+
+				if (shiftKey && anchorId != null) {
+					const hiddenIds = new Set(hiddenPackages.map((r) => r.id));
+					const visibleOrderedPackageRows = packageRowsData.filter(
+						(r) => !hiddenIds.has(r.id) && filteredPackageIds.has(r.id),
+					);
+					if (showHiddenPackages) {
+						visibleOrderedPackageRows.push(
+							...hiddenPackages.filter((r) => filteredPackageIds.has(r.id)),
+						);
+					}
+
+					const ids = visibleOrderedPackageRows.map((r) => r.id);
+					const anchorIndex = ids.indexOf(anchorId);
+					const targetIndex = ids.indexOf(row.id);
+
+					if (anchorIndex !== -1 && targetIndex !== -1) {
+						const packageRowByPackageId = new Map(
+							packageRowsData.map((r) => [r.id, r]),
+						);
+						const currentBulkUpdateMode = updateModeFromPackageModes(
+							prev.flatMap((id) => {
+								const data = packageRowByPackageId.get(id);
+								return data ? [bulkUpdateModeForPackage(data)] : [];
+							}),
+						);
+
+						const [start, end] =
+							anchorIndex < targetIndex
+								? [anchorIndex, targetIndex]
+								: [targetIndex, anchorIndex];
+						const rangeRows = visibleOrderedPackageRows
+							.slice(start, end + 1)
+							.filter((r) =>
+								canBulkUpdate(
+									currentBulkUpdateMode,
+									bulkUpdateModeForPackage(r),
+								),
+							);
+
+						const next = new Set(prev);
+						for (const rangeRow of rangeRows) {
+							if (nextChecked) {
+								next.add(rangeRow.id);
+							} else {
+								next.delete(rangeRow.id);
+							}
+						}
+						return [...next];
+					}
+				}
+
+				if (nextChecked) {
+					return prev.some((id) => id === row.id) ? prev : [...prev, row.id];
+				}
+				return prev.filter((id) => id !== row.id);
+			});
+
+			lastSelectedPackageIdRef.current = row.id;
+		},
+		[hiddenPackages, packageRowsData, filteredPackageIds, showHiddenPackages],
+	);
 
 	// Fix scroll position when bulk update card visibility is changed
 	const scrollTableOuterRef = useRef<HTMLDivElement>(null);
@@ -226,26 +311,77 @@ export const PackageListCard = memo(function PackageListCard({
 						</tr>
 					</thead>
 					<tbody>
-						{packageRowsData.map((row) => (
-							<tr
-								className="even:bg-secondary/30 anchor-none"
-								hidden={!filteredPackageIds.has(row.id)}
-								key={row.id}
-							>
-								<PackageRow
-									pkg={row}
-									bulkUpdateSelected={bulkUpdatePackageIds.some(
-										(id) => id === row.id,
-									)}
-									bulkUpdateAvailable={canBulkUpdate(
-										bulkUpdateMode,
-										bulkUpdateModeForPackage(row),
-									)}
-									addBulkUpdatePackage={addBulkUpdatePackage}
-									removeBulkUpdatePackage={removeBulkUpdatePackage}
-								/>
-							</tr>
-						))}
+						{packageRowsData.map((row) => {
+							if (
+								row.visibleSources.size === 0 &&
+								row.isThereSource &&
+								!row.installed
+							)
+								return null;
+							return (
+								<tr
+									className="[&:nth-child(even_of_:not([hidden]))]:bg-secondary/30 anchor-none"
+									hidden={!filteredPackageIds.has(row.id)}
+									key={row.id}
+								>
+									<PackageRow
+										pkg={row}
+										bulkUpdateSelected={bulkUpdatePackageIds.some(
+											(id) => id === row.id,
+										)}
+										bulkUpdateAvailable={canBulkUpdate(
+											bulkUpdateMode,
+											bulkUpdateModeForPackage(row),
+										)}
+										onBulkUpdateCheckboxClick={onBulkUpdateCheckboxClick}
+									/>
+								</tr>
+							);
+						})}
+						{/* Hidden packages section */}
+						{hiddenPackages.length > 0 && (
+							<>
+								<tr
+									className="bg-secondary/50 hover:bg-secondary/70 cursor-pointer"
+									onClick={toggleShowHiddenPackages}
+								>
+									<td className="p-3.5 compact:py-1 w-1">
+										{showHiddenPackages ? (
+											<ChevronDown className="w-5 h-5" />
+										) : (
+											<ChevronRight className="w-5 h-5" />
+										)}
+									</td>
+									<td
+										colSpan={TABLE_HEAD.length + 1}
+										className="p-3.5 compact:py-1 font-medium text-sm text-muted-foreground"
+									>
+										{tc("projects:manage:hidden packages")} (
+										{visibleHiddenPackagesCount})
+									</td>
+								</tr>
+								{showHiddenPackages &&
+									hiddenPackages.map((row) => (
+										<tr
+											className="[&:nth-child(even_of_:not([hidden]))]:bg-secondary/30 anchor-none"
+											hidden={!filteredPackageIds.has(row.id)}
+											key={row.id}
+										>
+											<PackageRow
+												pkg={row}
+												bulkUpdateSelected={bulkUpdatePackageIds.some(
+													(id) => id === row.id,
+												)}
+												bulkUpdateAvailable={canBulkUpdate(
+													bulkUpdateMode,
+													bulkUpdateModeForPackage(row),
+												)}
+												onBulkUpdateCheckboxClick={onBulkUpdateCheckboxClick}
+											/>
+										</tr>
+									))}
+							</>
+						)}
 					</tbody>
 				</ScrollableCardTable>
 			</CardContent>
@@ -824,14 +960,12 @@ const PackageRow = memo(function PackageRow({
 	pkg,
 	bulkUpdateSelected,
 	bulkUpdateAvailable,
-	addBulkUpdatePackage,
-	removeBulkUpdatePackage,
+	onBulkUpdateCheckboxClick,
 }: {
 	pkg: PackageRowInfo;
 	bulkUpdateSelected: boolean;
 	bulkUpdateAvailable: boolean;
-	addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
-	removeBulkUpdatePackage: (pkg: PackageRowInfo) => void;
+	onBulkUpdateCheckboxClick: (pkg: PackageRowInfo, shiftKey: boolean) => void;
 }) {
 	const cellClass = "p-3.5 compact:py-1";
 	const noGrowCellClass = `${cellClass} w-1`;
@@ -867,12 +1001,8 @@ const PackageRow = memo(function PackageRow({
 		});
 	};
 
-	const onClickBulkUpdate = () => {
-		if (bulkUpdateSelected) {
-			removeBulkUpdatePackage(pkg);
-		} else {
-			addBulkUpdatePackage(pkg);
-		}
+	const onClickBulkUpdateCheckbox = (e: React.MouseEvent) => {
+		onBulkUpdateCheckboxClick(pkg, e.shiftKey);
 	};
 
 	const documentationUrl = pkg.documentationUrl
@@ -883,10 +1013,10 @@ const PackageRow = memo(function PackageRow({
 	return (
 		<>
 			<td className={`${cellClass} w-1 compact:px-2`}>
-				<div className={"flex content-center aspect-square"}>
+				<div className={"flex items-center justify-center aspect-square"}>
 					<CheckboxDisabledIfLoading
 						checked={bulkUpdateSelected}
-						onCheckedChange={onClickBulkUpdate}
+						onClick={onClickBulkUpdateCheckbox}
 						disabled={!bulkUpdateAvailable}
 						className="hover:before:content-none"
 					/>
@@ -921,27 +1051,29 @@ const PackageRow = memo(function PackageRow({
 				<LatestPackageInfo info={pkg.latest} />
 			</td>
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
-				{pkg.sources.size === 0 ? (
+				{pkg.visibleSources.size === 0 ? (
 					pkg.isThereSource ? (
 						<p>{tc("projects:manage:source not selected")}</p>
 					) : (
 						<p>{tc("projects:manage:none")}</p>
 					)
-				) : pkg.sources.size === 1 ? (
+				) : pkg.visibleSources.size === 1 ? (
 					<Tooltip>
 						<TooltipTrigger>
 							<p className="overflow-hidden text-ellipsis">
-								{[...pkg.sources][0]}
+								{[...pkg.visibleSources][0]}
 							</p>
 						</TooltipTrigger>
-						<TooltipContent>{[...pkg.sources][0]}</TooltipContent>
+						<TooltipContent>{[...pkg.visibleSources][0]}</TooltipContent>
 					</Tooltip>
 				) : (
 					<Tooltip>
 						<TooltipTrigger>
 							<p>{tc("projects:manage:multiple sources")}</p>
 						</TooltipTrigger>
-						<TooltipContent>{[...pkg.sources].join(", ")}</TooltipContent>
+						<TooltipContent>
+							{[...pkg.visibleSources].join(", ")}
+						</TooltipContent>
 					</Tooltip>
 				)}
 			</td>
@@ -978,9 +1110,24 @@ const PackageRow = memo(function PackageRow({
 								</ButtonDisabledIfLoading>
 							</TooltipTrigger>
 							<TooltipContent>
-								{!latestVersion
-									? tc("projects:manage:tooltip:incompatible with unity")
-									: tc("projects:manage:tooltip:add package")}
+								{pkg.visibleSources.size === 0 && pkg.isThereSource ? (
+									<div className="flex flex-col gap-1">
+										<p>
+											{tc(
+												"projects:manage:tooltip:select repository to install",
+											)}
+										</p>
+										<p className="text-xs opacity-75">
+											{[...pkg.sources]
+												.filter((source) => !pkg.visibleSources.has(source))
+												.join(", ")}
+										</p>
+									</div>
+								) : !latestVersion ? (
+									tc("projects:manage:tooltip:incompatible with unity")
+								) : (
+									tc("projects:manage:tooltip:add package")
+								)}
 							</TooltipContent>
 						</Tooltip>
 					)}

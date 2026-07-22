@@ -1,0 +1,24 @@
+# Metadata about the upstream project.
+# See https://wiki.debian.org/UpstreamMetadata
+
+Bug-Database: https://github.com/vrc-get/vrc-get/issues
+Bug-Submit: https://github.com/vrc-get/vrc-get/issues/new
+Changelog: https://github.com/vrc-get/vrc-get/blob/master/vrc-get-gui/CHANGELOG.md
+Documentation: https://vrc-get.anatawa12.com/alcom/
+Repository-Browse: https://github.com/vrc-get/vrc-get
+Repository: https://github.com/vrc-get/vrc-get.git
+#FAQ: https://github.com/<user>/<project>/blob/main/FAQ.md
+Donation: https://github.com/sponsors/anatawa12
+#Registration: https://github.com/signup
+#Archive: PyPI # or CPAN, boost, etc.
+
+# Uncomment these and fill them out to help users evaluate upstream:
+#Gallery: https://github.com/<user>/<project>/wiki/pictures-made-with-this-program
+#Screenshots: # pictures *of* the program, as opposed to pictures *made with* the program
+#  - https://github.com/<user>/<project>/wiki/login-screen.png
+#  - https://github.com/<user>/<project>/wiki/help-menu.png
+#  - ...
+
+# Uncomment these and fill them out to help resolve security issues:
+#Security-Contact: <how to send security-related messages>
+#CPE: <space-separated Common Platform Enumerator values - see https://wiki.debian.org/CPEtagPackagesDep>

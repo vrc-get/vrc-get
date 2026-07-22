@@ -40,7 +40,8 @@ export const commands = {
 	environmentSetHideLocalUserPackages: (value: boolean) => __TAURI_INVOKE<null>("environment_set_hide_local_user_packages", { value }),
 	environmentDownloadRepository: (url: string, headers: { [key in string]: string }) => __TAURI_INVOKE<TauriDownloadRepository>("environment_download_repository", { url, headers }),
 	environmentAddRepository: (url: string, headers: { [key in string]: string }) => __TAURI_INVOKE<TauriAddRepositoryResult>("environment_add_repository", { url, headers }),
-	environmentRemoveRepository: (id: string) => __TAURI_INVOKE<null>("environment_remove_repository", { id }),
+	environmentRemoveRepository: (index: number, expectedId: string) => __TAURI_INVOKE<null>("environment_remove_repository", { index, expectedId }),
+	environmentReorderRepositories: (repos: TauriUserRepositoryRef[]) => __TAURI_INVOKE<null>("environment_reorder_repositories", { repos }),
 	environmentImportRepositoryPick: () => __TAURI_INVOKE<TauriImportRepositoryPickResult>("environment_import_repository_pick"),
 	environmentImportDownloadRepositories: (channel: string, repositories: TauriRepositoryDescriptor[]) => __TAURI_INVOKE<AsyncCallResult<number, ([TauriRepositoryDescriptor, TauriDownloadRepository])[]>>("environment_import_download_repositories", { channel, repositories }),
 	environmentImportAddRepositories: (repositories: TauriRepositoryDescriptor[]) => __TAURI_INVOKE<null>("environment_import_add_repositories", { repositories }),
@@ -92,6 +93,7 @@ export const commands = {
 	projectSetUnityPath: (projectPath: string, unityPath: string | null) => __TAURI_INVOKE<boolean>("project_set_unity_path", { projectPath, unityPath }),
 	utilOpen: (path: string, ifNotExists: OpenOptions) => __TAURI_INVOKE<null>("util_open", { path, ifNotExists }),
 	utilOpenUrl: (url: string) => __TAURI_INVOKE<null>("util_open_url", { url }),
+	utilOpenUrlNocheck: (url: string) => __TAURI_INVOKE<null>("util_open_url_nocheck", { url }),
 	utilGetLogEntries: () => __TAURI_INVOKE<LogEntry_Serialize[]>("util_get_log_entries"),
 	utilGetVersion: () => __TAURI_INVOKE<string>("util_get_version"),
 	utilCheckForUpdate: () => __TAURI_INVOKE<{
@@ -165,7 +167,7 @@ export type LogEntry_Deserialize = {
 	level: LogLevel,
 	target: string,
 	message: string,
-	gui_toast: boolean,
+	gui_toast: boolean | null,
 };
 
 export type LogEntry_Serialize = {
@@ -173,7 +175,7 @@ export type LogEntry_Serialize = {
 	level: LogLevel,
 	target: string,
 	message: string,
-	gui_toast: boolean,
+	gui_toast: boolean | null,
 };
 
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace";
@@ -404,9 +406,15 @@ export type TauriUserPackage = {
 };
 
 export type TauriUserRepository = {
+	index: number,
 	id: string,
 	url: string | null,
 	display_name: string,
+};
+
+export type TauriUserRepositoryRef = {
+	index: number,
+	id: string,
 };
 
 export type TauriVersion = {

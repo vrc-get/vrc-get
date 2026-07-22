@@ -9,10 +9,10 @@ use crate::environment::vpm_settings::VpmSettings;
 use crate::environment::vrc_get_settings::VrcGetSettings;
 use crate::environment::{AddUserPackageResult, PackageCollection};
 use crate::io::DefaultEnvironmentIo;
-use crate::package_manifest::LooseManifest;
 use crate::repository::RemoteRepository;
-use crate::utils::{normalize_path, try_load_json};
-use crate::{UserRepoSetting, io};
+use crate::utils::json::try_load_json;
+use crate::utils::normalize_path;
+use crate::{PackageManifest, UserRepoSetting, io};
 
 #[derive(Debug, Clone)]
 pub struct Settings {
@@ -23,7 +23,18 @@ pub struct Settings {
 
 impl Settings {
     pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
-        let settings = VpmSettings::load(io).await?;
+        let settings = if let Some(settings) = VpmSettings::load(io).await? {
+            settings
+        } else if let Some(settings) = VpmSettings::load_alt(io).await? {
+            log::warn!(
+                gui_toast = true;
+                "Recovered settings from a vrc-get backup because the VCC configuration file was missing or corrupted. Some changes made in VCC may have been lost."
+            );
+            settings
+        } else {
+            VpmSettings::default()
+        };
+
         let vrc_get_settings = VrcGetSettings::load(io).await?;
 
         Ok(Self {
@@ -155,11 +166,14 @@ impl Settings {
             }
         }
 
-        match try_load_json::<LooseManifest>(io, &pkg_path.join("package.json")).await {
-            Ok(Some(LooseManifest(package_json))) => package_json,
-            _ => {
-                return AddUserPackageResult::BadPackage;
-            }
+        let Ok(Some(_)) = try_load_json(
+            io,
+            &pkg_path.join("package.json"),
+            PackageManifest::from_loose_json_value,
+        )
+        .await
+        else {
+            return AddUserPackageResult::BadPackage;
         };
 
         self.vpm.add_user_package_folder(pkg_path.to_owned());
@@ -256,6 +270,14 @@ impl Settings {
         condition: impl Fn(&UserRepoSetting) -> bool,
     ) -> Vec<UserRepoSetting> {
         self.vpm.retain_user_repos(|x| !condition(x))
+    }
+
+    pub fn remove_repo_at_index(&mut self, index: usize) -> Option<UserRepoSetting> {
+        self.vpm.remove_user_repo_at_index(index)
+    }
+
+    pub fn reorder_user_repos_by_indices(&mut self, indices: &[usize]) {
+        self.vpm.reorder_user_repos_by_indices(indices);
     }
 
     // auto configurations

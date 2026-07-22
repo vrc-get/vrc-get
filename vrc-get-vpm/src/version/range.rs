@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 // TODO: TEST
 
-#[derive(::serde::Serialize, ::serde::Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DependencyRange(VersionRange);
 
 impl DependencyRange {
@@ -64,6 +64,14 @@ impl DependencyRange {
 impl Display for DependencyRange {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Display::fmt(&self.0, f)
+    }
+}
+
+impl FromStr for DependencyRange {
+    type Err = ParseVersionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        VersionRange::from_str(s).map(DependencyRange)
     }
 }
 

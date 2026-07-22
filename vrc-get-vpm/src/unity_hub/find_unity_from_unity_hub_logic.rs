@@ -4,8 +4,7 @@ use crate::version::UnityVersion;
 use either::Either;
 use futures::FutureExt;
 use futures::future::{join_all, try_join3};
-use serde::Deserialize;
-use serde::de::DeserializeOwned;
+use serde_json::Value;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::result;
@@ -73,9 +72,10 @@ fn arch_for_dedup(arch: Option<ChipArchitecture>) -> ChipArchitecture {
 
 async fn get_custom_install_location(local_settings: &LocalSettings) -> Option<PathBuf> {
     let user_setting = local_settings
-        .load_setting_file::<String>("secondaryInstallPath.json")
+        .load_setting_file("secondaryInstallPath.json")
         .await
-        .unwrap_or(String::new());
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .unwrap_or_default();
     if !user_setting.is_empty() {
         return Some(PathBuf::from(user_setting));
     }
@@ -187,40 +187,51 @@ async fn find_unity_editor_folder_in_folder(folder_path: &Path) -> Result<Vec<Pa
 }
 
 async fn load_located_editors(local_settings: &LocalSettings) -> Vec<UnityEditorInHub> {
-    #[derive(Deserialize)]
-    struct LocatedEditor {
-        #[serde(with = "either::serde_untagged")]
-        location: Either<String, Vec<String>>,
-        version: String,
-        // architecture may be null or absent in older editors-v2.json entries
-        #[serde(default)]
-        architecture: Option<String>,
-    }
-    #[derive(Deserialize)]
-    struct EditorsV2 {
-        #[serde(default)]
-        data: Vec<LocatedEditor>,
-    }
-
-    let Some(editors) = local_settings
-        .load_setting_file::<EditorsV2>("editors-v2.json")
-        .await
+    let Some(Value::Object(mut editors)) =
+        local_settings.load_setting_file("editors-v2.json").await
     else {
         return Vec::new();
     };
+    let data = editors
+        .remove("data")
+        .and_then(|value| value.as_array().cloned())
+        .unwrap_or_default();
 
     let mut result = Vec::new();
 
-    for editor in editors.data {
-        let Some(version) = UnityVersion::parse(&editor.version) else {
+    for editor in data {
+        let Value::Object(mut editor) = editor else {
             continue;
         };
-        let architecture = match editor.architecture.as_deref() {
+        let Some(version) = editor
+            .remove("version")
+            .and_then(|value| value.as_str().map(str::to_owned))
+        else {
+            continue;
+        };
+        let Some(version) = UnityVersion::parse(&version) else {
+            continue;
+        };
+        let architecture = match editor
+            .remove("architecture")
+            .and_then(|value| value.as_str().map(str::to_owned))
+            .as_deref()
+        {
             Some("x86_64") | None => Some(ChipArchitecture::X86_64),
             Some("arm64") => Some(ChipArchitecture::ARM64),
             _ => None,
         };
-        match editor.location {
+        let location = match editor.remove("location") {
+            Some(Value::String(location)) => Either::Left(location),
+            Some(Value::Array(locations)) => Either::Right(
+                locations
+                    .into_iter()
+                    .filter_map(|value| value.as_str().map(str::to_owned))
+                    .collect::<Vec<_>>(),
+            ),
+            _ => continue,
+        };
+        match location {
             Either::Left(location) => {
                 result.push(UnityEditorInHub {
                     version,
@@ -243,7 +254,7 @@ async fn load_located_editors(local_settings: &LocalSettings) -> Vec<UnityEditor
     result
 }
 
-fn load_json_or_none<T: DeserializeOwned>(path: &Path) -> Option<T> {
+fn load_json_or_none(path: &Path) -> Option<Value> {
     let data = std::fs::read(path).ok()?;
     serde_json::from_slice(&data).ok()
 }
@@ -261,17 +272,12 @@ impl LocalSettings {
             machine_wide_install_location: None,
         };
 
-        #[derive(Deserialize)]
-        struct UnityHubSettings {
-            #[serde(rename = "machineWideSecondaryInstallLocation")]
-            machine_wide_secondary_install_location: Option<PathBuf>,
-        }
-
         macro_rules! load {
             ($expr: expr) => {{
-                if let Some(settings) = $expr as Option<UnityHubSettings> {
-                    if let Some(machine_wide_secondary_install_location) =
-                        settings.machine_wide_secondary_install_location
+                if let Some(Value::Object(mut settings)) = $expr {
+                    if let Some(machine_wide_secondary_install_location) = settings
+                        .remove("machineWideSecondaryInstallLocation")
+                        .and_then(|value| value.as_str().map(PathBuf::from))
                     {
                         result.machine_wide_install_location =
                             Some(machine_wide_secondary_install_location);
@@ -289,7 +295,7 @@ impl LocalSettings {
         result
     }
 
-    pub async fn load_setting_file<T: DeserializeOwned>(&self, name: &str) -> Option<T> {
+    pub async fn load_setting_file(&self, name: &str) -> Option<Value> {
         load_json_or_none(&self.user_data_path.join(name))
     }
 }

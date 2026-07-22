@@ -1,0 +1,7 @@
+/*-build-stamp
+/*.substvars
+/.debhelper
+/files
+/cargo_home
+/npm_cache
+alcom/

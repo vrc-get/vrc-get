@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 #[derive(clap::Parser)]
 pub struct Command {
     #[arg()]
-    file: PathBuf,
+    pub file: PathBuf,
 }
 
 impl crate::Command for Command {
@@ -52,7 +52,7 @@ impl crate::Command for Command {
     }
 }
 
-fn secret_key(private_key: &str, password: &str) -> Result<SecretKey> {
+pub fn secret_key(private_key: &str, password: &str) -> Result<SecretKey> {
     let decoded_secret = base64::engine::general_purpose::STANDARD
         .decode(private_key)
         .map_err(anyhow::Error::from)

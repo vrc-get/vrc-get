@@ -13,28 +13,21 @@
 //!
 //! This is based heavily on the tauri-plugin-updater source code.
 
-use std::collections::HashMap;
+pub mod common;
+
 use std::ffi::OsString;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
-use base64::Engine as _;
+use crate::updater::common::{
+    PUBLIC_KEY, ReleaseManifestPlatform, RemoteRelease, VerifySignatureError,
+};
+use common::verify_signature;
 use futures::StreamExt as _;
-use minisign_verify::{PublicKey, Signature};
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{StatusCode, header};
-use semver::Version;
-use serde::{Deserialize, Deserializer, de::Error as DeError};
 use tauri::{AppHandle, Env, Manager as _, Runtime};
 use url::Url;
-
-// ---------------------------------------------------------------------------
-// constants
-// ---------------------------------------------------------------------------
-
-static PUBLIC_KEY: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkyMjAzMkU2Q0ZGQjQ0MjYKUldRbVJQdlA1aklna2d2NnRoM3ZsT3lzWEQ3MC9zTGpaWVR4NGdQOXR0UGJaOHBlY2xCcFY5bHcK";
-
 // ---------------------------------------------------------------------------
 // Error type
 // ---------------------------------------------------------------------------
@@ -111,83 +104,6 @@ impl From<url::ParseError> for Error {
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 // ---------------------------------------------------------------------------
-// Signature verification
-// ---------------------------------------------------------------------------
-
-fn verify_signature(data: &[u8], release_signature: &str, pub_key: &str) -> Result<bool> {
-    let pub_key_decoded = base64_to_string(pub_key)?;
-    let public_key =
-        PublicKey::decode(&pub_key_decoded).map_err(|e| Error::Signature(e.to_string()))?;
-    let sig_decoded = base64_to_string(release_signature)?;
-    let signature = Signature::decode(&sig_decoded).map_err(|e| Error::Signature(e.to_string()))?;
-    public_key
-        .verify(data, &signature, true)
-        .map_err(|e| Error::Signature(e.to_string()))?;
-    Ok(true)
-}
-
-fn base64_to_string(base64_string: &str) -> Result<String> {
-    let decoded = base64::engine::general_purpose::STANDARD.decode(base64_string)?;
-    std::str::from_utf8(&decoded)
-        .map(|s| s.to_string())
-        .map_err(|_| Error::SignatureUtf8(base64_string.into()))
-}
-
-// ---------------------------------------------------------------------------
-// Remote release structures
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct ReleaseManifestPlatform {
-    pub url: Url,
-    pub signature: String,
-    // alcom specific information
-    /// Command line parameters for windows installer
-    ///
-    /// If one of arg is prefixed with '!', such parameters have special handling.
-    /// If the updater cannot process ! args, such parameters will be ignored.
-    ///
-    /// Current ! operations are shown below:
-    /// - `!peruser:` appended only if t installation is user installuser install is active
-    /// - `!current installation is machine install
-    // /// - `!install-path:` substitute `${installed}` with currently installed dir. // initially planned but not implemented.
-    #[serde(default)]
-    pub args: Vec<String>,
-}
-
-#[derive(Deserialize)]
-struct RemoteRelease {
-    #[serde(alias = "name", deserialize_with = "parse_version")]
-    version: Version,
-    notes: Option<String>,
-    platforms: HashMap<String, ReleaseManifestPlatform>,
-}
-
-fn parse_version<'de, D>(deserializer: D) -> std::result::Result<Version, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct Visitor;
-
-    impl<'de> serde::de::Visitor<'de> for Visitor {
-        type Value = Version;
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("a semver version")
-        }
-
-        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            Version::from_str(v.trim_start_matches('v'))
-                .map_err(|_| DeError::invalid_value(serde::de::Unexpected::Str(v), &self))
-        }
-    }
-
-    deserializer.deserialize_str(Visitor)
-}
-
-// ---------------------------------------------------------------------------
 // OS / arch helpers  (always compiled for all targets – use cfg!())
 // ---------------------------------------------------------------------------
 
@@ -262,6 +178,18 @@ pub async fn check_for_update<R: Runtime>(
 
     let mut headers = HeaderMap::new();
     headers.insert(header::ACCEPT, HeaderValue::from_static("application/json"));
+    headers.insert(
+        "X-Alcom-Version",
+        HeaderValue::from_static(env!("CARGO_PKG_VERSION")),
+    );
+    headers.insert(
+        "X-Alcom-OS",
+        HeaderValue::from_static(updater_os().unwrap_or("unknown")),
+    );
+    headers.insert(
+        "X-Alcom-Arch",
+        HeaderValue::from_static(updater_arch().unwrap_or("unknown")),
+    );
 
     let client = app.state::<reqwest::Client>();
 
@@ -486,7 +414,7 @@ impl UpdaterInformation {
         );
 
         let response = (self.client)
-            .get(self.platform.url.clone())
+            .get(&self.platform.url)
             .headers(headers)
             .send()
             .await?;
@@ -512,7 +440,13 @@ impl UpdaterInformation {
             buffer.extend_from_slice(&chunk);
         }
 
-        verify_signature(&buffer, &self.platform.signature, PUBLIC_KEY)?;
+        verify_signature(&buffer, &self.platform.signature, PUBLIC_KEY).map_err(|e| match e {
+            VerifySignatureError::InvalidBase64(e) => Error::InvalidBase64(e),
+            VerifySignatureError::MiniSignError(e) => Error::Signature(e.to_string()),
+            VerifySignatureError::SignatureIsNotUtf8 => {
+                Error::SignatureUtf8(self.platform.signature.clone())
+            }
+        })?;
 
         Ok(buffer)
     }
@@ -793,7 +727,8 @@ mod windows {
             let params = build_updater_args(&self.platform.args, self.current_install);
 
             tempfile.disable_cleanup(true);
-            start_installer(op, file, params);
+            drop(tempfile);
+            start_installer(op, file, params)?;
 
             // For windows install, we need to quit app immediately.
             std::process::exit(0);
@@ -900,14 +835,14 @@ mod windows {
 
     // os specific call
     #[cfg(windows)]
-    fn start_installer(op: Vec<u16>, file: Vec<u16>, params: Vec<u16>) {
+    fn start_installer(op: Vec<u16>, file: Vec<u16>, params: Vec<u16>) -> Result<()> {
         use ::windows::Win32::UI::Shell::ShellExecuteW;
         use ::windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
         use ::windows::core::PCWSTR;
 
         unsafe {
             // SAFETY: all pointers remain valid for the duration of the call, since owned vec is passed
-            ShellExecuteW(
+            let response = ShellExecuteW(
                 None,
                 PCWSTR(op.as_ptr()),
                 PCWSTR(file.as_ptr()),
@@ -915,11 +850,19 @@ mod windows {
                 PCWSTR(std::ptr::null()),
                 SW_SHOW,
             );
+
+            let response = response.0 as u32;
+            if response > 32 {
+                Ok(())
+            } else {
+                // Map the error code (<= 32) to an IO Error
+                Err(std::io::Error::from_raw_os_error(response as i32).into())
+            }
         }
     }
 
     #[cfg(not(windows))]
-    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) {
+    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) -> Result<()> {
         unreachable!("install_windows_impl called on a non-Windows platform")
     }
 }

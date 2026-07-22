@@ -1,2 +1,6 @@
+include = [
+    { path = "config.local.toml", optional = true },
+]
+
 [alias]
 xtask = "run --profile xtask --target host-tuple -p xtask --"

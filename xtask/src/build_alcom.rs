@@ -1,11 +1,11 @@
 use crate::utils;
 use crate::utils::command::{CommandExt, create_command};
-use crate::utils::{build_dir, build_target};
+use crate::utils::{build_dir, build_target, replace_arch, target_arch};
 use anyhow::{Context, Result, bail};
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
 
 /// Builds the ALCOM binary using `cargo build`.
@@ -73,16 +73,23 @@ struct BuildConfig {
 
 impl crate::Command for Command {
     fn run(self) -> Result<i32> {
-        let metadata = crate::utils::cargo::cargo_metadata();
-        let workspace_root = metadata.workspace_root.as_std_path();
+        let workspace_root = utils::cargo::workspace_root();
 
         let target_triple = build_target(self.target.as_deref());
 
         build_web(workspace_root)?;
 
-        if target_triple == "universal-apple-darwin" {
-            build_universal_macos(
+        if target_arch(target_triple) == "universal" {
+            build_cargo(
                 workspace_root,
+                Some(&replace_arch(target_triple, "x86_64")),
+                self.profile.name(),
+                &self.config,
+                self.verbose,
+            )?;
+            build_cargo(
+                workspace_root,
+                Some(&replace_arch(target_triple, "aarch64")),
                 self.profile.name(),
                 &self.config,
                 self.verbose,
@@ -95,6 +102,11 @@ impl crate::Command for Command {
                 &self.config,
                 self.verbose,
             )?;
+        }
+
+        if target_triple == "universal-apple-darwin" {
+            let out_bin = lipo_universal_binary(self.profile.name())?;
+            println!("created universal binary: {}", out_bin.display());
         }
 
         Ok(0)
@@ -118,7 +130,7 @@ fn build_cargo(
     config: &BuildConfig,
     verbose: bool,
 ) -> Result<()> {
-    let mut cmd = ProcessCommand::new("cargo");
+    let mut cmd = utils::cargo::command();
     cmd.current_dir(workspace_root)
         .arg("build")
         .arg("-p")
@@ -170,6 +182,10 @@ fn build_cargo(
         }
     }
 
+    if config.devtools {
+        features.push("devtools");
+    }
+
     cmd.arg("--features").arg(features.iter().join(","));
 
     if let Some(target) = target_triple {
@@ -186,29 +202,7 @@ fn build_cargo(
     ))
 }
 
-/// Build a universal macOS binary by compiling for both x86_64 and aarch64 and
-/// merging the results with `lipo`.
-fn build_universal_macos(
-    workspace_root: &Path,
-    profile: &str,
-    config: &BuildConfig,
-    verbose: bool,
-) -> Result<()> {
-    build_cargo(
-        workspace_root,
-        Some("x86_64-apple-darwin"),
-        profile,
-        config,
-        verbose,
-    )?;
-    build_cargo(
-        workspace_root,
-        Some("aarch64-apple-darwin"),
-        profile,
-        config,
-        verbose,
-    )?;
-
+pub fn lipo_universal_binary(profile: &str) -> Result<PathBuf> {
     // Combine the two single-arch binaries into one fat binary.
     let x86_bin = build_dir("x86_64-apple-darwin", profile).join("ALCOM");
     let arm_bin = build_dir("aarch64-apple-darwin", profile).join("ALCOM");
@@ -220,8 +214,7 @@ fn build_universal_macos(
 
     lipo_create(&[&x86_bin, &arm_bin], &out_bin)?;
 
-    println!("created universal binary: {}", out_bin.display());
-    Ok(())
+    Ok(out_bin)
 }
 
 /// Create a universal binary from a list of single-arch binaries using `lipo`.

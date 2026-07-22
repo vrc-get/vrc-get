@@ -1,44 +1,57 @@
 use crate::PackageManifest;
 use crate::traits::HttpClient;
-use crate::utils::{deserialize_json, deserialize_json_slice};
+use crate::utils::json::{JsonError, JsonObject, JsonValue, parse_json_file};
 use crate::version::Version;
 use crate::{VersionSelector, io};
 use futures::prelude::*;
 use indexmap::IndexMap;
-use serde::de::{DeserializeSeed, Visitor};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::{Map, Value};
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::pin::pin;
+use std::str::FromStr;
 use url::Url;
-
-type JsonMap = Map<String, Value>;
 
 #[derive(Debug, Clone)]
 pub struct RemoteRepository {
-    actual: JsonMap,
-    parsed: ParsedRepository,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct ParsedRepository {
-    #[serde(default)]
+    actual: JsonObject,
     name: Option<Box<str>>,
-    #[serde(default)]
     url: Option<Url>,
-    #[serde(default)]
     id: Option<Box<str>>,
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_packages")]
     packages: IndexMap<Box<str>, RemotePackages>,
 }
 
 impl RemoteRepository {
-    pub fn parse(cache: JsonMap) -> io::Result<Self> {
+    pub(crate) fn from_json_value(cache: JsonValue) -> Result<Self, JsonError> {
+        let actual = cache.into_object()?;
+        let actual = actual.clone();
+        let name = (actual.get_opt("name"))
+            .try_map(JsonValue::into_string)?
+            .map(Into::into);
+        let url = actual.get_opt("name").parse_opt(|s| s.parse())?;
+        let id = (actual.get_opt("id"))
+            .try_map(JsonValue::into_string)?
+            .map(Into::into);
+        let packages = (actual.get_opt("packages"))
+            .try_map(JsonValue::into_object)?
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(k, v)| {
+                let parsed = RemotePackages::from_json_value(&k, v)?;
+                Ok((k.into(), parsed))
+            })
+            .collect::<Result<IndexMap<_, _>, JsonError>>()?;
+
         Ok(Self {
-            parsed: deserialize_json(Value::Object(cache.clone()))?,
-            actual: cache,
+            actual,
+            name,
+            url,
+            id,
+            packages,
         })
+    }
+
+    pub(crate) fn to_json_value(&self) -> JsonValue {
+        self.actual.clone().into()
     }
 
     pub async fn download(
@@ -66,60 +79,53 @@ impl RemoteRepository {
         let mut bytes = Vec::new();
         pin!(stream).read_to_end(&mut bytes).await?;
 
-        let no_bom = bytes
-            .strip_prefix(b"\xEF\xBB\xBF")
-            .unwrap_or(bytes.as_ref());
-        let json = deserialize_json_slice(no_bom)?;
+        let mut repo = parse_json_file(&bytes, url, RemoteRepository::from_json_value)?;
 
-        let mut repo = RemoteRepository::parse(json)?;
         repo.set_url_if_none(|| url.clone());
         Ok(Some((repo, etag)))
     }
 
     pub(crate) fn set_id_if_none(&mut self, f: impl FnOnce() -> Box<str>) {
-        if self.parsed.id.is_none() {
+        if self.id.is_none() {
             let id = f();
-            self.parsed.id = Some(id.clone());
-            self.actual
-                .insert("id".to_owned(), Value::String(id.into()));
+            self.id = Some(id.clone());
+            self.actual.insert("id", &*id);
         }
     }
 
     pub(crate) fn set_url_if_none(&mut self, f: impl FnOnce() -> Url) {
-        if self.parsed.url.is_none() {
+        if self.url.is_none() {
             let url = f();
-            self.parsed.url = Some(url.clone());
-            self.actual
-                .insert("url".to_owned(), Value::String(url.to_string()));
+            self.url = Some(url.clone());
+            self.actual.insert("url", url.to_string());
         }
-        if self.parsed.id.is_none() {
-            let url = self.parsed.url.as_ref().unwrap().as_str().into();
+        if self.id.is_none() {
+            let url = self.url.as_ref().unwrap().as_str().into();
             self.set_id_if_none(move || url);
         }
     }
 
     pub fn url(&self) -> Option<&Url> {
-        self.parsed.url.as_ref()
+        self.url.as_ref()
     }
 
     pub(crate) fn set_url(&mut self, url: Url) {
-        self.parsed.url = Some(url);
+        self.url = Some(url);
     }
 
     pub fn id(&self) -> Option<&str> {
-        self.parsed.id.as_deref()
+        self.id.as_deref()
     }
 
     pub fn name(&self) -> Option<&str> {
-        self.parsed.name.as_deref()
+        self.name.as_deref()
     }
 
     pub fn get_versions_of(
         &self,
         package: &str,
     ) -> impl Iterator<Item = &'_ PackageManifest> + use<'_> {
-        self.parsed
-            .packages
+        self.packages
             .get(package)
             .map(RemotePackages::all_versions)
             .into_iter()
@@ -127,67 +133,16 @@ impl RemoteRepository {
     }
 
     pub fn get_package(&self, package: &str) -> Option<&RemotePackages> {
-        self.parsed.packages.get(package)
+        self.packages.get(package)
     }
 
     pub fn get_packages(&self) -> impl Iterator<Item = &'_ RemotePackages> {
-        self.parsed.packages.values()
+        self.packages.values()
     }
 
     pub fn get_package_version(&self, name: &str, version: &Version) -> Option<&PackageManifest> {
-        self.parsed.packages.get(name)?.versions.get(version)
+        self.packages.get(name)?.versions.get(version)
     }
-}
-
-impl Serialize for RemoteRepository {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.actual.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for RemoteRepository {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        use serde::de::Error;
-        let map = JsonMap::deserialize(deserializer)?;
-        Self::parse(map).map_err(Error::custom)
-    }
-}
-
-fn deserialize_packages<'de, D>(
-    deserializer: D,
-) -> Result<IndexMap<Box<str>, RemotePackages>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct VisitorImpl;
-
-    impl<'de> Visitor<'de> for VisitorImpl {
-        type Value = IndexMap<Box<str>, RemotePackages>;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("a map of package names to package versions")
-        }
-
-        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::MapAccess<'de>,
-        {
-            let mut packages = IndexMap::new();
-            while let Some(name) = map.next_key::<Box<str>>()? {
-                let versions = map.next_value_seed(PackageNameToRemotePackages(&name))?;
-                packages.insert(name, versions);
-            }
-            Ok(packages)
-        }
-    }
-
-    deserializer.deserialize_map(VisitorImpl)
 }
 
 #[derive(Debug, Clone)]
@@ -226,99 +181,29 @@ impl RemotePackages {
     }
 }
 
-struct PackageNameToRemotePackages<'a>(&'a str);
-
-impl<'de> DeserializeSeed<'de> for PackageNameToRemotePackages<'_> {
-    type Value = RemotePackages;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct VisitorImpl<'a>(&'a str);
-
-        impl<'de> Visitor<'de> for VisitorImpl<'_> {
-            type Value = RemotePackages;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a map of package versions")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: serde::de::MapAccess<'de>,
-            {
-                let mut versions = HashMap::new();
-                while let Some(key) = map.next_key::<&'de str>()? {
-                    if key == "versions" {
-                        versions = map.next_value_seed(PackageNameToVersions(self.0))?;
+impl RemotePackages {
+    fn from_json_value(name: &str, value: JsonValue) -> Result<RemotePackages, JsonError> {
+        let object = value.into_object()?;
+        let versions = object
+            .get_opt("versions")
+            .try_map(|value| value.into_object())?
+            .unwrap_or_default();
+        let versions = versions
+            .into_keys_parsed(|s| Version::from_str(&s))
+            .map_ok(
+                |(version, value)| match PackageManifest::from_json_value(value) {
+                    Ok(manifest) => Some((version, manifest)),
+                    Err(err) => {
+                        log::warn!(
+                            "Error deserializing package manifest for {name}@{version}: {err}",
+                        );
+                        None
                     }
-                }
-                Ok(RemotePackages { versions })
-            }
-        }
+                },
+            )
+            .flatten_ok()
+            .collect::<Result<HashMap<_, _>, _>>()?;
 
-        deserializer.deserialize_struct("RemotePackages", &["versions"], VisitorImpl(self.0))
-    }
-}
-
-struct PackageNameToVersions<'a>(&'a str);
-
-impl<'de> DeserializeSeed<'de> for PackageNameToVersions<'_> {
-    type Value = HashMap<Version, PackageManifest>;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct VisitorImpl<'a>(&'a str);
-
-        impl<'de> Visitor<'de> for VisitorImpl<'_> {
-            type Value = HashMap<Version, PackageManifest>;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a map of versions to package manifests")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: serde::de::MapAccess<'de>,
-            {
-                let mut versions = HashMap::new();
-                while let Some(version) = map.next_key::<Version>()? {
-                    let manifest = map.next_value_seed(ErrorProofManifest(self.0, &version))?;
-                    if let Some(manifest) = manifest {
-                        versions.insert(version, manifest);
-                    }
-                }
-                Ok(versions)
-            }
-        }
-
-        deserializer.deserialize_map(VisitorImpl(self.0))
-    }
-}
-
-struct ErrorProofManifest<'a>(&'a str, &'a Version);
-
-impl<'de> DeserializeSeed<'de> for ErrorProofManifest<'_> {
-    type Value = Option<PackageManifest>;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = serde_value::Value::deserialize(deserializer)?;
-        match PackageManifest::deserialize(value) {
-            Ok(manifest) => Ok(Some(manifest)),
-            Err(err) => {
-                log::warn!(
-                    "Error deserializing package manifest for {}@{}: {err}",
-                    self.0,
-                    self.1,
-                );
-                Ok(None)
-            }
-        }
+        Ok(RemotePackages { versions })
     }
 }

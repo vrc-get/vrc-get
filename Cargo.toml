@@ -6,6 +6,7 @@ members = [
     "vrc-get",
     "vrc-get-gui",
     "vrc-get-gui/windows-installer-wrapper",
+    "vrc-get-gui/online-installer",
 ]
 
 # "vrc-get-gui" is excluded since "vrc-get-gui" requires complex tauri configuration
@@ -31,3 +32,10 @@ incremental = false
 debug = 1
 opt-level = 0
 lto = "off"
+
+[profile.online-installer]
+inherits = "release"
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true

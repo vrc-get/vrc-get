@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
 	Accordion,
 	AccordionContent,
@@ -21,7 +21,6 @@ import { type DialogContext, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
 import { toastSuccess } from "@/lib/toast";
-import { useEffectEvent } from "@/lib/use-effect-event";
 
 type ParsedRepositories = {
 	repositories: TauriRepositoryDescriptor[];

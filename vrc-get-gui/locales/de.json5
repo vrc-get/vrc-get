@@ -37,6 +37,8 @@
     "general:error:failed to create dir": "Verzeichnis konnte nicht angelegt werden (fehlende Berechtigung?): {{err}}",
     "general:error:failed to create dir missing drive": "Verzeichnis konnte nicht angelegt werden. Möglicherweise wurde das Laufwerk nicht verbunden.",
 
+    "general:created at": "Hinzugefügt",
+
     "general:last modified": "Letzte Änderung",
     "general:last modified:moments": "Kürzlich",
     "general:last modified:minutes_one": "Vor einer Minute",
@@ -218,6 +220,7 @@
     "projects:manage:button:unity migrate": "Migriere Projekt",
 
     "projects:manage:manage packages": "Pakete verwalten",
+    "projects:manage:hidden packages": "Versteckte Pakete",
     "projects:manage:tooltip:refresh packages": "Pakete aktualisieren",
     "projects:manage:button:upgrade all": "Alle Aktualisieren",
     "projects:manage:button:upgrade all stable": "Alle Aktualisieren (Stabil)",
@@ -234,6 +237,7 @@
     "projects:manage:source not selected": "Inaktive Quelle",
     "projects:manage:multiple sources": "Mehrere Quellen",
     "projects:manage:tooltip:add package": "Paket hinzufügen",
+    "projects:manage:tooltip:select repository to install": "Paketquelle für Installation auswählen",
     "projects:manage:tooltip:upgrade package": "Paket upgraden",
     "projects:manage:tooltip:remove packages": "Paket entfernen",
     "projects:manage:tooltip:incompatible with unity": "Nicht unterstützt",
@@ -408,6 +412,7 @@
     "templates:tooltip:remove builtin template": "Integrierte Vorlagen können nicht entfernt werden.",
     "templates:tooltip:remove vcc template": "VCC Vorlagen können hier nicht entfernt werden. Entferne sie stattdessen im Vorlagen-Verzeichnis von VCC.",
     "templates:menuitem:edit template": "Vorlage Bearbeiten",
+    "templates:menuitem:duplicate template": "Vorlage Duplizieren",
     "templates:menuitem:export template": "Vorlage Exportieren",
     "templates:tooltip:export template with unitypackage": "Vorlagen mit Unity Packages können nicht exportiert werden.",
     "templates:menuitem:open vcc template": "Öffne Vorlagen-Verzeichnis",

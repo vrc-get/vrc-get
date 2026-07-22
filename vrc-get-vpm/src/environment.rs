@@ -18,7 +18,7 @@ use crate::io;
 use crate::repository::RemoteRepository;
 use crate::repository::local::LocalCachedRepository;
 use crate::traits::HttpClient;
-use crate::utils::to_vec_pretty_os_eol;
+use crate::utils::json::to_vec_pretty_os_eol;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use std::collections::HashSet;
@@ -156,7 +156,8 @@ async fn write_new_repo(
             .await
         {
             Ok(mut file) => {
-                file.write_all(&to_vec_pretty_os_eol(&local_cache)?).await?;
+                file.write_all(&to_vec_pretty_os_eol(&local_cache.to_json_value())?)
+                    .await?;
                 file.flush().await?;
 
                 return Ok(file_name);

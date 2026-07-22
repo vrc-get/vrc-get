@@ -1,0 +1,39 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_OPTIONS += nostrip
+
+export CARGO_HOME = $(CURDIR)/debian/cargo_home
+export NPM_CONFIG_CACHE = $(CURDIR)/debian/npm_cache
+
+%:
+	dh $@
+
+# install rust in configure phase when requested
+ifeq ($(INSTALL_RUST),1)
+export RUSTUP_HOME = $(CURDIR)/debian/rustup_home
+export PATH := $(CURDIR)/debian/cargo_home/bin:$(PATH)
+
+override_dh_auto_configure::
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+endif
+
+ifeq ($(INSTALL_NODEJS),1)
+export RUSTUP_HOME = $(CURDIR)/debian/rustup_home
+export PATH := $(CURDIR)/debian/nodejs_installed/bin:$(PATH)
+
+ifeq ($(DEB_HOST_ARCH),amd64)
+    NODE_ARCH := x64
+else ifeq ($(DEB_HOST_ARCH),arm64)
+    NODE_ARCH := arm64
+endif
+
+override_dh_auto_configure::
+	mkdir -p $(CURDIR)/debian/nodejs_installed
+	curl --proto '=https' --tlsv1.2 -sSf https://nodejs.org/dist/v26.3.0/node-v26.3.0-linux-$(NODE_ARCH).tar.gz | gunzip | tar x --strip-components 1 -C $(CURDIR)/debian/nodejs_installed
+endif
+
+override_dh_auto_build:
+	cargo xtask build-alcom --release
+
+override_dh_auto_install:
+	cargo xtask bundle-alcom --release --bundles buildroot --buildroot=$(CURDIR)/debian/alcom

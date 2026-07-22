@@ -1,6 +1,4 @@
-use serde::de::Error;
-use serde::{Deserialize, Deserializer};
-use std::fmt::Formatter;
+use crate::utils::json::{JsonError, JsonValue};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) enum YankState {
@@ -26,47 +24,18 @@ impl YankState {
             _ => None,
         }
     }
-}
 
-impl<'de> Deserialize<'de> for YankState {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct VisitorImpl;
-        impl serde::de::Visitor<'_> for VisitorImpl {
-            type Value = YankState;
-
-            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-                formatter.write_str("a boolean or a string")
+    pub(crate) fn from_json(json: JsonValue) -> Result<Self, JsonError> {
+        if let Ok(bool) = json.clone().into_bool() {
+            if bool {
+                Ok(YankState::NoReason)
+            } else {
+                Ok(YankState::NotYanked)
             }
-
-            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                if v {
-                    Ok(YankState::NoReason)
-                } else {
-                    Ok(YankState::NotYanked)
-                }
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                Ok(YankState::Reason(v.into()))
-            }
-
-            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                Ok(YankState::Reason(v.into()))
-            }
+        } else if let Ok(value) = json.clone().into_string() {
+            Ok(YankState::Reason(value.into()))
+        } else {
+            Err(json.unexpected_type_error("Boolean or String"))
         }
-
-        deserializer.deserialize_any(VisitorImpl)
     }
 }

@@ -1,5 +1,5 @@
-use serde::de::{Error, Unexpected};
-use serde::{Deserialize, Deserializer};
+use std::fmt::Display;
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct PartialUnityVersion(u16, u8);
@@ -14,43 +14,28 @@ impl PartialUnityVersion {
     }
 }
 
-impl<'de> Deserialize<'de> for PartialUnityVersion {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct Visitor;
+#[derive(Debug)]
+pub struct InvalidPartialUnityVersion;
 
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = PartialUnityVersion;
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("unity version (major or major.minor)")
-            }
+impl Display for InvalidPartialUnityVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Invalid unity version")
+    }
+}
 
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                if let Some((maj, min)) = v.split_once('.') {
-                    let major = maj
-                        .trim()
-                        .parse::<u16>()
-                        .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
-                    let minor = min
-                        .trim()
-                        .parse::<u8>()
-                        .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
-                    Ok(PartialUnityVersion(major, minor))
-                } else {
-                    let major = v
-                        .trim()
-                        .parse::<u16>()
-                        .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
-                    Ok(PartialUnityVersion(major, 0))
-                }
-            }
+impl std::error::Error for InvalidPartialUnityVersion {}
+
+impl FromStr for PartialUnityVersion {
+    type Err = InvalidPartialUnityVersion;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some((maj, min)) = s.split_once('.') {
+            let major = (maj.trim().parse::<u16>()).map_err(|_| InvalidPartialUnityVersion)?;
+            let minor = (min.trim().parse::<u8>()).map_err(|_| InvalidPartialUnityVersion)?;
+            Ok(PartialUnityVersion(major, minor))
+        } else {
+            let major = (s.trim().parse::<u16>()).map_err(|_| InvalidPartialUnityVersion)?;
+            Ok(PartialUnityVersion(major, 0))
         }
-
-        deserializer.deserialize_str(Visitor)
     }
 }

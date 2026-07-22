@@ -37,6 +37,8 @@
     "general:error:failed to create dir": "目录创建失败（缺少权限？）： {{err}}",
     "general:error:failed to create dir missing drive": "目录创建失败。硬盘不存在，您是不是忘记连接硬盘了？",
 
+    "general:created at": "添加于",
+
     "general:last modified": "最后修改",
     "general:last modified:moments": "刚才",
     "general:last modified:minutes": "{{count}} 分钟前",
@@ -212,6 +214,7 @@
     "projects:manage:button:unity migrate": "迁移项目",
 
     "projects:manage:manage packages": "管理软件包",
+    "projects:manage:hidden packages": "隐藏的软件包",
     "projects:manage:tooltip:refresh packages": "刷新软件包",
     "projects:manage:button:upgrade all": "升级所有软件包（最新）",
     "projects:manage:button:upgrade all stable": "升级所有软件包（稳定）",
@@ -228,6 +231,7 @@
     "projects:manage:source not selected": "未选择",
     "projects:manage:multiple sources": "多个源",
     "projects:manage:tooltip:add package": "安装软件包",
+    "projects:manage:tooltip:select repository to install": "选择存储库以安装软件包",
     "projects:manage:tooltip:upgrade package": "升级软件包",
     "projects:manage:tooltip:remove packages": "删除软件包",
     "projects:manage:tooltip:incompatible with unity": "与 Unity 不兼容",
@@ -399,6 +403,7 @@
     "templates:tooltip:remove builtin template": "您不能删除内置模板。",
     "templates:tooltip:remove vcc template": "您不能在这里删除 VCC 模板。您应该直接删除该模板的目录。",
     "templates:menuitem:edit template": "编辑模板",
+    "templates:menuitem:duplicate template": "复制模板",
     "templates:menuitem:export template": "导出模板",
     "templates:tooltip:export template with unitypackage": "该模板使用了不可移植的 Unity 资源包（.unitypackage），所以您不可以导出它。",
     "templates:menuitem:open vcc template": "打开模板目录",

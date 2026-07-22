@@ -12,6 +12,7 @@ Included items
 - README.ja.txt Japanese version
 - website.url link to the official website
 - LICENSE license file
+- online-installer.exe the online installer for Windows.
 
 How to install
 ================
@@ -24,6 +25,9 @@ Windows
 4. Start ALCOM
 5. Follow the instructions of ALCOM to perform the initial settings of ALCOM.
 5. The Installation is complete.
+
+You can use the online installer instead of downloading the installer if you wish.
+Online installer will automatically download an installer on startup.
 
 If you are already using VCC, the VCC settings will be inherited.
 Also, VCC and ALCOM can coexist, and you do not need to uninstall VCC.

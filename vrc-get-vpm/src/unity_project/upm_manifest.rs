@@ -1,100 +1,65 @@
 use crate::io;
 use crate::io::DefaultProjectIo;
-use crate::utils::{JsonMapExt, SaveController, load_json_or_default, save_json};
+use crate::utils::SaveController;
+use crate::utils::json::{JsonError, JsonObject, JsonValue, save_json, try_load_json};
 use crate::version::Version;
-use serde::de::Error;
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::HashMap;
-use std::fmt::Formatter;
 use std::str::FromStr;
 
 const MANIFEST_PATH: &str = "Packages/manifest.json";
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default)]
 struct Parsed {
-    #[serde(default)]
     dependencies: HashMap<Box<str>, UpmDependency>,
 }
 
 #[derive(Debug)]
 #[allow(dead_code)]
 pub(super) enum UpmDependency {
-    // minimum version name. build meta is not supported by upm
     Version(Version),
-    // Other Notation including local file and git url
     OtherNotation(Box<str>),
 }
 
-impl<'de> Deserialize<'de> for UpmDependency {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct Visitor;
-
-        impl serde::de::Visitor<'_> for Visitor {
-            type Value = UpmDependency;
-
-            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-                formatter.write_str("one of: a 'SemVer' compatible value; a value starting with 'file:'; a Git URL starting with 'git:' or 'git+', or ending with '.git'.")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                if let Ok(semver) = Version::from_str(v) {
-                    Ok(UpmDependency::Version(semver))
-                } else {
-                    Ok(UpmDependency::OtherNotation(v.into()))
-                }
-            }
-
-            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                if let Ok(semver) = Version::from_str(&v) {
-                    Ok(UpmDependency::Version(semver))
-                } else {
-                    Ok(UpmDependency::OtherNotation(v.into_boxed_str()))
-                }
-            }
+impl UpmDependency {
+    fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        let v = value.into_string()?;
+        if let Ok(semver) = Version::from_str(&v) {
+            Ok(UpmDependency::Version(semver))
+        } else {
+            Ok(UpmDependency::OtherNotation(v.into()))
         }
-
-        deserializer.deserialize_string(Visitor)
     }
 }
 
 #[derive(Default, Debug)]
 struct AsJson {
     as_json: Parsed,
-    raw: Map<String, Value>,
+    raw: JsonObject,
 }
 
-impl<'de> Deserialize<'de> for AsJson {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let raw: Map<String, Value> = Map::<String, Value>::deserialize(deserializer)?;
-        let raw_value = Value::Object(raw);
-        let as_json = Parsed::deserialize(&raw_value).map_err(Error::custom)?;
-        let raw = match raw_value {
-            Value::Object(map) => map,
-            _ => unreachable!(),
-        };
-        Ok(Self { as_json, raw })
+impl AsJson {
+    fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        let raw = value.into_object()?;
+        Ok(Self {
+            as_json: Parsed::from_json_value(raw.clone().into())?,
+            raw,
+        })
     }
 }
 
-impl Serialize for AsJson {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.raw.serialize(serializer)
+impl Parsed {
+    fn from_json_value(value: JsonValue) -> Result<Self, JsonError> {
+        let raw = value.into_object()?;
+        let dependencies = (raw.get_opt("dependencies"))
+            .try_map(|value| {
+                (value.into_object())?
+                    .into_iter()
+                    .map(|(k, v)| Ok((k.into(), UpmDependency::from_json_value(v)?)))
+                    .collect::<Result<_, JsonError>>()
+            })?
+            .unwrap_or(HashMap::new());
+        Ok(Self { dependencies })
     }
 }
 
@@ -107,7 +72,9 @@ impl UpmManifest {
     pub(super) async fn load(io: &DefaultProjectIo) -> io::Result<Self> {
         Ok(Self {
             controller: SaveController::new(
-                load_json_or_default(io, MANIFEST_PATH.as_ref()).await?,
+                try_load_json(io, MANIFEST_PATH.as_ref(), AsJson::from_json_value)
+                    .await?
+                    .unwrap_or(AsJson::default()),
             ),
         })
     }
@@ -131,7 +98,7 @@ impl UpmManifest {
         self.controller
             .as_mut()
             .raw
-            .get_or_put_mut("dependencies", Map::new)
+            .get_or_insert_mut("dependencies", JsonObject::new().into())
             .as_object_mut()
             .unwrap()
             .insert(name.to_string(), Value::String(version.to_string()));
@@ -154,7 +121,13 @@ impl UpmManifest {
 
     pub(super) async fn save(&mut self, io: &DefaultProjectIo) -> io::Result<()> {
         self.controller
-            .save(|json| save_json(io, MANIFEST_PATH.as_ref(), json))
+            .save(|json| {
+                save_json(
+                    io,
+                    MANIFEST_PATH.as_ref(),
+                    JsonValue::from(json.raw.clone()),
+                )
+            })
             .await
     }
 }

@@ -33,6 +33,7 @@ macro_rules! from_str_impl {
 
 macro_rules! serialize_to_string {
     ($ty: ty) => {
+        #[cfg(feature = "version-serde")]
         impl ::serde::Serialize for $ty {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
@@ -46,6 +47,7 @@ macro_rules! serialize_to_string {
 
 macro_rules! deserialize_from_str {
     ($ty: ty, $name: literal) => {
+        #[cfg(feature = "version-serde")]
         impl<'de> ::serde::de::Deserialize<'de> for $ty {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where

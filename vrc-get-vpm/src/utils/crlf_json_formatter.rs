@@ -1,10 +1,9 @@
+use serde::Serialize as _;
+use serde_json::Value;
 use serde_json::ser::Formatter;
 use std::io;
 
-pub(crate) fn to_vec_pretty_os_eol<T>(value: &T) -> io::Result<Vec<u8>>
-where
-    T: ?Sized + serde::Serialize,
-{
+pub(crate) fn to_vec_pretty_os_eol(value: &Value) -> io::Result<Vec<u8>> {
     let mut writer = Vec::new();
     let formatter = OsEolJsonPrettyFormatter::new();
     let mut serializer = serde_json::Serializer::with_formatter(&mut writer, formatter);

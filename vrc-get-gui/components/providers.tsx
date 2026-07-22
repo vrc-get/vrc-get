@@ -3,7 +3,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import { Suspense, useCallback, useEffect } from "react";
+import { Suspense, useCallback, useEffect, useEffectEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastContainer } from "react-toastify";
 import Loading from "@/app/-loading";
@@ -16,18 +16,36 @@ import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc } from "@/lib/i18n";
 import { processResult } from "@/lib/import-templates";
 import { queryClient } from "@/lib/query-client";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import {
+	toastError,
+	toastSuccess,
+	toastThrownError,
+	toastWarning,
+} from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 
 export function Providers({ children }: { children: React.ReactNode }) {
 	const navigate = useNavigate();
 
-	useTauriListen<LogEntry>("log", (event) => {
-		const entry = event.payload as LogEntry;
-		if (entry.level === "Error" && entry.gui_toast) {
+	const showToastForLog = useEffectEvent((entry: LogEntry) => {
+		if (entry.level === "Error" && (entry.gui_toast ?? true)) {
 			toastError(entry.message);
+		} else if (entry.level === "Warn" && (entry.gui_toast ?? false)) {
+			toastWarning(entry.message);
 		}
 	});
+
+	useTauriListen<LogEntry>("log", (event) => {
+		showToastForLog(event.payload);
+	});
+
+	useEffect(() => {
+		commands.utilGetLogEntries().then((value) => {
+			for (const entry of value) {
+				showToastForLog(entry);
+			}
+		});
+	}, []);
 
 	const moveToRepositories = useCallback(() => {
 		if (location.pathname !== "/packages/repositories") {

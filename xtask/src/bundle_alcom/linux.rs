@@ -1,7 +1,5 @@
 use super::BundleContext;
-use crate::utils::tar::TarBuilderExt;
-use anyhow::{Context, Result, bail};
-use std::collections::HashMap;
+use anyhow::{Context, Result};
 use std::path::Path;
 use std::{fs, io};
 
@@ -114,6 +112,7 @@ impl<'a> BuildRootFs for RealBuildRootFs<'a> {
     }
 
     fn create_file(&mut self, mode: u32, relative: &str, data: &mut dyn io::Read) -> Result<()> {
+        let _ = mode; // suppress warning on windows
         let path = &self.0.join(relative);
         std::io::copy(
             data,
@@ -132,37 +131,6 @@ impl<'a> BuildRootFs for RealBuildRootFs<'a> {
     }
 }
 
-impl<W: io::Write> BuildRootFs for tar::Builder<W> {
-    fn create_dir(&mut self, path: &str) -> Result<()> {
-        self.append_directory(path)
-    }
-
-    fn create_file(&mut self, mode: u32, path: &str, data: &mut dyn io::Read) -> Result<()> {
-        self.append_file_data(mode, path, data)
-    }
-}
-
-impl BuildRootFs for rpm::PackageBuilder {
-    fn create_dir(&mut self, path: &str) -> Result<()> {
-        self.with_dir_entry(rpm::FileOptions::dir(format!("/{path}")))
-            .map(|_| ())
-            .with_context(|| format!("creating directory {}", path))
-    }
-
-    fn create_file(&mut self, mode: u32, path: &str, data: &mut dyn io::Read) -> Result<()> {
-        let mut contents = vec![];
-        data.read_to_end(&mut contents)
-            .with_context(|| format!("reading data for {}", path))?;
-
-        self.with_file_contents(
-            contents,
-            rpm::FileOptions::new(format!("/{path}")).permissions(mode as u16),
-        )
-        .map(|_| ())
-        .with_context(|| format!("creating file {}", path))
-    }
-}
-
 /// Render the desktop file template from `alcom.desktop`.
 ///
 /// The template uses `{{key}}` placeholders as in the tauri bundler.
@@ -177,89 +145,3 @@ pub fn render_desktop_file(ctx: &BundleContext<'_>, exec: &str) -> Result<String
 pub static LINUX_ICON_RESOLUTIONS: &[&str] = &["32x32", "64x64", "128x128"];
 
 pub static LINUX_ICON_NAME: &str = "alcom"; // keep in sync with alcom.desktop template
-
-pub struct LibraryVersions {
-    pub libc: String,
-    pub libgcc: String,
-}
-
-pub fn detect_library_versions(path: &Path) -> Result<LibraryVersions> {
-    use object::read::elf::ElfFile64;
-    use object::{Endianness, Object, ObjectSymbol};
-
-    let binary = fs::read(path).context("Reading binary")?;
-
-    let elf = ElfFile64::<Endianness>::parse(&binary).context("failed to parse binary")?;
-
-    let Some(versions) = elf.elf_section_table().versions(elf.endian(), elf.data())? else {
-        bail!("no version table found");
-    };
-    let versions = elf
-        .dynamic_symbols()
-        .map(|s| versions.version_index(elf.endian(), s.index()))
-        .flat_map(|i| versions.version(i).transpose())
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let mut by_lib = HashMap::new();
-    for version in versions.into_iter() {
-        let lib = version.name().split(|&x| x == b'_').next().unwrap();
-        let version = VersionNumber::try_from(version.name())?;
-
-        let existing = by_lib.entry(lib).or_insert(VersionNumber::MIN);
-        if *existing < version {
-            *existing = version;
-        }
-    }
-
-    //for (lib, version) in &by_lib {
-    //    let lib = std::str::from_utf8(lib)?;
-    //    println!("{lib}: {version}");
-    //}
-
-    return Ok(LibraryVersions {
-        libc: by_lib[&b"GLIBC"[..]].to_string(),
-        libgcc: by_lib[&b"GCC"[..]].to_string(),
-    });
-
-    #[derive(Ord, PartialOrd, Eq, PartialEq)]
-    struct VersionNumber(Vec<u32>);
-
-    impl VersionNumber {
-        pub const MIN: VersionNumber = VersionNumber(Vec::new());
-    }
-
-    impl<'a> TryFrom<&'a [u8]> for VersionNumber {
-        type Error = anyhow::Error;
-
-        fn try_from(value: &'a [u8]) -> std::result::Result<Self, Self::Error> {
-            let value = if let Some(index) = value.iter().position(|&x| x == b'_') {
-                value.split_at(index + 1).1
-            } else {
-                value
-            };
-            let value = std::str::from_utf8(value)?;
-            let components = value
-                .split('.')
-                .map(std::str::FromStr::from_str)
-                .collect::<Result<Vec<_>, _>>()?;
-            Ok(Self(components))
-        }
-    }
-
-    impl std::fmt::Display for VersionNumber {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let mut iter = self.0.iter();
-            f.write_fmt(format_args!("{}", iter.next().unwrap()))?;
-            for x in iter {
-                f.write_fmt(format_args!(".{}", x))?;
-            }
-            Ok(())
-        }
-    }
-
-    impl std::fmt::Debug for VersionNumber {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            std::fmt::Display::fmt(self, f)
-        }
-    }
-}

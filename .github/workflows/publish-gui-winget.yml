@@ -1,0 +1,62 @@
+name: Publish to WinGet (GUI)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: The version to publish.
+        required: true
+      send-pull-request:
+        type: boolean
+        description: Whether send pull request to winget-pkgs.
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        description: The version to publish.
+        required: true
+      environment:
+        type: string
+        description: The environment to publish to.
+      send-pull-request:
+        type: boolean
+        default: true
+    secrets:
+      WINGET_PAT:
+        required: true
+
+jobs:
+  sync-repo:
+    name: Sync winget-pkgs repo
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'winget-pkgs' }}
+    steps:
+      - run: gh repo sync anatawa12-bot/winget-pkgs -b master
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_PAT }}
+
+  winget:
+    name: Publish winget package
+    needs: sync-repo
+    runs-on: windows-latest
+    environment: ${{ inputs.environment || 'winget-pkgs' }}
+    steps:
+      - name: Submit package to Windows Package Manager Community Repository
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}
+          GUI_VERSION: ${{ inputs.version }}
+        run: |
+          # Update package using wingetcreate
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+
+          # Update package
+          # the pwsh uses ` for escape character
+          .\wingetcreate.exe update "anatawa12.ALCOM" `
+            --version "$env:GUI_VERSION" `
+            --display-version "$env:GUI_VERSION" `
+            --urls `
+              "https://github.com/vrc-get/vrc-get/releases/download/gui-v$env:GUI_VERSION/ALCOM-$env:GUI_VERSION-setup.exe|x64" `
+              "https://github.com/vrc-get/vrc-get/releases/download/gui-v$env:GUI_VERSION/ALCOM-$env:GUI_VERSION-setup.exe|arm64" `
+            ${{ case(inputs.send-pull-request, '--submit', '') }} `
+            --token "$env:WINGET_PAT"
