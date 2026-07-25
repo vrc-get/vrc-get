@@ -61,7 +61,7 @@ impl DefaultEnvironmentIo {
     }
 
     #[inline]
-    pub fn resolve(&self, path: &Path) -> PathBuf {
+    pub fn resolve_impl(&self, path: &Path) -> PathBuf {
         self.root.join(path)
     }
 
