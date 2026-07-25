@@ -1,10 +1,12 @@
 mod copy_recursive;
+#[cfg(not(r2cs))]
 mod crlf_json_formatter;
 mod extract_zip;
 mod save_controller;
 //#[cfg(not(r2cs))]
 mod sha256_async_write;
 
+#[cfg_attr(r2cs, r2cs_native)]
 pub mod json;
 
 use crate::io;
