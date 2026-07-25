@@ -113,45 +113,6 @@ impl<T> MapResultExt<T> for Result<T, ZipError> {
     }
 }
 
-pin_project! {
-    #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-    pub(crate) struct FlattenOk<S>
-        where S: TryStream,
-            S::Ok: Stream,
-    {
-        #[pin]
-        stream: S,
-        #[pin]
-        next: Option<S::Ok>,
-    }
-}
-
-impl<S> Stream for FlattenOk<S>
-where
-    S: TryStream,
-    S::Ok: Stream,
-{
-    type Item = Result<<S::Ok as Stream>::Item, S::Error>;
-
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut this = self.project();
-
-        Poll::Ready(loop {
-            if let Some(s) = this.next.as_mut().as_pin_mut() {
-                if let Some(item) = ready!(s.poll_next(cx)) {
-                    break Some(Ok(item));
-                } else {
-                    this.next.set(None);
-                }
-            } else if let Some(s) = ready!(this.stream.as_mut().try_poll_next(cx)?) {
-                this.next.set(Some(s));
-            } else {
-                break None;
-            }
-        })
-    }
-}
-
 pub(crate) fn walk_dir_relative<IO: IoTrait>(
     io: &IO,
     paths: impl IntoIterator<Item = PathBuf>,
