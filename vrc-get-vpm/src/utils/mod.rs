@@ -22,6 +22,7 @@ use pin_project_lite::pin_project;
 pub(crate) use save_controller::SaveController;
 pub(crate) use sha256_async_write::Sha256AsyncWrite;
 use std::error::Error;
+use std::ffi::OsStr;
 use std::fmt::Display;
 use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
@@ -35,6 +36,20 @@ impl PathBufExt for PathBuf {
     fn joined(mut self, into: impl AsRef<Path>) -> Self {
         self.push(into);
         self
+    }
+}
+
+pub(crate) trait OsStrExt {
+    fn starts_with(&self, s: &str) -> bool;
+    fn ends_with(&self, s: &str) -> bool;
+}
+
+impl OsStrExt for OsStr {
+    fn starts_with(&self, s: &str) -> bool {
+        self.as_encoded_bytes().starts_with(s.as_bytes())
+    }
+    fn ends_with(&self, s: &str) -> bool {
+        self.as_encoded_bytes().ends_with(s.as_bytes())
     }
 }
 

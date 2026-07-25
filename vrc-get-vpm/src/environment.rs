@@ -18,6 +18,7 @@ use crate::io;
 use crate::repository::RemoteRepository;
 use crate::repository::local::LocalCachedRepository;
 use crate::traits::HttpClient;
+use crate::utils::OsStrExt;
 use crate::utils::json::to_vec_pretty_os_eol;
 use futures::prelude::*;
 use indexmap::IndexMap;
@@ -110,7 +111,7 @@ pub async fn cleanup_repos_folder(
     let mut entry = io.read_dir(REPO_CACHE_FOLDER.as_ref()).await?;
     while let Some(entry) = entry.try_next().await? {
         let file_name: OsString = entry.file_name();
-        if file_name.as_encoded_bytes().ends_with(b".json")
+        if file_name.ends_with(".json")
             && !uesr_repo_file_names.contains(&file_name)
             && entry.metadata().await.map(|x| x.is_file()).unwrap_or(false)
         {
@@ -192,9 +193,9 @@ pub async fn clear_package_cache(io: &DefaultEnvironmentIo) -> io::Result<()> {
             let cache_file_entries =
                 pkg_folder_stream.try_filter_map(|(pkg_id, cache_entry)| async move {
                     let name = cache_entry.file_name();
-                    let name = name.as_encoded_bytes();
-                    if name.starts_with(b"vrc-get-")
-                        && (name.ends_with(b".zip") || name.ends_with(b".zip.sha256"))
+                    //let name = name.as_encoded_bytes();
+                    if name.starts_with("vrc-get-")
+                        && (name.ends_with(".zip") || name.ends_with(".zip.sha256"))
                         && cache_entry.file_type().await?.is_file()
                     {
                         return Ok(Some((pkg_id, cache_entry)));
