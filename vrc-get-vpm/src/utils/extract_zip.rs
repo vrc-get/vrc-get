@@ -7,6 +7,7 @@ use futures::prelude::*;
 use log::trace;
 use std::path::{Component, Path};
 
+#[cfg_attr(r2cs, r2cs_native)]
 pub(crate) async fn extract_zip(
     mut zip_file: impl AsyncBufRead + AsyncSeek + Unpin,
     io: &DefaultProjectIo,

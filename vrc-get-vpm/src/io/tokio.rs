@@ -298,6 +298,7 @@ impl FileStream for tokio_util::compat::Compat<fs::File> {}
 
 pub type File = tokio_util::compat::Compat<fs::File>;
 
+#[cfg_attr(r2cs, r2cs_native)]
 pub struct ReadDir {
     inner: fs::ReadDir,
 }
@@ -321,6 +322,7 @@ impl Stream for ReadDir {
     }
 }
 
+#[cfg_attr(r2cs, r2cs_native)]
 pub struct DirEntry {
     inner: fs::DirEntry,
 }
