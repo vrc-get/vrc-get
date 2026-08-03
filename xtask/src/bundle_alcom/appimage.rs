@@ -347,7 +347,8 @@ mod list_deps {
         "libnghttp2-14",
         "libpsl5",
         "libsqlite3-0",
-        "libsystemd0",
+        // include libsystemd0 since systemd-less distributions (void linux, artix, devuan, ...)
+        // do not provide libsystemd.so.0 at all
         "libtasn1-6",
         "libwayland-client0",
         "libwayland-server0",
