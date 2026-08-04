@@ -5,6 +5,7 @@ use crate::utils::command::CommandExt;
 use crate::utils::rustc::rustc_host_triple;
 use crate::utils::{download_file_cached, make_executable, target_arch};
 use anyhow::{Context, Result};
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
@@ -218,6 +219,9 @@ pub fn prepare_system_libraries(ctx: &BundleContext<'_>, appimage_root: &Path) -
     fs::remove_dir_all(appimage_root.join("usr/share/lintian"))
         .context("removing enchant gstreamer helper")?;
 
+    prepare_fallback_libraries(appimage_root, &required_packages, &system_packages)
+        .context("copying fallback libraries")?;
+
     // replace '/usr/lib' with '././/lib' for webkit and enchant.
     // Those libraries do not support relocation through env variable so we replace with
     // relative path and running under appimage /usr to prevent problems
@@ -231,6 +235,97 @@ pub fn prepare_system_libraries(ctx: &BundleContext<'_>, appimage_root: &Path) -
                 name.starts_with(b"libenchant") || name.starts_with(b"libwebkit")
             }),
     )?;
+
+    Ok(())
+}
+
+/// Libraries that are normally provided by the system, but are missing entirely on some
+/// distributions. They are copied into `usr/lib/fallback`, which AppRun adds to
+/// `LD_LIBRARY_PATH` only when the host does not provide them.
+///
+/// These must NOT be bundled the usual way: `LD_LIBRARY_PATH` is searched before the
+/// system's `ld.so` cache, so a normally-bundled copy would shadow the host's library on
+/// every distribution that does have it. That is the same failure mode as #2596, where the
+/// bundled wayland-client conflicted with the host's EGL/NVIDIA stack.
+static FALLBACK_LIBRARIES: &[&str] = &[
+    // systemd-less distributions (Void Linux, Artix, Devuan, ...) have no libsystemd.so.0,
+    // which our bundled libdbus-1, libwebkit2gtk-4.1 and libjavascriptcoregtk-4.1 all link.
+    "libsystemd0",
+];
+
+/// Copies [`FALLBACK_LIBRARIES`] and their dependencies into `usr/lib/fallback`.
+///
+/// Shared objects are flattened into that single directory so the dynamic loader finds them
+/// through `LD_LIBRARY_PATH`. Packages already bundled normally are skipped.
+fn prepare_fallback_libraries(
+    appimage_root: &Path,
+    bundled_packages: &[String],
+    system_packages: &HashSet<String>,
+) -> Result<()> {
+    // the fallback libraries are system libraries, so they have to be excluded from the
+    // system package set for the dependency walk to consider them at all.
+    let mut lookup_packages = system_packages.clone();
+    for library in FALLBACK_LIBRARIES {
+        lookup_packages.remove(*library);
+    }
+
+    let packages = list_deps::collect_dependency_packages(
+        FALLBACK_LIBRARIES.iter().map(|x| (*x).to_owned()),
+        &lookup_packages,
+    )
+    .context("resolving dependencies of fallback libraries")?;
+
+    let packages = (packages.into_iter())
+        .filter(|package| !bundled_packages.contains(package))
+        .collect::<Vec<_>>();
+
+    println!("Bundling the following libraries as a fallback");
+    for package in &packages {
+        println!("  {}", package);
+    }
+
+    let files = list_deps::collect_files_to_bundle(&packages)?;
+
+    let fallback_dir = appimage_root.join("usr/lib/fallback");
+    fs::create_dir_all(&fallback_dir).context("creating fallback directory")?;
+
+    for path in &files {
+        let name = match Path::new(path).file_name().and_then(|name| name.to_str()) {
+            Some(name) if name.contains(".so") => name,
+            // documentation, changelogs and the like are not needed
+            _ => continue,
+        };
+
+        let absolute = Path::new("/").join(path);
+        let metadata = absolute
+            .symlink_metadata()
+            .context("reading symlink metadata")?;
+
+        if metadata.is_dir() {
+            continue;
+        }
+
+        let destination = fallback_dir.join(name);
+
+        if metadata.is_symlink() {
+            // flatten the link target too, everything lives in one directory now
+            let link = fs::read_link(&absolute).context("reading symlink")?;
+            let target = link
+                .file_name()
+                .expect("symlink target should have a file name");
+            cfg_select! {
+                unix => {
+                    std::os::unix::fs::symlink(target, &destination)
+                        .with_context(|| format!("copying {path}"))?;
+                }
+                _ => {
+                    panic!("symlink is not available");
+                }
+            }
+        } else {
+            fs::copy(&absolute, &destination).with_context(|| format!("copying {path}"))?;
+        }
+    }
 
     Ok(())
 }
@@ -347,8 +442,10 @@ mod list_deps {
         "libnghttp2-14",
         "libpsl5",
         "libsqlite3-0",
-        // include libsystemd0 since systemd-less distributions (void linux, artix, devuan, ...)
-        // do not provide libsystemd.so.0 at all
+        // libsystemd0 stays a system library so it never shadows the host's copy.
+        // It is additionally bundled into usr/lib/fallback for systemd-less
+        // distributions; see FALLBACK_LIBRARIES.
+        "libsystemd0",
         "libtasn1-6",
         "libwayland-client0",
         "libwayland-server0",
