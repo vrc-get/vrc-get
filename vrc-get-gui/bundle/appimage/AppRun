@@ -18,21 +18,15 @@ export LD_LIBRARY_PATH="$appdir/usr/lib/:$appdir/usr/lib/$debian_tuple/:$appdir/
 
 # Distributions without systemd (Void Linux, Artix, Devuan, ...) have no libsystemd.so.0,
 # which our bundled libdbus-1, libwebkit2gtk-4.1 and libjavascriptcoregtk-4.1 all link
-# against, so ALCOM fails to start there. We ship a copy in usr/lib/fallback.
+# against, so ALCOM fails to start there. We ship a copy under usr/lib/fallback.
 #
-# It must only be put on the search path when the host has none: LD_LIBRARY_PATH is searched
-# before the system's ld.so cache, so adding it unconditionally would shadow the host's
-# libsystemd everywhere, which is how the bundled wayland-client broke the EGL/NVIDIA stack
-# in #2596.
+# Every fallback library gets its own directory so exactly the missing ones can be put on
+# the search path. They must not be added otherwise: LD_LIBRARY_PATH is searched before the
+# system's ld.so cache, so adding a directory unconditionally would shadow the host's copy,
+# which is how the bundled wayland-client broke the EGL/NVIDIA stack in #2596.
 has_system_library() {
-	for dir in "/lib/$debian_tuple" "/usr/lib/$debian_tuple" /lib64 /usr/lib64 /lib /usr/lib; do
-		if [ -e "$dir/$1" ]; then
-			return 0
-		fi
-	done
-
-	# musl distributions and NixOS have no ldconfig cache; the directory scan above is all
-	# we can do there, and falling through to the bundled copy is the safe direction.
+	# ld.so.cache is what the loader itself consults, so it is the most accurate check and
+	# it also covers directories configured through /etc/ld.so.conf.d.
 	for ldconfig in ldconfig /sbin/ldconfig /usr/sbin/ldconfig; do
 		if command -v "$ldconfig" > /dev/null 2>&1; then
 			# entries look like: "\tlibsystemd.so.0 (libc6,x86-64) => /lib/..."
@@ -43,11 +37,20 @@ has_system_library() {
 		fi
 	done
 
+	# Not every system has a usable ldconfig cache. Scanning the standard directories as
+	# well keeps us from wrongly deciding the library is missing and then shadowing a host
+	# copy that does exist.
+	for dir in "/lib/$debian_tuple" "/usr/lib/$debian_tuple" /lib64 /usr/lib64 /lib /usr/lib; do
+		if [ -e "$dir/$1" ]; then
+			return 0
+		fi
+	done
+
 	return 1
 }
 
 if ! has_system_library libsystemd.so.0; then
-	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$appdir/usr/lib/fallback"
+	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$appdir/usr/lib/fallback/libsystemd0"
 fi
 
 # XDG path
