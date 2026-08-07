@@ -296,6 +296,7 @@ impl Comparator {
     }
 
     fn matches_internal(&self, version: &Version) -> bool {
+        #[cfg_attr(r2cs, r2cs_inline)]
         macro_rules! require {
             ($cond: expr) => {
                 if !$cond {
