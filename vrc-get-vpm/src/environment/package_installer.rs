@@ -47,8 +47,6 @@ impl<T: HttpClient> crate::PackageInstaller for PackageInstaller<'_, T> {
                 // downloading may take a long time, so check abort again
                 abort.check()?;
 
-                let zip_file = io::BufReader::new(zip_file);
-
                 debug!(
                     "Extracting zip file for {}@{}",
                     package.name(),

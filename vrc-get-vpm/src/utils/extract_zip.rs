@@ -9,11 +9,12 @@ use std::path::{Component, Path};
 
 #[cfg_attr(r2cs, r2cs_native)]
 pub(crate) async fn extract_zip(
-    mut zip_file: impl AsyncBufRead + AsyncSeek + Unpin,
+    zip_file: impl io::FileStream,
     io: &DefaultProjectIo,
     dest_folder: &Path,
 ) -> io::Result<()> {
     // extract zip file
+    let mut zip_file = io::BufReader::new(zip_file);
     zip_file.seek(SeekFrom::Start(0)).await?;
 
     let mut zip_reader = ZipFileReader::new(zip_file).await.err_mapped()?;
