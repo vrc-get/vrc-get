@@ -11,7 +11,7 @@ use serde::Serialize;
 use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
-use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_hub};
+use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_cli, find_unity_hub};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
@@ -53,6 +53,7 @@ pub struct TauriEnvironmentSettings {
     default_project_path: String,
     project_backup_path: String,
     unity_hub: String,
+    unity_cli: Option<String>,
     unity_paths: Vec<(String, String, bool)>,
     show_prerelease_packages: bool,
     backup_format: String,
@@ -126,10 +127,13 @@ pub async fn environment_get_settings(
         settings.save().await?;
     }
 
+    let unity_cli = find_unity_cli(io.inner()).await?;
+
     Ok(TauriEnvironmentSettings {
         default_project_path,
         project_backup_path,
         unity_hub,
+        unity_cli,
         unity_paths,
         show_prerelease_packages,
         backup_format,
