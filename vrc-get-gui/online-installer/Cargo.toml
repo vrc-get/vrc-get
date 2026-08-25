@@ -21,7 +21,7 @@ windows-sys = { version = "0.61.2", features = [
 ] }
 tempfile = "3.27.0"
 minisign-verify = "0.2.5"
-base64 = "0.22.1"
+base64 = "0.23.1"
 
 [build-dependencies]
 embed-manifest = "1.5.0"
