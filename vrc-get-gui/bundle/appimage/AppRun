@@ -16,6 +16,43 @@ export GST_PLUGIN_SCANNER="$appdir/usr/libexec/gstreamer-1.0/gst-plugin-scanner"
 # LD path, perfer our libraries
 export LD_LIBRARY_PATH="$appdir/usr/lib/:$appdir/usr/lib/$debian_tuple/:$appdir/lib${LD_LIBRARY_PATH+:$LD_LIBRARY_PATH}"
 
+# Distributions without systemd (Void Linux, Artix, Devuan, ...) have no libsystemd.so.0,
+# which our bundled libdbus-1, libwebkit2gtk-4.1 and libjavascriptcoregtk-4.1 all link
+# against, so ALCOM fails to start there. We ship a copy under usr/lib/fallback.
+#
+# Every fallback library gets its own directory so exactly the missing ones can be put on
+# the search path. They must not be added otherwise: LD_LIBRARY_PATH is searched before the
+# system's ld.so cache, so adding a directory unconditionally would shadow the host's copy,
+# which is how the bundled wayland-client broke the EGL/NVIDIA stack in #2596.
+has_system_library() {
+	# ld.so.cache is what the loader itself consults, so it is the most accurate check and
+	# it also covers directories configured through /etc/ld.so.conf.d.
+	for ldconfig in ldconfig /sbin/ldconfig /usr/sbin/ldconfig; do
+		if command -v "$ldconfig" > /dev/null 2>&1; then
+			# entries look like: "\tlibsystemd.so.0 (libc6,x86-64) => /lib/..."
+			if "$ldconfig" -p 2> /dev/null | grep -q "^[[:space:]]*$1 "; then
+				return 0
+			fi
+			break
+		fi
+	done
+
+	# Not every system has a usable ldconfig cache. Scanning the standard directories as
+	# well keeps us from wrongly deciding the library is missing and then shadowing a host
+	# copy that does exist.
+	for dir in "/lib/$debian_tuple" "/usr/lib/$debian_tuple" /lib64 /usr/lib64 /lib /usr/lib; do
+		if [ -e "$dir/$1" ]; then
+			return 0
+		fi
+	done
+
+	return 1
+}
+
+if ! has_system_library libsystemd.so.0; then
+	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$appdir/usr/lib/fallback/libsystemd0"
+fi
+
 # XDG path
 export XDG_DATA_DIRS="$appdir/usr/shere:${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}";
 
