@@ -3,7 +3,9 @@
 use dispatch2::DispatchQueue;
 use objc2::__framework_prelude::Retained;
 use objc2::AllocAnyThread;
-use objc2_app_kit::{NSRunningApplication, NSWorkspace, NSWorkspaceOpenConfiguration};
+use objc2_app_kit::{
+    NSApplicationActivationOptions, NSRunningApplication, NSWorkspace, NSWorkspaceOpenConfiguration,
+};
 use objc2_foundation::{NSError, NSProcessInfo, NSString, NSURL};
 use std::ffi::OsStr;
 use std::io;
@@ -14,6 +16,39 @@ use std::pin::Pin;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
+
+use crate::os::BringUnityToFrontResult;
+
+pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = true;
+pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = false;
+
+pub(crate) fn bring_unity_to_front(project_path: &Path) -> io::Result<BringUnityToFrontResult> {
+    let mut found_application = false;
+
+    for process_id in crate::unity_process::find_unity_process_ids_for_project(project_path) {
+        let Ok(process_id) = i32::try_from(process_id) else {
+            continue;
+        };
+        let Some(application) =
+            NSRunningApplication::runningApplicationWithProcessIdentifier(process_id)
+        else {
+            continue;
+        };
+
+        found_application = true;
+        if application.activateWithOptions(NSApplicationActivationOptions::ActivateAllWindows) {
+            return Ok(BringUnityToFrontResult::BroughtToFront);
+        }
+    }
+
+    if found_application {
+        Err(io::Error::other(
+            "macOS rejected the Unity activation request",
+        ))
+    } else {
+        Ok(BringUnityToFrontResult::WindowNotFound)
+    }
+}
 
 /// On macOS, we try opening with NSWorkspace openApplicationAtURL:configuration:completionHandler:
 /// if the path is executable of the application bundle, and fallback to start_command_posix if not

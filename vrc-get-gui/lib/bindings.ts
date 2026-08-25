@@ -86,6 +86,8 @@ export const commands = {
 	projectMigrateProjectToVpm: (projectPath: string) => __TAURI_INVOKE<null>("project_migrate_project_to_vpm", { projectPath }),
 	projectOpenUnity: (projectPath: string, unityPath: string) => __TAURI_INVOKE<boolean>("project_open_unity", { projectPath, unityPath }),
 	projectIsUnityLaunching: (projectPath: string) => __TAURI_INVOKE<boolean>("project_is_unity_launching", { projectPath }),
+	projectUnityStatus: (projectPath: string) => __TAURI_INVOKE<TauriUnityProjectStatus>("project_unity_status", { projectPath }),
+	projectBringUnityToFront: (projectPath: string) => __TAURI_INVOKE<TauriUnityWindowActionResult>("project_bring_unity_to_front", { projectPath }),
 	projectCreateBackup: (channel: string, projectPath: string) => __TAURI_INVOKE<AsyncCallResult<TauriCreateBackupProgress, null>>("project_create_backup", { channel, projectPath }),
 	projectGetCustomUnityArgs: (projectPath: string) => __TAURI_INVOKE<string[] | null>("project_get_custom_unity_args", { projectPath }),
 	projectSetCustomUnityArgs: (projectPath: string, args: string[] | null) => __TAURI_INVOKE<boolean>("project_set_custom_unity_args", { projectPath, args }),
@@ -387,11 +389,20 @@ export type TauriRepositoryDescriptor = {
 	headers: { [key in string]: string },
 };
 
+export type TauriUnityProjectStatus = {
+	status: TauriUnityProjectStatusKind,
+	can_bring_to_front: boolean,
+};
+
+export type TauriUnityProjectStatusKind = "Closed" | "Opening" | "Open";
+
 export type TauriUnityVersions = {
 	unity_paths: ([string, string, boolean])[],
 	recommended_version: string,
 	install_recommended_version_link: string,
 };
+
+export type TauriUnityWindowActionResult = "BroughtToFront" | "FailedToBringToFront" | "WindowNotFound" | "Unsupported";
 
 export type TauriUpdatedRealProjectInfo = {
 	path: string,
@@ -464,4 +475,3 @@ export type UpdaterStatus =
  *  `VRC_GET_GUI_UPDATER_UPDATE_SUGGESTION_MESSAGE` environment variable at build time.
  */
 "UpdaterDisabled";
-

@@ -539,26 +539,25 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
                         range,
                     };
 
-                    let found;
-                    if allow_prerelease {
+                    let found = if allow_prerelease {
                         // prerelease is allowed, so we find the best match
-                        found = (finder.find(unity_version, PrereleaseAcceptance::Allow))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Allow));
+                        (finder.find(unity_version, PrereleaseAcceptance::Allow))
+                            .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
                     } else if x.version().is_pre() {
                         // if the package is prerelease, allow prerelease, but prefer stable
-                        found = (finder.find(unity_version, PrereleaseAcceptance::Deny))
+                        (finder.find(unity_version, PrereleaseAcceptance::Deny))
                             .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Minimum))
                             .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Allow))
                             .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
                             .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Allow));
+                            .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
                     } else {
                         // if the package is stable, prefer stable, and allow minimum
-                        found = (finder.find(unity_version, PrereleaseAcceptance::Deny))
+                        (finder.find(unity_version, PrereleaseAcceptance::Deny))
                             .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Minimum))
                             .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum));
-                    }
+                            .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
+                    };
 
                     if let Some(found) = found {
                         context.pending_queue.add_pending_package(found);

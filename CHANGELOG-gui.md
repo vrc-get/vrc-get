@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 - Spanish localization [`#3099`](https://github.com/vrc-get/vrc-get/pull/3099)
 - Added Russian localization `#3120`
+- Project launch buttons now show when Unity is opening or running and can bring open Unity Editor windows to the foreground on Windows and macOS. [`#3109`](https://github.com/vrc-get/vrc-get/pull/3109)
 
 ### Changed
 

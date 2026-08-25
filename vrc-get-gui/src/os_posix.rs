@@ -10,7 +10,28 @@ use std::sync::OnceLock;
 
 use nix::libc::{F_UNLCK, c_short, flock};
 
-pub(crate) use os_more::start_command;
+pub(crate) use os_more::{CAN_BRING_UNITY_TO_FRONT, CAN_DETECT_UNITY_EDITOR_READY, start_command};
+
+pub(crate) struct UnityRuntimeCache;
+
+impl UnityRuntimeCache {
+    pub(crate) fn new() -> Self {
+        Self
+    }
+
+    pub(crate) fn is_editor_ready(&mut self, _project_path: &Path) -> bool {
+        false
+    }
+
+    pub(crate) fn bring_unity_to_front(
+        &mut self,
+        project_path: &Path,
+    ) -> io::Result<super::BringUnityToFrontResult> {
+        os_more::bring_unity_to_front(project_path)
+    }
+
+    pub(crate) fn invalidate(&mut self) {}
+}
 
 async fn start_command_posix(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
     let mut command = Command::new(path);

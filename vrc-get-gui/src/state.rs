@@ -3,6 +3,7 @@ mod config;
 mod packages;
 mod settings;
 mod templates;
+mod unity;
 mod updater;
 
 pub use changes::*;
@@ -10,6 +11,7 @@ pub use config::*;
 pub use packages::*;
 pub use settings::*;
 pub use templates::*;
+pub use unity::*;
 pub use updater::*;
 
 pub fn new_http_client() -> reqwest::Client {

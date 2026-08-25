@@ -10,9 +10,9 @@ mod config;
 mod deep_link_support;
 mod logging;
 mod templates;
+#[cfg(any(windows, target_os = "macos"))]
+mod unity_process;
 
-#[cfg_attr(windows, path = "os_windows.rs")]
-#[cfg_attr(not(windows), path = "os_posix.rs")]
 mod os;
 mod state;
 mod updater;
@@ -68,6 +68,7 @@ fn main() {
         .manage(state::PackagesState::new())
         .manage(state::ChangesState::new())
         .manage(state::TemplatesState::new())
+        .manage(state::UnityProjectState::new())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {

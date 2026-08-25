@@ -12,8 +12,17 @@ use arc_swap::ArcSwapOption;
 use nix::libc::uname;
 use tauri::Manager;
 
+use crate::os::BringUnityToFrontResult;
+
+pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = false;
+pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = false;
+
 pub(crate) async fn start_command(name: &OsStr, path: &OsStr, args: &[&OsStr]) -> io::Result<()> {
     super::start_command_posix(name, path, args).await
+}
+
+pub(super) fn bring_unity_to_front(_project_path: &Path) -> io::Result<BringUnityToFrontResult> {
+    Ok(BringUnityToFrontResult::Unsupported)
 }
 
 pub(super) fn compute_os_info() -> String {
