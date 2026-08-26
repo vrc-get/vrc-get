@@ -212,11 +212,11 @@ body {
 	--toastify-color-progress-error: var(--toastify-color-error);
 
 	.Toastify__toast {
-		box-shadow: 0 4px 12px hsl(var(--primary) / 0.05);
+		box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 5%, transparent);
 	}
 
 	.Toastify__close-button--light {
-		color: hsl(var(--foreground));
+		color: var(--foreground);
 	}
 }
 
