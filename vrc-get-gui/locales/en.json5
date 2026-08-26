@@ -161,7 +161,7 @@
     "projects:toast:opening unity...": "Opening Unity...",
     "projects:toast:bring unity to front failed": "ALCOM could not bring Unity to the foreground.",
     "projects:toast:unity window not found": "No Unity window was found for this project.",
-    "projects:toast:bring unity to front unsupported": "Bringing Unity to the front is not supported on your OS.",
+    "projects:toast:bring unity to front unsupported": "Bringing Unity to the front is not supported on your platform.",
     "projects:dialog:unity not found": "Unity was not found",
     "projects:dialog:unity version of the project not found": "The project is using Unity {{unity}} but it was not found.<br>Please install Unity {{unity}} with Unity Hub and restart ALCOM.",
     "projects:dialog:open unity hub": "Open Unity Hub",

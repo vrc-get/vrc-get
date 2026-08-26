@@ -155,7 +155,7 @@
     "projects:toast:opening unity...": "Unityを起動中...",
     "projects:toast:bring unity to front failed": "ALCOMからUnityを前面に表示させることができませんでした。",
     "projects:toast:unity window not found": "このプロジェクトを開いているUnityウィンドウが見つかりませんでした。",
-    "projects:toast:bring unity to front unsupported": "ご利用のOSでは、ALCOMからUnityを前面に表示させることができません。",
+    "projects:toast:bring unity to front unsupported": "ご利用のプラットフォームでは、ALCOMからUnityを前面に表示させることができません。",
     "projects:dialog:unity not found": "Unityが見つかりません",
     "projects:dialog:unity version of the project not found": "このプロジェクトで使用されているUnity {{unity}}が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
     "projects:dialog:open unity hub": "Unity Hubを開く",
