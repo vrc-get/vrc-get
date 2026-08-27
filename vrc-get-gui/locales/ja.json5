@@ -121,7 +121,7 @@
     "projects:type:legacy": "レガシー",
     "projects:button:open unity": "Unityを開く",
     "projects:button:opening unity": "起動中...",
-    "projects:button:bring unity to front": "Unityを開く",
+    "projects:button:bring unity to front": "Unityを表示",
     "projects:button:unity is open": "Unity起動済み",
     "projects:button:manage": "管理",
     "projects:backup": "バックアップ",
