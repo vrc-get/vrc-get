@@ -127,7 +127,7 @@
     "projects:type:legacy": "Legacy",
     "projects:button:open unity": "Open Unity",
     "projects:button:opening unity": "Opening...",
-    "projects:button:bring unity to front": "Open Unity",
+    "projects:button:bring unity to front": "Bring To Front",
     "projects:button:unity is open": "Unity Is Open",
     "projects:button:manage": "Manage",
     "projects:backup": "Backup",
