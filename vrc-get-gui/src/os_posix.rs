@@ -8,6 +8,7 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
+#[cfg(not(target_os = "linux"))]
 use nix::libc::{F_UNLCK, c_short, flock};
 
 pub(crate) use os_more::{CAN_BRING_UNITY_TO_FRONT, CAN_DETECT_UNITY_EDITOR_READY, start_command};
@@ -44,18 +45,37 @@ async fn start_command_posix(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::i
 }
 
 pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
-    let mut lock = flock {
-        l_start: 0,
-        l_len: 0,
-        l_pid: 0,
-        l_type: F_UNLCK as c_short, // macOS denies l_type: 0
-        l_whence: 0,
-    };
     let file = OpenOptions::new().read(true).open(path)?;
 
-    nix::fcntl::fcntl(file, nix::fcntl::F_GETLK(&mut lock))?;
+    // Linux: Unity uses flock (BSD locks), which are independent from fcntl (POSIX locks).
+    #[cfg(target_os = "linux")]
+    {
+        let fd = file.as_raw_fd();
+        let ret = unsafe { nix::libc::flock(fd, nix::libc::LOCK_EX | nix::libc::LOCK_NB) };
+        if ret == -1 {
+            let err = io::Error::last_os_error();
+            if err.raw_os_error() == Some(nix::libc::EWOULDBLOCK) {
+                return Ok(true);
+            }
+            return Err(err);
+        }
+        unsafe { nix::libc::flock(fd, nix::libc::LOCK_UN) };
+        Ok(false)
+    }
 
-    Ok(lock.l_type != F_UNLCK as c_short)
+    // macOS: Darwin unifies fcntl and flock, so fcntl F_GETLK works.
+    #[cfg(not(target_os = "linux"))]
+    {
+        let mut lock = flock {
+            l_start: 0,
+            l_len: 0,
+            l_pid: 0,
+            l_type: F_UNLCK as c_short, // macOS denies l_type: 0
+            l_whence: 0,
+        };
+        nix::fcntl::fcntl(&file, nix::fcntl::F_GETLK(&mut lock))?;
+        Ok(lock.l_type != F_UNLCK as c_short)
+    }
 }
 
 #[cfg(target_os = "macos")]
