@@ -67,6 +67,15 @@ pub(super) fn activate(pids: &[u32]) -> io::Result<BringUnityToFrontResult> {
     )
     .map_err(|e| io::Error::other(format!("send _NET_ACTIVE_WINDOW: {e}")))?;
 
+    conn.flush()
+        .map_err(|e| io::Error::other(format!("X11 flush: {e}")))?;
+    conn.sync()
+        .map_err(|e| io::Error::other(format!("X11 sync: {e}")))?;
+
+    if has_focus(&conn, target) {
+        return Ok(BringUnityToFrontResult::BroughtToFront);
+    }
+
     // Method 2: Core X11 raise + focus (fallback for XWayland compositors
     // that ignore _NET_ACTIVE_WINDOW)
     conn.configure_window(target, &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE))
@@ -76,11 +85,20 @@ pub(super) fn activate(pids: &[u32]) -> io::Result<BringUnityToFrontResult> {
 
     conn.flush()
         .map_err(|e| io::Error::other(format!("X11 flush: {e}")))?;
-
     conn.sync()
         .map_err(|e| io::Error::other(format!("X11 sync: {e}")))?;
 
     Ok(BringUnityToFrontResult::BroughtToFront)
+}
+
+fn has_focus(conn: &impl Connection, target: Window) -> bool {
+    let Ok(cookie) = conn.get_input_focus() else {
+        return false;
+    };
+    let Ok(reply) = cookie.reply() else {
+        return false;
+    };
+    reply.focus == target
 }
 
 fn get_server_timestamp(
