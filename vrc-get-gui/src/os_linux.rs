@@ -17,7 +17,6 @@ use crate::os::BringUnityToFrontResult;
 pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = true;
 pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = false;
 
-// The wayland one doesn't work on current Unity Editor
 const USE_WAYLAND_ACTIVATION: bool = false;
 const USE_X11_ACTIVATION: bool = true;
 
