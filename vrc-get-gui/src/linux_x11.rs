@@ -1,11 +1,11 @@
 use std::io;
 
 use x11rb::connection::Connection;
+use x11rb::protocol::Event;
 use x11rb::protocol::xproto::{
     AtomEnum, ClientMessageData, ClientMessageEvent, ConfigureWindowAux, ConnectionExt as _,
     CreateWindowAux, EventMask, InputFocus, PropMode, StackMode, Window, WindowClass,
 };
-use x11rb::protocol::Event;
 use x11rb::wrapper::ConnectionExt as _;
 
 use crate::os::BringUnityToFrontResult;
@@ -78,8 +78,11 @@ pub(super) fn activate(pids: &[u32]) -> io::Result<BringUnityToFrontResult> {
 
     // Method 2: Core X11 raise + focus (fallback for XWayland compositors
     // that ignore _NET_ACTIVE_WINDOW)
-    conn.configure_window(target, &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE))
-        .map_err(|e| io::Error::other(format!("configure_window: {e}")))?;
+    conn.configure_window(
+        target,
+        &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
+    )
+    .map_err(|e| io::Error::other(format!("configure_window: {e}")))?;
     conn.set_input_focus(InputFocus::PARENT, target, timestamp)
         .map_err(|e| io::Error::other(format!("set_input_focus: {e}")))?;
 
@@ -147,10 +150,7 @@ fn get_server_timestamp(
     Ok(timestamp)
 }
 
-fn intern_atom(
-    conn: &impl Connection,
-    name: &[u8],
-) -> io::Result<x11rb::protocol::xproto::Atom> {
+fn intern_atom(conn: &impl Connection, name: &[u8]) -> io::Result<x11rb::protocol::xproto::Atom> {
     conn.intern_atom(false, name)
         .map_err(|e| io::Error::other(format!("intern_atom: {e}")))?
         .reply()

@@ -16,9 +16,7 @@ use std::sync::Mutex;
 
 use wayland_client::protocol::wl_registry;
 use wayland_client::{Connection, Dispatch, QueueHandle, delegate_noop};
-use wayland_protocols::xdg::activation::v1::client::{
-    xdg_activation_token_v1, xdg_activation_v1,
-};
+use wayland_protocols::xdg::activation::v1::client::{xdg_activation_token_v1, xdg_activation_v1};
 
 use crate::os::BringUnityToFrontResult;
 
@@ -57,10 +55,7 @@ pub(super) fn activate(_project_path: &Path, _pids: &[u32]) -> io::Result<BringU
     Ok(BringUnityToFrontResult::WindowNotFound)
 }
 
-fn roundtrip(
-    queue: &mut wayland_client::EventQueue<State>,
-    state: &mut State,
-) -> io::Result<()> {
+fn roundtrip(queue: &mut wayland_client::EventQueue<State>, state: &mut State) -> io::Result<()> {
     queue
         .roundtrip(state)
         .map_err(|e| io::Error::other(format!("Wayland roundtrip: {e}")))?;
