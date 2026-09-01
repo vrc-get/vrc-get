@@ -17,7 +17,7 @@ use crate::os::BringUnityToFrontResult;
 pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = true;
 pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = false;
 
-const USE_WAYLAND_ACTIVATION: bool = false;
+const USE_WAYLAND_ACTIVATION: bool = true;
 const USE_X11_ACTIVATION: bool = true;
 
 #[path = "linux_x11.rs"]
