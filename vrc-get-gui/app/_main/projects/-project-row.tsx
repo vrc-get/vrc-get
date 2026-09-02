@@ -208,8 +208,8 @@ export function ProjectRow({
 					</Tooltip>
 				</td>
 				<td className={noGrowCellClass}>
-					<div className="flex flex-row gap-2 items-center justify-end">
-						<ButtonDisabledIfInvalid asChild>
+					<div className="flex flex-row gap-2 items-center">
+						<ButtonDisabledIfInvalid asChild className="flex-1">
 							<OpenUnityButton
 								projectPath={project.path}
 								unityVersion={project.unity}
