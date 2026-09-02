@@ -472,4 +472,3 @@ export type UpdaterStatus =
  *  `VRC_GET_GUI_UPDATER_UPDATE_SUGGESTION_MESSAGE` environment variable at build time.
  */
 "UpdaterDisabled";
-
