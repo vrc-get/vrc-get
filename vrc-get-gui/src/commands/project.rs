@@ -464,12 +464,7 @@ pub async fn project_migrate_project_to_vpm(
 }
 
 fn is_unity_running(project_path: impl AsRef<Path>) -> bool {
-    let temp = project_path.as_ref().join("Temp");
-    let lockfile = cfg_select! {
-        target_os = "linux" => { temp.join("UnityLockfile") }
-        _ => { temp.join("UnityLockFile") }
-    };
-    crate::os::is_locked(&lockfile).unwrap_or(false)
+    crate::os::is_locked(&project_path.as_ref().join("Temp/UnityLockfile")).unwrap_or(false)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, specta::Type)]
