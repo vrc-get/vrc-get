@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Alternating row backgrounds in Manage Packages are broken when filtering with search `#3058`
-- Use `inner_size` on WebviewWindowBuilder for better compatibility (e.g., enabling window size adjustments via KDE Plasma's window rules) `#3157`
+- Improved compatibility with better compatibility with tools resizes window on launch `#3157`
 
 ### Security
 
