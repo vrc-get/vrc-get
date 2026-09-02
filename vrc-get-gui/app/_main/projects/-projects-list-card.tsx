@@ -9,7 +9,7 @@ import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString } from "@/lib/version";
-import { ProjectRow } from "./-project-row";
+import { ProjectRow, ProjectRowWidthSizer } from "./-project-row";
 
 export const sortings = [
 	"createdAt",
@@ -192,6 +192,7 @@ export function ProjectsTableCard({
 				</tr>
 			</thead>
 			<tbody>
+				<ProjectRowWidthSizer />
 				{projectsShown.map((project) => (
 					<ProjectRow key={project.path} project={project} loading={loading} />
 				))}

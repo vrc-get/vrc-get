@@ -10,7 +10,10 @@ import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
-import { OpenUnityButton } from "@/components/OpenUnityButton";
+import {
+	OpenUnityButton,
+	OpenUnityButtonWidthSizer,
+} from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
@@ -272,6 +275,35 @@ export function ProjectRow({
 				</td>
 			</tr>
 		</ProjectContext.Provider>
+	);
+}
+
+// A row that takes no vertical space but still feeds the table's column width
+// calculation, which is exactly what `visibility: collapse` is specified to do.
+// It carries the widest possible button group, so the button column no longer
+// resizes when OpenUnityButton switches between "Open Unity", "Opening Unity",
+// "Bring Unity to Front" and "Unity Is Open".
+// Keep in sync with the button cell of ProjectRow above.
+export function ProjectRowWidthSizer() {
+	return (
+		<tr className="collapse" inert>
+			<td />
+			<td />
+			<td />
+			<td />
+			<td />
+			<td />
+			<td className="p-2.5 compact:py-1 w-1">
+				<div className="flex flex-row gap-2 items-center">
+					<OpenUnityButtonWidthSizer className="flex-1" />
+					<Button variant="info">{tc("projects:button:manage")}</Button>
+					<Button variant="success">{tc("projects:backup")}</Button>
+					<Button variant="ghost" size="icon">
+						<Ellipsis className="size-5" />
+					</Button>
+				</div>
+			</td>
+		</tr>
 	);
 }
 
