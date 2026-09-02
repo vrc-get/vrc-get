@@ -27,6 +27,7 @@ mod wlr {
     use std::io;
     use std::path::Path;
     use std::sync::Mutex;
+    use std::time::{Duration, Instant};
 
     use wayland_client::protocol::{wl_registry, wl_seat};
     use wayland_client::{
@@ -37,6 +38,8 @@ mod wlr {
     };
 
     use crate::os::BringUnityToFrontResult;
+
+    const TOPLEVEL_TIMEOUT: Duration = Duration::from_secs(1);
 
     pub(super) fn activate(
         project_path: &Path,
@@ -63,13 +66,20 @@ mod wlr {
             return Ok(BringUnityToFrontResult::WindowNotFound);
         }
 
-        roundtrip(&mut queue, &mut state)?;
-        roundtrip(&mut queue, &mut state)?;
+        let deadline = Instant::now() + TOPLEVEL_TIMEOUT;
+        loop {
+            roundtrip(&mut queue, &mut state)?;
+            if state.all_toplevels_done() || Instant::now() >= deadline {
+                break;
+            }
+        }
 
         let target = state.toplevels.iter().find(|t| {
             let data = t.data::<Mutex<ToplevelData>>().unwrap();
             let data = data.lock().unwrap();
-            data.app_id.eq_ignore_ascii_case("Unity") && data.title.contains(project_name)
+            data.done
+                && data.app_id.eq_ignore_ascii_case("Unity")
+                && data.title.contains(project_name)
         });
 
         let Some(target) = target else {
@@ -101,12 +111,20 @@ mod wlr {
         manager: Option<zwlr_foreign_toplevel_manager_v1::ZwlrForeignToplevelManagerV1>,
         seat: Option<wl_seat::WlSeat>,
         toplevels: Vec<zwlr_foreign_toplevel_handle_v1::ZwlrForeignToplevelHandleV1>,
+        done_count: usize,
+    }
+
+    impl State {
+        fn all_toplevels_done(&self) -> bool {
+            !self.toplevels.is_empty() && self.done_count >= self.toplevels.len()
+        }
     }
 
     #[derive(Default)]
     struct ToplevelData {
         title: String,
         app_id: String,
+        done: bool,
     }
 
     impl Dispatch<wl_registry::WlRegistry, ()> for State {
@@ -161,7 +179,7 @@ mod wlr {
         for State
     {
         fn event(
-            _: &mut Self,
+            state: &mut Self,
             _: &zwlr_foreign_toplevel_handle_v1::ZwlrForeignToplevelHandleV1,
             event: zwlr_foreign_toplevel_handle_v1::Event,
             data: &Mutex<ToplevelData>,
@@ -175,6 +193,10 @@ mod wlr {
                 }
                 zwlr_foreign_toplevel_handle_v1::Event::AppId { app_id } => {
                     data.app_id = app_id;
+                }
+                zwlr_foreign_toplevel_handle_v1::Event::Done if !data.done => {
+                    data.done = true;
+                    state.done_count += 1;
                 }
                 _ => {}
             }
