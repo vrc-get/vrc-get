@@ -32,3 +32,13 @@ export function isFindKey(
 	if ((globalInfo.osType === "Darwin" ? e.metaKey : e.ctrlKey) && e.key === "f")
 		return true;
 }
+
+// dev-only: Ctrl+L (Cmd+L on macOS) cycles the language, Shift reverses it.
+export function isLanguageCycleKey(
+	e: Pick<KeyboardEvent, "code" | "metaKey" | "ctrlKey">,
+) {
+	return (
+		(globalInfo.osType === "Darwin" ? e.metaKey : e.ctrlKey) &&
+		e.code === "KeyL"
+	);
+}

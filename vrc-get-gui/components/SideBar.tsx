@@ -10,12 +10,15 @@ import {
 	AlignLeft,
 	CircleAlert,
 	Info,
+	Languages,
 	List,
 	Package,
 	Settings,
 	SwatchBook,
 } from "lucide-react";
 import type React from "react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	GuiAnimationSwitch,
 	GuiCompactSwitch,
@@ -42,8 +45,9 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { commands } from "@/lib/bindings";
+import { useDocumentEvent } from "@/lib/events";
 import { useGlobalInfo } from "@/lib/global-info";
-import { tc } from "@/lib/i18n";
+import { cycleLanguage, languageAt, tc } from "@/lib/i18n";
 import { toastNormal } from "@/lib/toast";
 
 export function SideBar({ className }: { className?: string }) {
@@ -91,6 +95,7 @@ export function SideBar({ className }: { className?: string }) {
 					/>
 				)}
 				{isDev && <StyleQuickAccess />}
+				{isDev && <DevLanguageSwitcher />}
 				<div className={"grow"} />
 				{isBadHostName.data && <BadHostNameDialogButton />}
 				<SideBarButton
@@ -178,16 +183,47 @@ function DevRestartSetupButton() {
 	);
 }
 
+function DevLanguageSwitcher() {
+	const { t } = useTranslation();
+	const { osType } = useGlobalInfo();
+	const [shiftHeld, setShiftHeld] = useState(false);
+	useDocumentEvent("keydown", (e) => setShiftHeld(e.shiftKey), []);
+	useDocumentEvent("keyup", (e) => setShiftHeld(e.shiftKey), []);
+
+	const mod = osType === "Darwin" ? "Cmd" : "Ctrl";
+	const target = t("settings:langName", {
+		lng: languageAt(shiftHeld ? -1 : 1),
+	});
+
+	return (
+		<SideBarButton
+			icon={Languages}
+			tooltip={
+				<>
+					{`Click to ${shiftHeld ? "previous" : "next"} language: ${target}`}
+					<br />
+					{`${mod}+L: next language, ${mod}+Shift+L: previous language`}
+				</>
+			}
+			onClick={(e) => void cycleLanguage(e.shiftKey ? -1 : 1)}
+		>
+			{`Current: ${t("settings:langName")} (dev only)`}
+		</SideBarButton>
+	);
+}
+
 function SideBarButton({
 	icon,
 	showIconOnlyWhenCompact,
 	className,
+	tooltip,
 	children,
 	...props
 }: {
 	icon: React.ComponentType<{ className?: string }>;
 	showIconOnlyWhenCompact?: boolean;
 	className?: string;
+	tooltip?: React.ReactNode;
 	children: React.ReactNode;
 } & React.ComponentProps<typeof Button>) {
 	const IconElement = icon;
@@ -207,7 +243,7 @@ function SideBarButton({
 					<span className="compact:hidden">{children}</span>
 				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="right">{children}</TooltipContent>
+			<TooltipContent side="right">{tooltip ?? children}</TooltipContent>
 		</Tooltip>
 	);
 }
