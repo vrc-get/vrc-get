@@ -42,7 +42,7 @@ const LOCK_RANGE_LOW: u32 = u32::MAX;
 const LOCK_RANGE_HIGH: u32 = u32::MAX;
 const UNITY_EDITOR_WINDOW_CLASS: &str = "UnityContainerWndClass";
 const UNITY_RUNTIME_CACHE_TTL: Duration = Duration::from_secs(1);
-pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = true;
+pub(crate) fn can_bring_unity_to_front() -> bool { true }
 pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = true;
 
 #[derive(Clone, Copy)]

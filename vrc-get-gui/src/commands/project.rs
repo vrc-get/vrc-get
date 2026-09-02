@@ -595,7 +595,7 @@ pub fn project_unity_status(
     TauriUnityProjectStatus {
         status,
         can_bring_to_front: status == TauriUnityProjectStatusKind::Open
-            && crate::os::CAN_BRING_UNITY_TO_FRONT,
+            && crate::os::can_bring_unity_to_front(),
     }
 }
 
