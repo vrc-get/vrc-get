@@ -63,6 +63,32 @@ function PreventDoubleClick({
 	);
 }
 
+// Reserves the width of the widest label so the button keeps the same width in
+// every state. Without this the projects table column (`table-auto`) is resized
+// whenever Unity is opened or closed, which shifts the whole row sideways.
+// All labels share one grid cell; only the active one is visible.
+function StableWidthLabel({ children }: { children: React.ReactNode }) {
+	const sizer = "col-start-1 row-start-1 invisible";
+	return (
+		<span className="inline-grid justify-items-center">
+			<span className={sizer} aria-hidden>
+				{tc("projects:button:open unity")}
+			</span>
+			<span className={sizer} aria-hidden>
+				{tc("projects:button:bring unity to front")}
+			</span>
+			<span className={sizer} aria-hidden>
+				{tc("projects:button:unity is open")}
+			</span>
+			<span className={`${sizer} inline-flex items-center gap-2`} aria-hidden>
+				<LoaderCircle className="size-4" />
+				{tc("projects:button:opening unity")}
+			</span>
+			<span className="col-start-1 row-start-1">{children}</span>
+		</span>
+	);
+}
+
 export function OpenUnityButton({
 	projectPath,
 	unityVersion,
@@ -126,17 +152,21 @@ export function OpenUnityButton({
 		case "Opening":
 			return (
 				<PreventDoubleClick delayMs={1000} {...props} disabled aria-busy>
-					<span className="inline-flex items-center gap-2">
-						<LoaderCircle className="size-4 animate-spin" aria-hidden />
-						{tc("projects:button:opening unity")}
-					</span>
+					<StableWidthLabel>
+						<span className="inline-flex items-center gap-2">
+							<LoaderCircle className="size-4 animate-spin" aria-hidden />
+							{tc("projects:button:opening unity")}
+						</span>
+					</StableWidthLabel>
 				</PreventDoubleClick>
 			);
 		case "Open":
 			if (!unityStatus.can_bring_to_front) {
 				return (
 					<PreventDoubleClick delayMs={1000} {...props} disabled>
-						{tc("projects:button:unity is open")}
+						<StableWidthLabel>
+							{tc("projects:button:unity is open")}
+						</StableWidthLabel>
 					</PreventDoubleClick>
 				);
 			} else {
@@ -147,7 +177,9 @@ export function OpenUnityButton({
 						{...props}
 						disabled={disabled}
 					>
-						{tc("projects:button:bring unity to front")}
+						<StableWidthLabel>
+							{tc("projects:button:bring unity to front")}
+						</StableWidthLabel>
 					</PreventDoubleClick>
 				);
 			}
@@ -159,7 +191,9 @@ export function OpenUnityButton({
 					{...props}
 					disabled={disabled}
 				>
-					{tc("projects:button:open unity")}
+					<StableWidthLabel>
+						{tc("projects:button:open unity")}
+					</StableWidthLabel>
 				</PreventDoubleClick>
 			);
 	}
