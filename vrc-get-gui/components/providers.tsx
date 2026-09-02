@@ -12,8 +12,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LogEntry, TauriImportTemplateResult } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { DialogRoot, openSingleDialog } from "@/lib/dialog";
-import { isFindKey, useDocumentEvent } from "@/lib/events";
-import { tc } from "@/lib/i18n";
+import { isFindKey, isLanguageCycleKey, useDocumentEvent } from "@/lib/events";
+import { cycleLanguage, tc } from "@/lib/i18n";
 import { processResult } from "@/lib/import-templates";
 import { queryClient } from "@/lib/query-client";
 import {
@@ -120,6 +120,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		(e) => {
 			if (isFindKey(e)) {
 				e.preventDefault();
+			}
+			if (import.meta.env.DEV && isLanguageCycleKey(e)) {
+				e.preventDefault();
+				void cycleLanguage(e.shiftKey ? -1 : 1);
 			}
 		},
 		[],
