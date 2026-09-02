@@ -14,9 +14,13 @@ pub(crate) use os_more::{CAN_DETECT_UNITY_EDITOR_READY, start_command};
 
 pub(crate) fn can_bring_unity_to_front() -> bool {
     #[cfg(target_os = "linux")]
-    { std::env::var_os("WAYLAND_DISPLAY").is_some() || std::env::var_os("DISPLAY").is_some() }
+    {
+        std::env::var_os("WAYLAND_DISPLAY").is_some() || std::env::var_os("DISPLAY").is_some()
+    }
     #[cfg(not(target_os = "linux"))]
-    { os_more::CAN_BRING_UNITY_TO_FRONT }
+    {
+        os_more::CAN_BRING_UNITY_TO_FRONT
+    }
 }
 
 pub(crate) struct UnityRuntimeCache;
