@@ -80,7 +80,6 @@ rlimit = "0.11.0"
 [target.'cfg(target_os = "linux")'.dependencies]
 x11rb = { version = "0.14", default-features = false }
 wayland-client = "0.31"
-wayland-protocols = { version = "0.32", features = ["client", "staging"] }
 wayland-protocols-wlr = { version = "0.3", features = ["client"] }
 
 [target.'cfg(unix)'.dependencies]

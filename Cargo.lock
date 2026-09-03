@@ -6244,7 +6244,6 @@ dependencies = [
  "uuid",
  "vrc-get-vpm",
  "wayland-client",
- "wayland-protocols",
  "wayland-protocols-wlr",
  "windows 0.62.2",
  "winreg 0.56.0",
