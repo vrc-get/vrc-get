@@ -63,6 +63,30 @@ function PreventDoubleClick({
 	);
 }
 
+// Renders every label OpenUnityButton can show, stacked in a single grid cell so
+// the widest one defines the width. Used by the collapsed sizer row of the
+// projects table (ProjectRowWidthSizer) to pin the button column width.
+export function OpenUnityButtonWidthSizer(
+	props: React.ComponentProps<typeof Button>,
+) {
+	const label = "col-start-1 row-start-1";
+	return (
+		<Button {...props}>
+			<span className="inline-grid justify-items-center">
+				<span className={label}>{tc("projects:button:open unity")}</span>
+				<span className={label}>
+					{tc("projects:button:bring unity to front")}
+				</span>
+				<span className={label}>{tc("projects:button:unity is open")}</span>
+				<span className={`${label} inline-flex items-center gap-2`}>
+					<LoaderCircle className="size-4" />
+					{tc("projects:button:opening unity")}
+				</span>
+			</span>
+		</Button>
+	);
+}
+
 export function OpenUnityButton({
 	projectPath,
 	unityVersion,
