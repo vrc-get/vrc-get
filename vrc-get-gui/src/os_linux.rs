@@ -14,15 +14,44 @@ use tauri::Manager;
 
 use crate::os::BringUnityToFrontResult;
 
-pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = false;
 pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = false;
+
+const USE_WAYLAND_ACTIVATION: bool = true;
+const USE_X11_ACTIVATION: bool = true;
+
+#[path = "linux_x11.rs"]
+mod linux_x11;
+
+#[path = "linux_wayland.rs"]
+mod linux_wayland;
 
 pub(crate) async fn start_command(name: &OsStr, path: &OsStr, args: &[&OsStr]) -> io::Result<()> {
     super::start_command_posix(name, path, args).await
 }
 
-pub(super) fn bring_unity_to_front(_project_path: &Path) -> io::Result<BringUnityToFrontResult> {
-    Ok(BringUnityToFrontResult::Unsupported)
+pub(super) fn bring_unity_to_front(project_path: &Path) -> io::Result<BringUnityToFrontResult> {
+    let pids = crate::unity_process::find_unity_process_ids_for_project(project_path);
+    if pids.is_empty() {
+        return Ok(BringUnityToFrontResult::WindowNotFound);
+    }
+
+    if USE_WAYLAND_ACTIVATION && std::env::var_os("WAYLAND_DISPLAY").is_some() {
+        match linux_wayland::activate(project_path, &pids) {
+            Ok(BringUnityToFrontResult::BroughtToFront) => {
+                return Ok(BringUnityToFrontResult::BroughtToFront);
+            }
+            Ok(_) => {}
+            Err(e) => {
+                log::debug!("Wayland activation failed: {e}");
+            }
+        }
+    }
+
+    if USE_X11_ACTIVATION {
+        return linux_x11::activate(&pids);
+    }
+
+    Ok(BringUnityToFrontResult::WindowNotFound)
 }
 
 pub(super) fn compute_os_info() -> String {

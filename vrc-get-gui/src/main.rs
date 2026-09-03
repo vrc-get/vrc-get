@@ -10,7 +10,7 @@ mod config;
 mod deep_link_support;
 mod logging;
 mod templates;
-#[cfg(any(windows, target_os = "macos"))]
+#[cfg(any(windows, target_os = "macos", target_os = "linux"))]
 mod unity_process;
 
 mod os;
