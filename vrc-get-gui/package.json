@@ -50,7 +50,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2",
 		"@rollup/pluginutils": "^5.4.0",
-		"@tailwindcss/vite": "^4.3.2",
+		"@tailwindcss/vite": "^4.3.3",
 		"@tanstack/router-plugin": "^1.168.19",
 		"@tauri-apps/cli": "2.11.4",
 		"@types/node": "^20",
