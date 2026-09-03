@@ -128,7 +128,7 @@
     "projects:button:open unity": "Open Unity",
     "projects:button:opening unity": "Opening...",
     "projects:button:bring unity to front": "Bring To Front",
-    "projects:button:unity is open": "Unity Is Open",
+    "projects:button:unity is open": "Already Open",
     "projects:button:manage": "Manage",
     "projects:backup": "Backup",
     "projects:menuitem:open directory": "Open Project Directory",
