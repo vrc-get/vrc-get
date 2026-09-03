@@ -120,6 +120,9 @@
     "projects:type:avatars": "アバター",
     "projects:type:legacy": "レガシー",
     "projects:button:open unity": "Unityを開く",
+    "projects:button:opening unity": "起動中...",
+    "projects:button:bring unity to front": "Unityを表示",
+    "projects:button:unity is open": "Unity起動済み",
     "projects:button:manage": "管理",
     "projects:backup": "バックアップ",
     "projects:menuitem:open directory": "プロジェクトの保存場所を開く",
@@ -150,6 +153,9 @@
     "projects:toast:project created": "プロジェクトを作成しました。",
 
     "projects:toast:opening unity...": "Unityを起動中...",
+    "projects:toast:bring unity to front failed": "ALCOMからUnityを前面に表示させることができませんでした。",
+    "projects:toast:unity window not found": "このプロジェクトを開いているUnityウィンドウが見つかりませんでした。",
+    "projects:toast:bring unity to front unsupported": "ご利用のプラットフォームでは、ALCOMからUnityを前面に表示させることができません。",
     "projects:dialog:unity not found": "Unityが見つかりません",
     "projects:dialog:unity version of the project not found": "このプロジェクトで使用されているUnity {{unity}}が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
     "projects:dialog:open unity hub": "Unity Hubを開く",
@@ -333,7 +339,7 @@
     "vpm repositories:url": "URL",
     "vpm repositories:button:add repository": "VPMリポジトリを追加",
     "vpm repositories:remove repository": "VPMリポジトリを削除",
-    "vpm repositories:tooltip:remove curated or official repository": "OfficialやCuratedのリポジトリは削除出来ません。",
+    "vpm repositories:tooltip:remove curated or official repository": "OfficialやCuratedのリポジトリは削除できません。",
     "vpm repositories:button:import repositories": "リポジトリ一覧の読み込み",
     "vpm repositories:button:export repositories": "リポジトリ一覧の出力",
 
@@ -504,7 +510,7 @@
     "settings:theme:dark": "ダーク",
 
     "settings:files and directories": "設定ファイル",
-    "settings:files and directories:description": "ALCOMの設定ファイルや関連するフォルダを開くことが出来ます。",
+    "settings:files and directories:description": "ALCOMの設定ファイルや関連するフォルダを開くことができます。",
     "settings:button:open settings.json": "settings.jsonを開く",
     "settings:button:open gui config.json": "gui-config.jsonを開く",
     "settings:button:open logs": "ログフォルダを開く",
