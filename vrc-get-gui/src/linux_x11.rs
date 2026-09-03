@@ -73,7 +73,7 @@ pub(super) fn activate(pids: &[u32]) -> io::Result<BringUnityToFrontResult> {
         .map_err(|e| io::Error::other(format!("X11 sync: {e}")))?;
 
     if has_focus(&conn, target) {
-        log::info!("Activated with: X11 _NET_ACTIVE_WINDOW (EWMH)");
+        log::info!("activated with: X11 _NET_ACTIVE_WINDOW (EWMH)");
         return Ok(BringUnityToFrontResult::BroughtToFront);
     }
 
@@ -92,7 +92,7 @@ pub(super) fn activate(pids: &[u32]) -> io::Result<BringUnityToFrontResult> {
     conn.sync()
         .map_err(|e| io::Error::other(format!("X11 sync: {e}")))?;
 
-    log::info!("Activated with: X11 raise+focus (core fallback)");
+    log::info!("activated with: X11 raise+focus (core fallback)");
     Ok(BringUnityToFrontResult::BroughtToFront)
 }
 

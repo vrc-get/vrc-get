@@ -93,7 +93,7 @@ mod wlr {
         target.activate(seat);
         roundtrip(&mut queue, &mut state)?;
 
-        log::info!("Activated with: wlr_foreign_toplevel");
+        log::info!("activated with: wlr_foreign_toplevel");
         Ok(BringUnityToFrontResult::BroughtToFront)
     }
 
@@ -255,6 +255,7 @@ mod xdg {
 
         // TODO: pass the token to Unity via IPC and have Unity call
         // xdg_activation_v1.activate(token, unity_surface).
+        log::info!("activated with: xdg_activation");
         Ok(BringUnityToFrontResult::WindowNotFound)
     }
 
