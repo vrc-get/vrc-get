@@ -93,6 +93,7 @@ mod wlr {
         target.activate(seat);
         roundtrip(&mut queue, &mut state)?;
 
+        log::info!("Activated with: wlr_foreign_toplevel");
         Ok(BringUnityToFrontResult::BroughtToFront)
     }
 
