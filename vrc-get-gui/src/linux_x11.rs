@@ -92,7 +92,7 @@ pub(super) fn activate(pids: &[u32]) -> io::Result<BringUnityToFrontResult> {
     conn.sync()
         .map_err(|e| io::Error::other(format!("X11 sync: {e}")))?;
 
-    log::info!("activated with: X11 raise+focus (core fallback)");
+    log::info!("activated with: X11 raise+focus");
     Ok(BringUnityToFrontResult::BroughtToFront)
 }
 
