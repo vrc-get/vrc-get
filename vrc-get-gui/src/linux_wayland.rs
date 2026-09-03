@@ -66,6 +66,10 @@ mod wlr {
             }
         }
 
+        if let Some(manager) = &state.manager {
+            manager.stop();
+        }
+
         let target = state.toplevels.iter().find(|t| {
             let data = t.data::<Mutex<ToplevelData>>().unwrap();
             let data = data.lock().unwrap();
