@@ -183,14 +183,12 @@ function SideBarButton({
 	icon,
 	showIconOnlyWhenCompact,
 	className,
-	tooltip,
 	children,
 	...props
 }: {
 	icon: React.ComponentType<{ className?: string }>;
 	showIconOnlyWhenCompact?: boolean;
 	className?: string;
-	tooltip?: React.ReactNode;
 	children: React.ReactNode;
 } & React.ComponentProps<typeof Button>) {
 	const IconElement = icon;
@@ -210,7 +208,7 @@ function SideBarButton({
 					<span className="compact:hidden">{children}</span>
 				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="right">{tooltip ?? children}</TooltipContent>
+			<TooltipContent side="right">{children}</TooltipContent>
 		</Tooltip>
 	);
 }
