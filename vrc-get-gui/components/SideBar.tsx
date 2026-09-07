@@ -10,18 +10,16 @@ import {
 	AlignLeft,
 	CircleAlert,
 	Info,
-	Languages,
 	List,
 	Package,
 	Settings,
 	SwatchBook,
 } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
 	GuiAnimationSwitch,
 	GuiCompactSwitch,
+	LanguageSelector,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { Button } from "@/components/ui/button";
@@ -45,9 +43,8 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { commands } from "@/lib/bindings";
-import { useDocumentEvent } from "@/lib/events";
 import { useGlobalInfo } from "@/lib/global-info";
-import { cycleLanguage, languageAt, tc } from "@/lib/i18n";
+import { tc } from "@/lib/i18n";
 import { toastNormal } from "@/lib/toast";
 
 export function SideBar({ className }: { className?: string }) {
@@ -95,7 +92,6 @@ export function SideBar({ className }: { className?: string }) {
 					/>
 				)}
 				{isDev && <StyleQuickAccess />}
-				{isDev && <DevLanguageSwitcher />}
 				<div className={"grow"} />
 				{isBadHostName.data && <BadHostNameDialogButton />}
 				<SideBarButton
@@ -183,35 +179,6 @@ function DevRestartSetupButton() {
 	);
 }
 
-function DevLanguageSwitcher() {
-	const { t } = useTranslation();
-	const { osType } = useGlobalInfo();
-	const [shiftHeld, setShiftHeld] = useState(false);
-	useDocumentEvent("keydown", (e) => setShiftHeld(e.shiftKey), []);
-	useDocumentEvent("keyup", (e) => setShiftHeld(e.shiftKey), []);
-
-	const mod = osType === "Darwin" ? "Cmd" : "Ctrl";
-	const target = t("settings:langName", {
-		lng: languageAt(shiftHeld ? -1 : 1),
-	});
-
-	return (
-		<SideBarButton
-			icon={Languages}
-			tooltip={
-				<>
-					{`Click to ${shiftHeld ? "previous" : "next"} language: ${target}`}
-					<br />
-					{`${mod}+L: next language, ${mod}+Shift+L: previous language`}
-				</>
-			}
-			onClick={(e) => void cycleLanguage(e.shiftKey ? -1 : 1)}
-		>
-			{`Current: ${t("settings:langName")} (dev only)`}
-		</SideBarButton>
-	);
-}
-
 function SideBarButton({
 	icon,
 	showIconOnlyWhenCompact,
@@ -256,7 +223,8 @@ export function StyleQuickAccess() {
 					Style Settings (dev only)
 				</SideBarButton>
 			</PopoverTrigger>
-			<PopoverContent>
+			<PopoverContent className="w-96 flex flex-col gap-3 [&>label]:flex-col [&>label]:items-start [&>div]:space-y-1">
+				<LanguageSelector />
 				<ThemeSelector />
 				<GuiAnimationSwitch />
 				<GuiCompactSwitch />
