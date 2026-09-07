@@ -50,7 +50,9 @@ export const languages = Object.keys(languageResources);
 
 // dev-only language switcher helpers (see SideBar.tsx / providers.tsx)
 export function languageAt(delta: number): string {
-	return languages.at((languages.indexOf(i18next.language) + delta) % languages.length)!;
+	const index =
+		(languages.indexOf(i18next.language) + delta) % languages.length;
+	return languages.at(index) ?? languages[0];
 }
 
 export async function cycleLanguage(delta: number) {
