@@ -242,17 +242,18 @@ export const PackageListCard = memo(function PackageListCard({
 		[hiddenPackages, packageRowsData, filteredPackageIds, showHiddenPackages],
 	);
 
-	// Preserve scroll position when bulk update card visibility changes (animation off only)
 	const scrollTableOuterRef = useRef<HTMLDivElement>(null);
 	const scrollTableScrollAreaRef = useRef<HTMLDivElement>(null);
-	const preRenderOuterTop = guiAnimation
-		? undefined
-		: scrollTableOuterRef.current?.getBoundingClientRect()?.top;
+	const isScrolled = (scrollTableScrollAreaRef.current?.scrollTop ?? 0) > 0;
+
+	// When scrolled: compensate scroll position so visible content doesn't shift
+	const preRenderOuterTop =
+		scrollTableOuterRef.current?.getBoundingClientRect()?.top;
 	useLayoutEffect(() => {
-		if (guiAnimation) return;
 		if (preRenderOuterTop == null) return;
 		if (scrollTableOuterRef.current == null) return;
 		if (scrollTableScrollAreaRef.current == null) return;
+		if (scrollTableScrollAreaRef.current.scrollTop === 0) return;
 		const postRenderOuterTop =
 			scrollTableOuterRef.current.getBoundingClientRect()?.top;
 		const heightDiff = postRenderOuterTop - preRenderOuterTop;
@@ -289,6 +290,7 @@ export const PackageListCard = memo(function PackageListCard({
 					packageRowsData={packageRowsData}
 					cancel={() => setBulkUpdatePackageIds([])}
 					guiAnimation={guiAnimation}
+					isScrolled={isScrolled}
 				/>
 				<ScrollableCardTable
 					className={"mt-2 compact:mt-1.5 h-full rounded-md"}
@@ -742,12 +744,14 @@ function BulkUpdateCard({
 	packageRowsData,
 	cancel,
 	guiAnimation,
+	isScrolled,
 }: {
 	bulkUpdateMode: BulkUpdateMode;
 	bulkUpdatePackageIds: string[];
 	packageRowsData: PackageRowInfo[];
 	cancel?: () => void;
 	guiAnimation: boolean;
+	isScrolled: boolean;
 }) {
 	const visible = bulkUpdateMode.hasPackages;
 	const count = bulkUpdatePackageIds.length;
@@ -822,7 +826,9 @@ function BulkUpdateCard({
 		<div
 			className={cn(
 				"grid",
-				guiAnimation && "transition-[grid-template-rows] duration-200 ease-out",
+				guiAnimation &&
+					!isScrolled &&
+					"transition-[grid-template-rows] duration-200 ease-out",
 			)}
 			style={{ gridTemplateRows: visible ? "1fr" : "0fr" }}
 		>
