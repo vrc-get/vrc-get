@@ -466,8 +466,6 @@
     "settings:toast:not unity": "El archivo seleccionado no es Unity.",
     "settings:toast:unity already added": "La instalación de Unity ya fue agregada.",
     "settings:toast:unity added": "Unity se agregó con éxito.",
-    "settings:use legacy unity hub loading": "Usar método antiguo de carga de Unity Hub",
-    "settings:use legacy unity hub loading description": "El método antiguo de carga de Unity Hub es más confiable para cargar la lista de Unity desde Unity Hub que el nuevo método actual, pero el método antiguo tomará más tiempo.<br/>El método antiguo se eliminará en el futuro, por lo que si hay algún problema con el nuevo método, informe al desarrollador en la sección a continuación.",
 
     "settings:default unity arguments": "Argumentos de línea de comandos predeterminados de Unity",
     "settings:default unity arguments description": "Esos argumentos de línea de comandos se utilizarán al abrir Unity desde ALCOM.",
