@@ -16,15 +16,7 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import type React from "react";
-import {
-	memo,
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { applyChangesMutation } from "@/app/_main/projects/manage/-use-package-change";
 import { Route } from "@/app/_main/projects/manage/index";
 import { ExternalLink } from "@/components/ExternalLink";
@@ -244,25 +236,35 @@ export const PackageListCard = memo(function PackageListCard({
 
 	const scrollTableOuterRef = useRef<HTMLDivElement>(null);
 	const scrollTableScrollAreaRef = useRef<HTMLDivElement>(null);
-	const isScrolled = (scrollTableScrollAreaRef.current?.scrollTop ?? 0) > 0;
+	const bulkUpdateCardRef = useRef<HTMLDivElement>(null);
+	const prevTableTopRef = useRef(0);
 
-	// When scrolled: compensate scroll position so visible content doesn't shift
-	const preRenderOuterTop =
-		scrollTableOuterRef.current?.getBoundingClientRect()?.top;
-	useLayoutEffect(() => {
-		if (preRenderOuterTop == null) return;
-		if (scrollTableOuterRef.current == null) return;
-		if (scrollTableScrollAreaRef.current == null) return;
-		if (scrollTableScrollAreaRef.current.scrollTop === 0) return;
-		const postRenderOuterTop =
-			scrollTableOuterRef.current.getBoundingClientRect()?.top;
-		const heightDiff = postRenderOuterTop - preRenderOuterTop;
-		if (heightDiff === 0) return;
-		scrollTableScrollAreaRef.current.scrollBy({
-			top: heightDiff,
-			behavior: "instant",
+	// Compensate scroll position as BulkUpdateCard animates in/out so
+	// visible rows don't shift under the cursor. Sub-pixel remainder is
+	// carried across frames to prevent rounding drift in integer scrollBy.
+	useEffect(() => {
+		const cardEl = bulkUpdateCardRef.current;
+		const tableOuter = scrollTableOuterRef.current;
+		if (!cardEl || !tableOuter) return;
+		prevTableTopRef.current = tableOuter.getBoundingClientRect().top;
+		let remainder = 0;
+		const observer = new ResizeObserver(() => {
+			const top = tableOuter.getBoundingClientRect().top;
+			const delta = top - prevTableTopRef.current;
+			prevTableTopRef.current = top;
+			if (delta === 0) return;
+			const viewport = scrollTableScrollAreaRef.current;
+			if (!viewport) return;
+			const raw = delta + remainder;
+			const px = Math.round(raw);
+			remainder = raw - px;
+			if (px !== 0) {
+				viewport.scrollBy({ top: px, behavior: "instant" });
+			}
 		});
-	});
+		observer.observe(cardEl);
+		return () => observer.disconnect();
+	}, []);
 
 	const dialogForState: React.ReactNode = null;
 
@@ -290,7 +292,7 @@ export const PackageListCard = memo(function PackageListCard({
 					packageRowsData={packageRowsData}
 					cancel={() => setBulkUpdatePackageIds([])}
 					guiAnimation={guiAnimation}
-					isScrolled={isScrolled}
+					containerRef={bulkUpdateCardRef}
 				/>
 				<ScrollableCardTable
 					className={"mt-2 compact:mt-1.5 h-full rounded-md"}
@@ -744,14 +746,14 @@ function BulkUpdateCard({
 	packageRowsData,
 	cancel,
 	guiAnimation,
-	isScrolled,
+	containerRef,
 }: {
 	bulkUpdateMode: BulkUpdateMode;
 	bulkUpdatePackageIds: string[];
 	packageRowsData: PackageRowInfo[];
 	cancel?: () => void;
 	guiAnimation: boolean;
-	isScrolled: boolean;
+	containerRef: React.RefObject<HTMLDivElement | null>;
 }) {
 	const visible = bulkUpdateMode.hasPackages;
 	const count = bulkUpdatePackageIds.length;
@@ -822,11 +824,10 @@ function BulkUpdateCard({
 
 	return (
 		<div
+			ref={containerRef}
 			className={cn(
 				"grid",
-				guiAnimation &&
-					!isScrolled &&
-					"transition-[grid-template-rows] duration-200 ease-out",
+				guiAnimation && "transition-[grid-template-rows] duration-200 ease-out",
 			)}
 			style={{ gridTemplateRows: visible ? "1fr" : "0fr" }}
 		>
