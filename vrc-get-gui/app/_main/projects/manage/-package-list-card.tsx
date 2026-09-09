@@ -756,16 +756,14 @@ function BulkUpdateCard({
 	const visible = bulkUpdateMode.hasPackages;
 	const count = bulkUpdatePackageIds.length;
 
-	// Freeze the displayed button state during collapse animation so buttons
-	// don't change while the card is still visible and shrinking
-	const frozenModeRef = useRef(bulkUpdateMode);
-	const frozenCountRef = useRef(count);
-	if (visible) {
-		frozenModeRef.current = bulkUpdateMode;
-		frozenCountRef.current = count;
+	const [displayMode, setDisplayMode] = useState(bulkUpdateMode);
+	const [displayCount, setDisplayCount] = useState(count);
+	if (visible && displayMode !== bulkUpdateMode) {
+		setDisplayMode(bulkUpdateMode);
 	}
-	const displayMode = frozenModeRef.current;
-	const displayCount = frozenCountRef.current;
+	if (visible && displayCount !== count) {
+		setDisplayCount(count);
+	}
 
 	const { projectPath } = Route.useSearch();
 	const packageChange = useMutation(applyChangesMutation(projectPath));
