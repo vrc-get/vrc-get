@@ -240,14 +240,12 @@ export const PackageListCard = memo(function PackageListCard({
 	const prevTableTopRef = useRef(0);
 
 	// Compensate scroll position as BulkUpdateCard animates in/out so
-	// visible rows don't shift under the cursor. Sub-pixel remainder is
-	// carried across frames to prevent rounding drift in integer scrollBy.
+	// visible rows don't shift under the cursor.
 	useEffect(() => {
 		const cardEl = bulkUpdateCardRef.current;
 		const tableOuter = scrollTableOuterRef.current;
 		if (!cardEl || !tableOuter) return;
 		prevTableTopRef.current = tableOuter.getBoundingClientRect().top;
-		let remainder = 0;
 		const observer = new ResizeObserver(() => {
 			const top = tableOuter.getBoundingClientRect().top;
 			const delta = top - prevTableTopRef.current;
@@ -255,12 +253,7 @@ export const PackageListCard = memo(function PackageListCard({
 			if (delta === 0) return;
 			const viewport = scrollTableScrollAreaRef.current;
 			if (!viewport) return;
-			const raw = delta + remainder;
-			const px = Math.round(raw);
-			remainder = raw - px;
-			if (px !== 0) {
-				viewport.scrollBy({ top: px, behavior: "instant" });
-			}
+			viewport.scrollBy({ top: delta, behavior: "instant" });
 		});
 		observer.observe(cardEl);
 		return () => observer.disconnect();
