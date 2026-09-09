@@ -3,6 +3,7 @@
 import {
 	queryOptions,
 	useMutation,
+	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
 import {
@@ -15,15 +16,7 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import type React from "react";
-import {
-	memo,
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { applyChangesMutation } from "@/app/_main/projects/manage/-use-package-change";
 import { Route } from "@/app/_main/projects/manage/index";
 import { ExternalLink } from "@/components/ExternalLink";
@@ -64,6 +57,7 @@ import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { usePackageUpdateInProgress } from "@/lib/global-events";
 import { tc, tt } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import { toVersionString } from "@/lib/version";
 import type {
 	PackageLatestInfo,
@@ -90,6 +84,12 @@ export const PackageListCard = memo(function PackageListCard({
 	repositoriesInfo: TauriRepositoriesInfo | undefined;
 	onRefresh: () => void;
 }) {
+	const guiAnimation = useQuery({
+		queryKey: ["environmentGuiAnimation"],
+		queryFn: commands.environmentGuiAnimation,
+		initialData: true,
+	}).data;
+
 	const [search, setSearch] = useState("");
 	const [bulkUpdatePackageIdsRaw, setBulkUpdatePackageIds] = useState<string[]>(
 		[],
@@ -234,25 +234,37 @@ export const PackageListCard = memo(function PackageListCard({
 		[hiddenPackages, packageRowsData, filteredPackageIds, showHiddenPackages],
 	);
 
-	// Fix scroll position when bulk update card visibility is changed
 	const scrollTableOuterRef = useRef<HTMLDivElement>(null);
 	const scrollTableScrollAreaRef = useRef<HTMLDivElement>(null);
-	// TODO: Is this a good way to get BoundingClientRect before dom update?
-	const preRenderOuterTop =
-		scrollTableOuterRef.current?.getBoundingClientRect()?.top;
-	useLayoutEffect(() => {
-		if (preRenderOuterTop == null) return;
-		if (scrollTableOuterRef.current == null) return;
-		if (scrollTableScrollAreaRef.current == null) return;
-		const postRenderOuterTop =
-			scrollTableOuterRef.current.getBoundingClientRect()?.top;
-		const heightDiff = postRenderOuterTop - preRenderOuterTop;
-		if (heightDiff === 0) return;
-		scrollTableScrollAreaRef.current.scrollBy({
-			top: heightDiff,
-			behavior: "instant",
+	const bulkUpdateCardRef = useRef<HTMLDivElement>(null);
+	const prevTableTopRef = useRef(0);
+
+	// Compensate scroll position as BulkUpdateCard animates in/out so
+	// visible rows don't shift under the cursor. Sub-pixel remainder is
+	// carried across frames to prevent rounding drift in integer scrollBy.
+	useEffect(() => {
+		const cardEl = bulkUpdateCardRef.current;
+		const tableOuter = scrollTableOuterRef.current;
+		if (!cardEl || !tableOuter) return;
+		prevTableTopRef.current = tableOuter.getBoundingClientRect().top;
+		let remainder = 0;
+		const observer = new ResizeObserver(() => {
+			const top = tableOuter.getBoundingClientRect().top;
+			const delta = top - prevTableTopRef.current;
+			prevTableTopRef.current = top;
+			if (delta === 0) return;
+			const viewport = scrollTableScrollAreaRef.current;
+			if (!viewport) return;
+			const raw = delta + remainder;
+			const px = Math.round(raw);
+			remainder = raw - px;
+			if (px !== 0) {
+				viewport.scrollBy({ top: px, behavior: "instant" });
+			}
 		});
-	});
+		observer.observe(cardEl);
+		return () => observer.disconnect();
+	}, []);
 
 	const dialogForState: React.ReactNode = null;
 
@@ -265,7 +277,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	return (
 		<Card className="grow shrink flex shadow-none w-full">
-			<CardContent className="w-full p-2 flex flex-col gap-2 compact:p-1 compact:gap-1.5">
+			<CardContent className="w-full p-2 flex flex-col compact:p-1">
 				<ManagePackagesHeading
 					packageRowsData={packageRowsData}
 					hiddenUserRepositories={hiddenUserRepositories}
@@ -279,9 +291,11 @@ export const PackageListCard = memo(function PackageListCard({
 					bulkUpdatePackageIds={bulkUpdatePackageIds}
 					packageRowsData={packageRowsData}
 					cancel={() => setBulkUpdatePackageIds([])}
+					guiAnimation={guiAnimation}
+					containerRef={bulkUpdateCardRef}
 				/>
 				<ScrollableCardTable
-					className={"h-full rounded-md"}
+					className={"mt-2 compact:mt-1.5 h-full rounded-md"}
 					ref={scrollTableOuterRef}
 					viewportRef={scrollTableScrollAreaRef}
 				>
@@ -731,13 +745,28 @@ function BulkUpdateCard({
 	bulkUpdatePackageIds,
 	packageRowsData,
 	cancel,
+	guiAnimation,
+	containerRef,
 }: {
 	bulkUpdateMode: BulkUpdateMode;
 	bulkUpdatePackageIds: string[];
 	packageRowsData: PackageRowInfo[];
 	cancel?: () => void;
+	guiAnimation: boolean;
+	containerRef: React.RefObject<HTMLDivElement | null>;
 }) {
+	const visible = bulkUpdateMode.hasPackages;
 	const count = bulkUpdatePackageIds.length;
+
+	const [displayMode, setDisplayMode] = useState(bulkUpdateMode);
+	const [displayCount, setDisplayCount] = useState(count);
+	if (visible && displayMode !== bulkUpdateMode) {
+		setDisplayMode(bulkUpdateMode);
+	}
+	if (visible && displayCount !== count) {
+		setDisplayCount(count);
+	}
+
 	const { projectPath } = Route.useSearch();
 	const packageChange = useMutation(applyChangesMutation(projectPath));
 
@@ -793,47 +822,59 @@ function BulkUpdateCard({
 		});
 	};
 
-	if (!bulkUpdateMode.hasPackages) return null;
 	return (
-		<Card
-			className={
-				"shrink-0 p-2 compact:p-1 flex flex-row gap-2 compact:gap-1 bg-secondary text-secondary-foreground flex-wrap"
-			}
+		<div
+			ref={containerRef}
+			className={cn(
+				"grid",
+				guiAnimation && "transition-[grid-template-rows] duration-200 ease-out",
+			)}
+			style={{ gridTemplateRows: visible ? "1fr" : "0fr" }}
 		>
-			{bulkUpdateMode.canInstallOrUpgrade && (
-				<ButtonDisabledIfLoading
-					onClick={() => bulkInstallOrUpgradeAll?.(false)}
+			<div className="overflow-hidden min-h-0">
+				<Card
+					className={
+						"mt-2 compact:mt-1.5 shrink-0 p-2 compact:p-1 flex flex-row gap-2 compact:gap-1 bg-secondary text-secondary-foreground flex-wrap"
+					}
 				>
-					{tc("projects:manage:button:install selected latest")}
-				</ButtonDisabledIfLoading>
-			)}
-			{bulkUpdateMode.canInstallOrUpgradeStable && (
-				<ButtonDisabledIfLoading
-					onClick={() => bulkInstallOrUpgradeAll?.(true)}
-				>
-					{tc("projects:manage:button:install selected stable latest")}
-				</ButtonDisabledIfLoading>
-			)}
-			{bulkUpdateMode.canReinstallOrRemove && (
-				<ButtonDisabledIfLoading onClick={bulkReinstallAll}>
-					{tc("projects:manage:button:reinstall selected")}
-				</ButtonDisabledIfLoading>
-			)}
-			{bulkUpdateMode.canReinstallOrRemove && (
-				<ButtonDisabledIfLoading
-					onClick={bulkRemoveAll}
-					variant={"destructive"}
-				>
-					{tc("projects:manage:button:uninstall selected")}
-				</ButtonDisabledIfLoading>
-			)}
-			<ButtonDisabledIfLoading onClick={cancel} variant={"warning"}>
-				{tc("projects:manage:button:clear selection")}
-				{" ("}
-				{tc("projects:manage:n packages selected", { count })}
-				{")"}
-			</ButtonDisabledIfLoading>
-		</Card>
+					{displayMode.canInstallOrUpgrade && (
+						<ButtonDisabledIfLoading
+							onClick={() => bulkInstallOrUpgradeAll(false)}
+						>
+							{tc("projects:manage:button:install selected latest")}
+						</ButtonDisabledIfLoading>
+					)}
+					{displayMode.canInstallOrUpgradeStable && (
+						<ButtonDisabledIfLoading
+							onClick={() => bulkInstallOrUpgradeAll(true)}
+						>
+							{tc("projects:manage:button:install selected stable latest")}
+						</ButtonDisabledIfLoading>
+					)}
+					{displayMode.canReinstallOrRemove && (
+						<ButtonDisabledIfLoading onClick={bulkReinstallAll}>
+							{tc("projects:manage:button:reinstall selected")}
+						</ButtonDisabledIfLoading>
+					)}
+					{displayMode.canReinstallOrRemove && (
+						<ButtonDisabledIfLoading
+							onClick={bulkRemoveAll}
+							variant={"destructive"}
+						>
+							{tc("projects:manage:button:uninstall selected")}
+						</ButtonDisabledIfLoading>
+					)}
+					<ButtonDisabledIfLoading onClick={cancel} variant={"warning"}>
+						{tc("projects:manage:button:clear selection")}
+						{" ("}
+						{tc("projects:manage:n packages selected", {
+							count: displayCount,
+						})}
+						{")"}
+					</ButtonDisabledIfLoading>
+				</Card>
+			</div>
+		</div>
 	);
 }
 
