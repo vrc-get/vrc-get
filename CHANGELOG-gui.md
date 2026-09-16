@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog].
 - Alternating row backgrounds in Manage Packages are broken when filtering with search `#3058`
 - Improved compatibility with better compatibility with tools resizes window on launch `#3157`
 - Adjust button layout in Project Row `#3158`
+- The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
 
 ### Security
 
