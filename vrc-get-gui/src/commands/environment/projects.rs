@@ -352,21 +352,21 @@ pub async fn environment_remove_project_by_path(
     let Some(project) = connection.find_project(&project_path).unwrap() else {
         return Err(RustError::unrecoverable_str("project not found"));
     };
-    connection.remove_project(&project);
-    connection.save(io.inner()).await?;
-    settings.load_from_db(&connection)?;
-    settings.save().await?;
 
     if directory {
         let path = project.path().unwrap();
         info!("removing project directory: {path}");
 
-        if let Err(err) = trash_delete(PathBuf::from(path)).await {
-            error!("failed to remove project directory: {err}");
-        } else {
-            info!("removed project directory: {path}");
-        }
+        trash_delete(PathBuf::from(path)).await.map_err(|err| {
+            RustError::unrecoverable_str(format!("failed to remove project directory: {err}"))
+        })?;
+        info!("removed project directory: {path}");
     }
+
+    connection.remove_project(&project);
+    connection.save(io.inner()).await?;
+    settings.load_from_db(&connection)?;
+    settings.save().await?;
 
     Ok(())
 }
