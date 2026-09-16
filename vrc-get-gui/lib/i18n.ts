@@ -3,7 +3,9 @@ import React from "react";
 import { initReactI18next, Trans, useTranslation } from "react-i18next";
 import type { TransProps } from "react-i18next/TransWithoutContext";
 import { ExternalLink } from "@/components/ExternalLink";
+import { commands } from "@/lib/bindings";
 import globalInfo from "@/lib/global-info";
+import { queryClient } from "@/lib/query-client";
 import deJson from "@/locales/de.json5";
 import enJson from "@/locales/en.json5";
 import esJson from "@/locales/es.json5";
@@ -45,6 +47,20 @@ i18next.changeLanguage(globalInfo.language);
 
 export default i18next;
 export const languages = Object.keys(languageResources);
+
+// dev-only language switcher helpers (see SideBar.tsx / providers.tsx)
+export function languageAt(delta: number): string {
+	const index =
+		(languages.indexOf(i18next.language) + delta) % languages.length;
+	return languages.at(index) ?? languages[0];
+}
+
+export async function cycleLanguage(delta: number) {
+	const next = languageAt(delta);
+	await i18next.changeLanguage(next);
+	await commands.environmentSetLanguage(next);
+	await queryClient.invalidateQueries({ queryKey: ["environmentLanguage"] });
+}
 
 function VGTrans(props: TransProps<string>) {
 	const components = {
