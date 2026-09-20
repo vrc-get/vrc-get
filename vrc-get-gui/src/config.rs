@@ -38,7 +38,7 @@ pub struct GuiConfig {
     pub gui_compact: bool,
     #[serde(default = "project_view_mode_default")]
     pub project_view_mode: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "unity_hub_access_method")]
     pub unity_hub_access_method: UnityHubAccessMethod,
     // last element is the most recent one
     // 8 paths are saved
@@ -63,6 +63,18 @@ pub enum UnityHubAccessMethod {
     ReadConfig,
     /// Launches headless Unity Hub in background
     CallHub,
+    /// Calls the standalone Unity CLI
+    CallCli,
+}
+
+fn unity_hub_access_method<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<UnityHubAccessMethod, D::Error> {
+    Ok(match String::deserialize(deserializer)?.as_str() {
+        "CallHub" => UnityHubAccessMethod::CallHub,
+        "CallCli" => UnityHubAccessMethod::CallCli,
+        _ => UnityHubAccessMethod::default(),
+    })
 }
 
 impl Default for GuiConfig {
@@ -84,7 +96,7 @@ impl Default for GuiConfig {
             gui_animation: true,
             gui_compact: gui_compact_default(),
             project_view_mode: project_view_mode_default(),
-            unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
+            unity_hub_access_method: UnityHubAccessMethod::default(),
             recent_project_locations: Vec::new(),
             exclude_vpm_packages_from_backup: false,
             favorite_templates: vec![],

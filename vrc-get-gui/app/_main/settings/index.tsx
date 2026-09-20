@@ -30,6 +30,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
@@ -200,12 +208,13 @@ function UnityInstallationsCard({
 }) {
 	const queryClient = useQueryClient();
 	const {
-		data: { unityPaths, unityHubAccessMethod },
+		data: { unityPaths, unityHubAccessMethod, unityCli },
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			unityPaths: data.unity_paths,
 			unityHubAccessMethod: data.unity_hub_access_method,
+			unityCli: data.unity_cli,
 		}),
 	});
 
@@ -342,17 +351,37 @@ function UnityInstallationsCard({
 				</tbody>
 			</ScrollableCardTable>
 			<div>
-				<label className={"flex items-center gap-2"}>
-					<Checkbox
-						checked={unityHubAccessMethod === "CallHub"}
-						onCheckedChange={(e) =>
-							setAccessMethod.mutate(e === true ? "CallHub" : "ReadConfig")
-						}
-					/>
-					{tc("settings:use legacy unity hub loading")}
-				</label>
+				<h3>{tc("settings:unity hub access method")}</h3>
 				<p className={"text-sm whitespace-normal"}>
-					{tc("settings:use legacy unity hub loading description")}
+					{tc("settings:unity hub access method description")}
+				</p>
+				<Select
+					value={unityHubAccessMethod}
+					onValueChange={(value) =>
+						setAccessMethod.mutate(value as UnityHubAccessMethod)
+					}
+				>
+					<SelectTrigger>
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							<SelectItem value={"ReadConfig"}>
+								{tc("settings:unity hub access method:read config")}
+							</SelectItem>
+							<SelectItem value={"CallHub"}>
+								{tc("settings:unity hub access method:call hub")}
+							</SelectItem>
+							<SelectItem value={"CallCli"}>
+								{tc("settings:unity hub access method:call cli")}
+							</SelectItem>
+						</SelectGroup>
+					</SelectContent>
+				</Select>
+				<p className={"text-sm whitespace-normal"}>
+					{unityCli
+						? tc("settings:unity cli found", { path: unityCli })
+						: tc("settings:unity cli not found")}
 				</p>
 			</div>
 		</SettingsCard>

@@ -466,8 +466,6 @@
     "settings:toast:not unity": "Ungültige Unity-Datei",
     "settings:toast:unity already added": "Ausgewähltes Unity bereits vorhanden",
     "settings:toast:unity added": "Unity erfolgreich hinzugefügt!",
-    "settings:use legacy unity hub loading": "Verwende alte Unity Hub Installationserkennung",
-    "settings:use legacy unity hub loading description": "Die alte Installationserkennung ist möglicherweise zuverlässiger, benötigt aber wesentlich mehr Zeit.<br/>Diese alte Methode wird in Zukunft entfernt, bitte melde Probleme über 'Fehler melden' weiter unten.",
 
     "settings:default unity arguments": "Standard-Befehlszeilenparameter von Unity",
     "settings:default unity arguments description": "Diese Befehlzeilenparameter werden benutzt wenn Unity über ALCOM geöffnet wird.",

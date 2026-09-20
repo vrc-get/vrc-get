@@ -16,6 +16,10 @@ pub(crate) static COLLECTION: &str = "unityVersions";
 static PATH: &str = "Path";
 static VERSION: &str = "Version";
 static LOADED_FROM_HUB: &str = "LoadedFromHub";
+#[cfg(windows)]
+static UNITY_CLI_FILE_NAME: &str = "unity.exe";
+#[cfg(not(windows))]
+static UNITY_CLI_FILE_NAME: &str = "unity";
 
 impl VccDatabaseConnection {
     pub fn get_unity_installations(&self) -> Vec<UnityInstallation> {
@@ -248,6 +252,65 @@ fn default_unity_hub_path() -> &'static [&'static str] {
                     &FLATPAK_USER_INSTALLATION,
                     "/var/lib/flatpak/exports/bin/com.unity.UnityHub",
                 ];
+        }
+
+        INSTALLATIONS.as_ref()
+    }
+}
+
+pub async fn find_unity_cli(io: &DefaultEnvironmentIo) -> io::Result<Option<String>> {
+    // a GUI process does not inherit the shell PATH so known locations come first
+    for &path in default_unity_cli_path() {
+        if io.is_file(path.as_ref()).await {
+            return Ok(Some(path.to_string()));
+        }
+    }
+
+    let Some(path_env) = std::env::var_os("PATH") else {
+        return Ok(None);
+    };
+
+    for dir in std::env::split_paths(&path_env) {
+        let path = dir.join(UNITY_CLI_FILE_NAME);
+        if io.is_file(&path).await
+            && let Ok(path) = path.into_os_string().into_string()
+        {
+            return Ok(Some(path));
+        }
+    }
+
+    Ok(None)
+}
+
+fn default_unity_cli_path() -> &'static [&'static str] {
+    #[cfg(windows)]
+    {
+        lazy_static::lazy_static! {
+            static ref USER_INSTALLATION: String = {
+                let local_app_data = std::env::var("LOCALAPPDATA").expect("LOCALAPPDATA not set");
+                format!("{local_app_data}\\Unity\\bin\\unity.exe")
+            };
+            static ref INSTALLATIONS: [&'static str; 1] = [&USER_INSTALLATION];
+        }
+
+        INSTALLATIONS.as_ref()
+    }
+    #[cfg(target_os = "macos")]
+    {
+        &["/opt/homebrew/bin/unity", "/usr/local/bin/unity"]
+    }
+    #[cfg(target_os = "linux")]
+    {
+        lazy_static::lazy_static! {
+            static ref USER_INSTALLATION: String = {
+                let home = std::env::var("HOME").expect("HOME not set");
+                format!("{home}/.local/bin/unity")
+            };
+            static ref INSTALLATIONS: [&'static str; 3] = [
+                &USER_INSTALLATION,
+                "/usr/local/bin/unity",
+                "/usr/bin/unity",
+            ];
         }
 
         INSTALLATIONS.as_ref()

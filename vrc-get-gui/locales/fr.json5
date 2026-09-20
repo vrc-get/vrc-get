@@ -334,8 +334,6 @@
     'settings:unity:source:unity hub': 'Unity Hub',
     'settings:unity:version': 'Version de Unity',
     'settings:use alcom for vcc scheme': "Utiliser ALCOM avec le schéma d'URL <code>vcc://</code>",
-    'settings:use legacy unity hub loading': 'Utiliser une ancienne version du chargement du Unity Hub',
-    'settings:use legacy unity hub loading description': "L'ancien mode de chargement du Unity Hub est plus fiable pour charger Unity depuis le Unity Hub en comparaison de la nouvelle méthode, cependant l'ancien mode prends plus de temps.<br/>Cet ancien mode sera supprimé dans le futur donc si vous avez des problèmes de chargement avec cette nouvelle méthode, n'hésitez pas a ouvrir une réclamation au développeur dans la section appropriée.",
     'settings:use vcc scheme description': "Le schéma d'URL <code>vcc:</code> est utilisé pour ouvrir VCC afin d'ajouter un dépot depuis un navigateur WEB.<br>En tant qu'alternative à VCC, vous pouvez utiliser ALCOM en tant qu'application principale.<br>Si cette option est activée, ALCOM enregistrera le schéma d'URL <code>vcc:</code> au démarrage.<br>Après une (ré)installation/mise a jour de VCC, vous devrez redémarrer ALCOM ou manuellement ré-enregistrer VCC avec le bouton d'enregistrement dédié.",
     'settings:warning:in-app-data': 'Ce chemin existe au sein du dossier AppData, il sera supprimé en utilisant "Réinitialiser cet ordinateur" avec l\'option "Conserver mes fichiers".<br>Il est recommandé de stocker vos données dans un autre emplacement.',
     'settings:warning:non-ascii': 'Cet emplacement contient des caracthères non-ASCII. les caracthères non-ASCII peuvent provoquer des erreurs avec Unity ou des outils tierces. Préférez un autre emplacement si possible.',
