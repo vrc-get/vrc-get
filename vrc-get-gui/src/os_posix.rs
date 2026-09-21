@@ -3,14 +3,25 @@
 use std::ffi::OsStr;
 use std::fs::OpenOptions;
 use std::io;
-use std::os::unix::prelude::*;
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
-use nix::libc::{F_UNLCK, c_short, flock};
+use nix::fcntl::{Flock, FlockArg};
 
-pub(crate) use os_more::{CAN_BRING_UNITY_TO_FRONT, CAN_DETECT_UNITY_EDITOR_READY, start_command};
+pub(crate) use os_more::{CAN_DETECT_UNITY_EDITOR_READY, start_command};
+
+pub(crate) fn can_bring_unity_to_front() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        std::env::var_os("WAYLAND_DISPLAY").is_some() || std::env::var_os("DISPLAY").is_some()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        os_more::CAN_BRING_UNITY_TO_FRONT
+    }
+}
 
 pub(crate) struct UnityRuntimeCache;
 
@@ -44,18 +55,13 @@ async fn start_command_posix(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::i
 }
 
 pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
-    let mut lock = flock {
-        l_start: 0,
-        l_len: 0,
-        l_pid: 0,
-        l_type: F_UNLCK as c_short, // macOS denies l_type: 0
-        l_whence: 0,
-    };
     let file = OpenOptions::new().read(true).open(path)?;
 
-    nix::fcntl::fcntl(file, nix::fcntl::F_GETLK(&mut lock))?;
-
-    Ok(lock.l_type != F_UNLCK as c_short)
+    match Flock::lock(file, FlockArg::LockExclusiveNonblock) {
+        Ok(_flock) => Ok(false), // acquired lock → not locked by Unity
+        Err((_file, errno)) if errno == nix::errno::Errno::EWOULDBLOCK => Ok(true),
+        Err((_file, errno)) => Err(errno.into()),
+    }
 }
 
 #[cfg(target_os = "macos")]
