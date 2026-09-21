@@ -11,6 +11,8 @@ mod package_installer;
 #[cfg(feature = "experimental-project-management")]
 mod project_management;
 mod settings;
+#[cfg(feature = "experimental-project-management")]
+mod sqlite;
 #[cfg(feature = "experimental-unity-management")]
 mod unity_management;
 
