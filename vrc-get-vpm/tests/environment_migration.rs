@@ -177,7 +177,7 @@ async fn load_no_litedb_environment() {
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    (ProjectManagement::start(io).await.unwrap().save().await).unwrap(); // does migration
+    ProjectManagement::start(io).await.unwrap(); // does migration
 
     // check
     assert_eq!(
@@ -213,7 +213,7 @@ async fn both_litedb_and_settings() {
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    (ProjectManagement::start(io).await.unwrap().save().await).unwrap(); // does migration
+    ProjectManagement::start(io).await.unwrap(); // does migration
 
     // check data
     assert_eq!(
@@ -249,7 +249,7 @@ async fn no_project_data_in_settings_json() {
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    (ProjectManagement::start(io).await.unwrap().save().await).unwrap(); // does migration
+    ProjectManagement::start(io).await.unwrap(); // does migration
 
     // check data
     assert_eq!(
@@ -279,7 +279,7 @@ async fn no_settings_json() {
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    (ProjectManagement::start(io).await.unwrap().save().await).unwrap(); // does migration
+    ProjectManagement::start(io).await.unwrap(); // does migration
 
     // check data
     assert_eq!(

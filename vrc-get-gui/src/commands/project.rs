@@ -521,8 +521,9 @@ pub async fn project_open_unity(
                 .custom_unity_args()
                 .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
         }
-        projects.update_project_last_modified(project_path.as_ref())?;
-        projects.save().await?;
+        projects
+            .update_project_last_modified(project_path.as_ref())
+            .await?;
     }
 
     let project_path_key = PathBuf::from(&project_path);
@@ -828,8 +829,7 @@ pub async fn project_set_custom_unity_args(
         } else {
             project.clear_custom_unity_args();
         }
-        projects.update_project(&project);
-        projects.save().await?;
+        projects.update_project(&project).await?;
         Ok(true)
     } else {
         Ok(false)
@@ -864,8 +864,7 @@ pub async fn project_set_unity_path(
         } else {
             project.clear_unity_path();
         }
-        projects.update_project(&project);
-        projects.save().await?;
+        projects.update_project(&project).await?;
         Ok(true)
     } else {
         Ok(false)

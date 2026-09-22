@@ -287,8 +287,9 @@ async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &P
         project_dir: &Path,
     ) -> Result<(), ProjectManagementError> {
         let mut projects = ProjectManagement::start_no_migration(io).await?;
-        projects.update_project_last_modified(&project_dir.to_string_lossy())?;
-        projects.save().await?;
+        projects
+            .update_project_last_modified(&project_dir.to_string_lossy())
+            .await?;
         Ok(())
     }
 

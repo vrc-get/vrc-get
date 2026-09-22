@@ -62,8 +62,6 @@ impl ProjectList {
 
         let mut projects_list = projects.get_projects();
 
-        projects.save().await.exit_context("saving");
-
         projects_list.sort_by_key(|x| Reverse(x.last_modified()));
 
         for project in projects_list.iter() {
@@ -109,8 +107,6 @@ impl ProjectAdd {
             .add_project(&project)
             .await
             .exit_context("adding project");
-
-        projects.save().await.exit_context("saving");
     }
 }
 
@@ -134,9 +130,10 @@ impl ProjectRemove {
             return println!("No project found or registered with path: {}", self.path);
         };
 
-        projects.remove_project(&project).unwrap();
-
-        projects.save().await.exit_context("saving");
+        projects
+            .remove_project(&project)
+            .await
+            .exit_context("removing project");
     }
 }
 

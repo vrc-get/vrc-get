@@ -206,8 +206,10 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
                 return;
             }
         };
-        projects.sync_with_real_projects_information(real_projects);
-        match projects.save().await {
+        match projects
+            .sync_with_real_projects_information(real_projects)
+            .await
+        {
             Ok(()) => {}
             Err(e) => {
                 error!("Error updating database: {e}");
@@ -303,7 +305,6 @@ pub async fn environment_add_project_with_picker(
         for unity_project in unity_projects {
             projects.add_project(&unity_project).await?;
         }
-        projects.save().await?;
         settings_mut.finish();
     }
 
@@ -323,8 +324,7 @@ pub async fn environment_remove_project_by_path(
     let Some(project) = projects.find_project(&project_path) else {
         return Err(RustError::unrecoverable_str("project not found"));
     };
-    projects.remove_project(&project).unwrap();
-    projects.save().await?;
+    projects.remove_project(&project).await?;
     settings_mut.finish();
 
     if directory {
@@ -505,7 +505,6 @@ where
             let settings_mut = settings.extern_mutation().await;
             let mut projects = ProjectManagement::start(io.inner()).await?;
             projects.add_project(&unity_project).await?;
-            projects.save().await?;
             settings_mut.finish();
 
             Ok(new_path_str)
@@ -526,8 +525,7 @@ pub async fn environment_set_favorite_project(
         return Err(RustError::unrecoverable_str("project not found"));
     };
     project.set_favorite(favorite);
-    projects.update_project(&project);
-    projects.save().await?;
+    projects.update_project(&project).await?;
     Ok(())
 }
 
@@ -804,7 +802,6 @@ pub async fn environment_create_project(
     let settings_mut = settings.extern_mutation().await;
     let mut projects = ProjectManagement::start(io.inner()).await?;
     projects.add_project(&unity_project).await?;
-    projects.save().await?;
     settings_mut.finish();
 
     {

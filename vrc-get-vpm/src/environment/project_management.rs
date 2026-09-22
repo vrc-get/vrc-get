@@ -25,6 +25,7 @@ pub enum Error {
     LoadLitedb(io::Error),
     SaveSettings(io::Error),
     SaveLitedb(io::Error),
+    LoadingProjectInfo(io::Error),
     BadPath(&'static str),
     AlreadyExists,
     ChangeProjectListNotSupported,
@@ -39,6 +40,7 @@ impl std::fmt::Display for Error {
             Error::LoadLitedb(err) => write!(fmt, "Failed to load litedb: {}", err),
             Error::SaveSettings(err) => write!(fmt, "Failed to save settings: {}", err),
             Error::SaveLitedb(err) => write!(fmt, "Failed to save litedb: {}", err),
+            Error::LoadingProjectInfo(err) => write!(fmt, "Failed to load project info: {}", err),
             Error::BadPath(path) => write!(fmt, "Bad path: {}", path),
             Error::AlreadyExists => write!(fmt, "Specified project already exists"),
             Error::ChangeProjectListNotSupported => write!(
@@ -73,6 +75,7 @@ impl<'io> ProjectManagement<'io> {
                 .collect::<HashSet<_>>(),
         );
 
+        json.save(io).await.map_err(Error::SaveSettings)?;
         litedb.save(io).await.map_err(Error::SaveLitedb)?;
 
         Ok(ProjectManagement {
@@ -119,10 +122,13 @@ impl<'io> ProjectManagement<'io> {
         &mut self,
         skip_not_found: bool,
         io: &DefaultEnvironmentIo,
-    ) -> io::Result<()> {
+    ) -> Result<(), Error> {
         self.litedb
             .sync_with_real_projects(skip_not_found, io)
             .await
+            .map_err(Error::LoadingProjectInfo)?;
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        Ok(())
     }
 
     pub fn find_project(&self, project_path: &str) -> Option<UserProject> {
@@ -181,33 +187,43 @@ impl<'io> ProjectManagement<'io> {
 
         json.add_user_project(path);
 
+        json.save(self.io).await.map_err(Error::SaveSettings)?;
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+
         Ok(())
     }
 
-    pub fn remove_project(&mut self, project: &UserProject) -> Result<(), Error> {
+    pub async fn remove_project(&mut self, project: &UserProject) -> Result<(), Error> {
         let json = self
             .json
             .as_mut()
             .ok_or(Error::ChangeProjectListNotSupported)?;
         (self.litedb.db).delete(COLLECTION, &[project.bson[ID].clone()]);
         json.remove_user_project(project.path());
+
+        json.save(self.io).await.map_err(Error::SaveSettings)?;
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
         Ok(())
     }
 
-    pub fn sync_with_real_projects_information(
+    pub async fn sync_with_real_projects_information(
         &mut self,
         information: Vec<RealProjectInformation>,
-    ) {
+    ) -> Result<(), Error> {
         self.litedb.sync_with_real_projects_information(information);
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        Ok(())
     }
 
-    pub fn update_project(&mut self, project: &UserProject) {
+    pub async fn update_project(&mut self, project: &UserProject) -> Result<(), Error> {
         (self.litedb.db)
             .update(COLLECTION, vec![project.to_bson()])
             .expect("update");
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        Ok(())
     }
 
-    pub fn update_project_last_modified(&mut self, project_path: &str) -> Result<(), Error> {
+    pub async fn update_project_last_modified(&mut self, project_path: &str) -> Result<(), Error> {
         if !Path::new(project_path).is_absolute() {
             return Err(Error::BadPath("project path is not absolute"));
         }
@@ -226,13 +242,7 @@ impl<'io> ProjectManagement<'io> {
             .db
             .update(COLLECTION, vec![project])
             .expect("update");
-        Ok(())
-    }
 
-    pub async fn save(self) -> Result<(), Error> {
-        if let Some(json) = self.json {
-            json.save(self.io).await.map_err(Error::SaveSettings)?;
-        }
         self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
         Ok(())
     }
