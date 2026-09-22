@@ -103,13 +103,7 @@ impl Settings {
         self.vpm.remove_user_project(path);
     }
 
-    pub(crate) fn load_from_db_inner(&mut self, connection: &super::VccDatabaseConnection) {
-        let projects = connection.get_projects();
-        let mut project_paths = projects
-            .iter()
-            .filter_map(|x| x.path())
-            .collect::<HashSet<_>>();
-
+    pub(crate) fn load_from_db_inner(&mut self, mut project_paths: HashSet<&str>) {
         // remove removed projects
         self.vpm
             .retain_user_projects(|x| project_paths.contains(&x));

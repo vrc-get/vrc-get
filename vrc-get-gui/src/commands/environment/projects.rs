@@ -85,26 +85,20 @@ impl From<ProjectType> for TauriProjectType {
 
 impl TauriProject {
     fn new(project: &UserProject) -> Self {
-        let is_exists = std::fs::metadata(project.path().unwrap())
+        let is_exists = std::fs::metadata(project.path())
             .map(|x| x.is_dir())
             .unwrap_or(false);
         Self {
-            name: project.name().unwrap().to_string(),
-            path: project.path().unwrap().to_string(),
+            name: project.name().to_string(),
+            path: project.path().to_string(),
             project_type: project.project_type().into(),
             unity: project
                 .unity_version()
                 .map(|v| v.to_string())
                 .unwrap_or_else(|| "unknown".into()),
             unity_revision: project.unity_revision().map(|x| x.to_string()),
-            last_modified: project
-                .last_modified()
-                .map(|x| x.as_unix_milliseconds())
-                .unwrap_or(0),
-            created_at: project
-                .crated_at()
-                .map(|x| x.as_unix_milliseconds())
-                .unwrap_or(0),
+            last_modified: project.last_modified().as_unix_milliseconds(),
+            created_at: project.crated_at().as_unix_milliseconds(),
             favorite: project.favorite(),
             is_exists,
             is_valid: project.is_valid_project(),
@@ -149,10 +143,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
         // start update thread
         log::info!("starting sync with real project...");
         tauri::async_runtime::spawn(sync_with_real_project(
-            projects
-                .iter()
-                .map(|x| x.path().unwrap().to_string())
-                .collect(),
+            projects.iter().map(|x| x.path().to_string()).collect(),
             app.clone(),
         ));
     } else {
@@ -241,8 +232,7 @@ pub async fn environment_projects(
 
     info!("fetching projects");
 
-    let mut projects = projects.get_projects();
-    projects.retain(|x| x.path().is_some());
+    let projects = projects.get_projects();
 
     sync_with_real_project_background(&projects, &app);
 
@@ -338,7 +328,7 @@ pub async fn environment_remove_project_by_path(
     settings_mut.finish();
 
     if directory {
-        let path = project.path().unwrap();
+        let path = project.path();
         info!("removing project directory: {path}");
 
         if let Err(err) = trash_delete(PathBuf::from(path)).await {

@@ -8,7 +8,6 @@ use futures::future::join_all;
 use log::{error, warn};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::ffi::OsStr;
 use std::path::Path;
 use vrc_get_litedb::bson::{Array, DateTime, Document, Value};
 use vrc_get_litedb::document;
@@ -61,7 +60,12 @@ impl<'io> ProjectManagement<'io> {
         litedb.dedup_projects();
         litedb.normalize_path();
 
-        json.load_from_db_inner(&litedb);
+        json.load_from_db_inner(
+            (litedb.db)
+                .get_all(COLLECTION)
+                .filter_map(|doc| doc[PATH].as_str())
+                .collect::<HashSet<_>>(),
+        );
 
         litedb.save(io).await.map_err(Error::SaveLitedb)?;
 
@@ -101,7 +105,7 @@ impl<'io> ProjectManagement<'io> {
         (self.litedb.db)
             .get_all(COLLECTION)
             .cloned()
-            .map(UserProject::from_document)
+            .filter_map(UserProject::from_document)
             .collect::<Vec<_>>()
     }
 
@@ -126,9 +130,9 @@ impl<'io> ProjectManagement<'io> {
 
         (self.litedb.db)
             .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into())
-            .next()
             .cloned()
-            .map(UserProject::from_document)
+            .filter_map(UserProject::from_document)
+            .next()
     }
 
     pub async fn add_project(&mut self, project: &UnityProject) -> Result<(), Error> {
@@ -180,7 +184,7 @@ impl<'io> ProjectManagement<'io> {
             .as_mut()
             .ok_or(Error::ChangeProjectListNotSupported)?;
         (self.litedb.db).delete(COLLECTION, &[project.bson[ID].clone()]);
-        json.remove_user_project(project.path().unwrap());
+        json.remove_user_project(project.path());
         Ok(())
     }
 
@@ -532,14 +536,6 @@ impl VccDatabaseConnection {
         self.db.update(COLLECTION, updates).expect("update");
         self.db.delete(COLLECTION, &deletes);
     }
-
-    pub(crate) fn get_projects(&self) -> Vec<UserProject> {
-        self.db
-            .get_all(COLLECTION)
-            .cloned()
-            .map(UserProject::from_document)
-            .collect::<Vec<_>>()
-    }
 }
 
 /// The Data Structure to store information required for updating information in the Database
@@ -646,40 +642,44 @@ impl UserProject {
         }
     }
 
-    fn from_document(document: Document) -> Self {
-        Self { bson: document }
+    fn from_document(document: Document) -> Option<Self> {
+        document[PATH].as_str()?;
+        document[CREATED_AT].as_date_time()?;
+        document[LAST_MODIFIED].as_date_time()?;
+        document[UNITY_VERSION].as_str()?;
+        document[TYPE].as_i32()?;
+        document[FAVORITE].as_bool()?;
+        Some(Self { bson: document })
     }
 
-    pub fn path(&self) -> Option<&str> {
-        self.bson[PATH].as_str()
+    pub fn path(&self) -> &str {
+        self.bson[PATH].as_str().unwrap()
     }
 
-    pub fn name(&self) -> Option<&str> {
+    pub fn name(&self) -> &str {
         self.path()
-            .map(Path::new)
-            .and_then(Path::file_name)
-            .and_then(OsStr::to_str)
+            .rsplit_once(cfg_select! {
+                windows => ['/', '\\'],
+                _ => ['/'],
+            })
+            .map(|(_, name)| name)
+            .unwrap_or(self.path())
     }
 
-    pub fn crated_at(&self) -> Option<DateTime> {
-        self.bson[CREATED_AT].as_date_time()
+    pub fn crated_at(&self) -> DateTime {
+        self.bson[CREATED_AT].as_date_time().unwrap()
     }
 
-    pub fn last_modified(&self) -> Option<DateTime> {
-        self.bson[LAST_MODIFIED].as_date_time()
+    pub fn last_modified(&self) -> DateTime {
+        self.bson[LAST_MODIFIED].as_date_time().unwrap()
     }
 
     pub fn unity_version(&self) -> Option<UnityVersion> {
-        self.bson[UNITY_VERSION]
-            .as_str()
-            .and_then(UnityVersion::parse)
+        UnityVersion::parse(self.bson[UNITY_VERSION].as_str().unwrap())
     }
 
     pub fn project_type(&self) -> ProjectType {
-        self.bson[TYPE]
-            .as_i32()
-            .and_then(ProjectType::from_i32)
-            .unwrap_or(ProjectType::Unknown)
+        ProjectType::from_i32(self.bson[TYPE].as_i32().unwrap()).unwrap_or(ProjectType::Unknown)
     }
 
     pub fn favorite(&self) -> bool {

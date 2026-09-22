@@ -67,8 +67,8 @@ impl ProjectList {
         projects_list.sort_by_key(|x| Reverse(x.last_modified()));
 
         for project in projects_list.iter() {
-            let Some(path) = project.path() else { continue };
-            let Some(name) = project.name() else { continue };
+            let path = project.path();
+            let name = project.name();
             let unity_version = project
                 .unity_version()
                 .map(|x| x.to_string())
