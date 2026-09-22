@@ -147,45 +147,49 @@ impl<'io> ProjectManagement<'io> {
             .next()
     }
 
-    pub async fn add_project(&mut self, project: &UnityProject) -> Result<(), Error> {
+    pub async fn add_projects(&mut self, projects: &[UnityProject]) -> Result<(), Error> {
         let json = self
             .json
             .as_mut()
             .ok_or(Error::ChangeProjectListNotSupported)?;
 
-        let path = project.project_dir();
-        if !path.is_absolute() {
+        if projects
+            .iter()
+            .any(|proj| !proj.project_dir().is_absolute())
+        {
             return Err(Error::BadPath("project path is not absolute"));
         }
-        let path = normalize_path(project.project_dir());
-        let Some(path) = path.to_str() else {
-            return Err(Error::BadPath("project path is not utf8"));
-        };
-        let unity_version = project.unity_version();
-        let unity_revision = project.unity_revision();
 
-        let project_type = project.detect_project_type().await;
+        let mut new_projects = vec![];
 
-        let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
-        new_project.set_unity_revision(unity_version, unity_revision.map(ToOwned::to_owned));
+        for project in projects {
+            let path = normalize_path(project.project_dir());
+            let Some(path) = path.to_str() else {
+                return Err(Error::BadPath("project path is not utf8"));
+            };
+            let unity_version = project.unity_version();
+            let unity_revision = project.unity_revision();
 
-        if (self.litedb.db)
-            .get_by_index(COLLECTION, "Path", &Value::String(path.into()))
-            .next()
-            .is_some()
-        {
-            return Err(Error::AlreadyExists);
+            let project_type = project.detect_project_type().await;
+
+            let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
+            new_project.set_unity_revision(unity_version, unity_revision.map(ToOwned::to_owned));
+
+            if (self.litedb.db)
+                .get_by_index(COLLECTION, "Path", &Value::String(path.into()))
+                .next()
+                .is_some()
+            {
+                return Err(Error::AlreadyExists);
+            }
+
+            new_projects.push(new_project.bson);
+            json.add_user_project(path);
         }
 
         (self.litedb.db)
-            .insert(
-                COLLECTION,
-                vec![new_project.to_bson()],
-                BsonAutoId::ObjectId,
-            )
+            .insert(COLLECTION, new_projects, BsonAutoId::ObjectId)
             .expect("insert should never fail");
-
-        json.add_user_project(path);
 
         json.save(self.io).await.map_err(Error::SaveSettings)?;
         self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
@@ -193,13 +197,16 @@ impl<'io> ProjectManagement<'io> {
         Ok(())
     }
 
-    pub async fn remove_project(&mut self, project: &UserProject) -> Result<(), Error> {
+    pub async fn remove_projects(&mut self, projects: &[UserProject]) -> Result<(), Error> {
         let json = self
             .json
             .as_mut()
             .ok_or(Error::ChangeProjectListNotSupported)?;
-        (self.litedb.db).delete(COLLECTION, &[project.bson[ID].clone()]);
-        json.remove_user_project(project.path());
+
+        for project in projects {
+            (self.litedb.db).delete(COLLECTION, &[project.bson[ID].clone()]);
+            json.remove_user_project(project.path());
+        }
 
         json.save(self.io).await.map_err(Error::SaveSettings)?;
         self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;

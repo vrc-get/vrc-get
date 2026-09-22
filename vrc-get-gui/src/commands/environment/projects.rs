@@ -302,9 +302,7 @@ pub async fn environment_add_project_with_picker(
         }) {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
-        for unity_project in unity_projects {
-            projects.add_project(&unity_project).await?;
-        }
+        projects.add_projects(&unity_projects).await?;
         settings_mut.finish();
     }
 
@@ -324,7 +322,9 @@ pub async fn environment_remove_project_by_path(
     let Some(project) = projects.find_project(&project_path) else {
         return Err(RustError::unrecoverable_str("project not found"));
     };
-    projects.remove_project(&project).await?;
+    projects
+        .remove_projects(std::slice::from_ref(&project))
+        .await?;
     settings_mut.finish();
 
     if directory {
@@ -504,7 +504,9 @@ where
             let io = ctx.state::<DefaultEnvironmentIo>();
             let settings_mut = settings.extern_mutation().await;
             let mut projects = ProjectManagement::start(io.inner()).await?;
-            projects.add_project(&unity_project).await?;
+            projects
+                .add_projects(std::slice::from_ref(&unity_project))
+                .await?;
             settings_mut.finish();
 
             Ok(new_path_str)
@@ -801,7 +803,9 @@ pub async fn environment_create_project(
     // add the project to listing
     let settings_mut = settings.extern_mutation().await;
     let mut projects = ProjectManagement::start(io.inner()).await?;
-    projects.add_project(&unity_project).await?;
+    projects
+        .add_projects(std::slice::from_ref(&unity_project))
+        .await?;
     settings_mut.finish();
 
     {

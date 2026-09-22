@@ -104,7 +104,7 @@ impl ProjectAdd {
             .exit_context("loading specified project");
 
         projects
-            .add_project(&project)
+            .add_projects(std::slice::from_ref(&project))
             .await
             .exit_context("adding project");
     }
@@ -131,7 +131,7 @@ impl ProjectRemove {
         };
 
         projects
-            .remove_project(&project)
+            .remove_projects(std::slice::from_ref(&project))
             .await
             .exit_context("removing project");
     }
