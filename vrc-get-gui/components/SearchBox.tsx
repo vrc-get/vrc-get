@@ -22,7 +22,7 @@ export const SearchBox = function SearchBox({
 	const { t } = useTranslation();
 
 	return (
-		<div className={cn(`relative flex gap-2 h-10 compact:h-8`, className)}>
+		<div className={cn(`relative flex gap-2 h-9 compact:h-8`, className)}>
 			<Input
 				type="search"
 				placeholder={t("search:placeholder")}
