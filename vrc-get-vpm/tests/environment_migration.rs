@@ -29,7 +29,7 @@ use std::path::Path;
 use vrc_get_litedb::bson::DateTime;
 use vrc_get_litedb::file_io::{BsonAutoId, LiteDBFile};
 use vrc_get_vpm::ProjectType;
-use vrc_get_vpm::environment::{Settings, VccDatabaseConnection};
+use vrc_get_vpm::environment::ProjectManagement;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 mod common;
@@ -177,14 +177,7 @@ async fn load_no_litedb_environment() {
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    let mut settings = Settings::load(io).await.unwrap();
-    let mut connection = VccDatabaseConnection::connect(io).await.unwrap();
-    connection.migrate(&settings, io).await.unwrap();
-    connection.dedup_projects();
-    connection.normalize_path();
-    connection.save(io).await.unwrap();
-    settings.load_from_db(&connection).unwrap();
-    settings.save(io).await.unwrap();
+    (ProjectManagement::start(io).await.unwrap().save().await).unwrap(); // does migration
 
     // check
     assert_eq!(
@@ -220,14 +213,7 @@ async fn both_litedb_and_settings() {
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    let mut settings = Settings::load(io).await.unwrap();
-    let mut connection = VccDatabaseConnection::connect(io).await.unwrap();
-    connection.migrate(&settings, io).await.unwrap();
-    connection.dedup_projects();
-    connection.normalize_path();
-    connection.save(io).await.unwrap();
-    settings.load_from_db(&connection).unwrap();
-    settings.save(io).await.unwrap();
+    (ProjectManagement::start(io).await.unwrap().save().await).unwrap(); // does migration
 
     // check data
     assert_eq!(
@@ -263,14 +249,7 @@ async fn no_project_data_in_settings_json() {
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    let mut settings = Settings::load(io).await.unwrap();
-    let mut connection = VccDatabaseConnection::connect(io).await.unwrap();
-    connection.migrate(&settings, io).await.unwrap();
-    connection.dedup_projects();
-    connection.normalize_path();
-    connection.save(io).await.unwrap();
-    settings.load_from_db(&connection).unwrap();
-    settings.save(io).await.unwrap();
+    (ProjectManagement::start(io).await.unwrap().save().await).unwrap(); // does migration
 
     // check data
     assert_eq!(
@@ -300,22 +279,15 @@ async fn no_settings_json() {
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    let mut settings = Settings::load(io).await.unwrap();
-    let mut connection = VccDatabaseConnection::connect(io).await.unwrap();
-    connection.migrate(&settings, io).await.unwrap();
-    connection.dedup_projects();
-    connection.normalize_path();
-    connection.save(io).await.unwrap();
-    settings.load_from_db(&connection).unwrap();
-    settings.save(io).await.unwrap();
+    (ProjectManagement::start(io).await.unwrap().save().await).unwrap(); // does migration
 
     // check data
     assert_eq!(
         load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
-        vec![] as Vec<String>,
+        defined_projects_in_litedb(env_projects_str),
     );
     assert_eq!(
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
-        vec![] as Vec<String>,
+        defined_projects_in_litedb(env_projects_str),
     );
 }

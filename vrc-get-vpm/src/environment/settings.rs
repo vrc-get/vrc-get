@@ -87,7 +87,7 @@ impl Settings {
 
 #[cfg(feature = "experimental-project-management")]
 impl Settings {
-    pub fn user_projects(&self) -> Option<&[Box<str>]> {
+    pub(crate) fn user_projects(&self) -> Option<&[Box<str>]> {
         self.vpm.user_projects()
     }
 
@@ -95,15 +95,15 @@ impl Settings {
         self.vpm.retain_user_projects(f)
     }
 
-    pub fn add_user_project(&mut self, path: &str) {
+    pub(crate) fn add_user_project(&mut self, path: &str) {
         self.vpm.add_user_project(path);
     }
 
-    pub fn remove_user_project(&mut self, path: &str) {
+    pub(crate) fn remove_user_project(&mut self, path: &str) {
         self.vpm.remove_user_project(path);
     }
 
-    pub fn load_from_db(&mut self, connection: &super::VccDatabaseConnection) -> io::Result<()> {
+    pub(crate) fn load_from_db_inner(&mut self, connection: &super::VccDatabaseConnection) {
         let projects = connection.get_projects();
         let mut project_paths = projects
             .iter()
@@ -125,8 +125,6 @@ impl Settings {
         for x in project_paths {
             self.vpm.add_user_project(x);
         }
-
-        Ok(())
     }
 }
 

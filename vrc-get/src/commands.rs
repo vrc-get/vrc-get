@@ -18,8 +18,9 @@ use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::read_to_string;
 use vrc_get_vpm::environment::{
-    AddRepositoryErr, AddUserPackageResult, PackageCollection, PackageInstaller, Settings,
-    UserPackageCollection, add_remote_repo, cleanup_repos_folder, clear_package_cache,
+    AddRepositoryErr, AddUserPackageResult, PackageCollection, PackageInstaller, ProjectManagement,
+    ProjectManagementError, Settings, UserPackageCollection, add_remote_repo, cleanup_repos_folder,
+    clear_package_cache,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, IoTrait};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
@@ -136,11 +137,14 @@ fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
 
 #[cfg(feature = "experimental-vcc")]
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
-    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), std::io::Error> {
-        let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io).await?;
+    async fn inner(
+        io: &DefaultEnvironmentIo,
+        project_dir: &Path,
+    ) -> Result<(), ProjectManagementError> {
+        let mut projects = ProjectManagement::start_no_migration(io).await?;
         let project_dir = absolute_path(project_dir);
-        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
-        connection.save(io).await?;
+        projects.update_project_last_modified(&project_dir.to_string_lossy())?;
+        projects.save().await?;
         Ok(())
     }
 

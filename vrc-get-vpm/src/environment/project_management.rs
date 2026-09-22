@@ -1,11 +1,11 @@
 use crate::environment::VccDatabaseConnection;
 use crate::environment::settings::Settings;
 use crate::io::{DefaultEnvironmentIo, DefaultProjectIo, IoTrait};
-use crate::utils::{check_absolute_path, normalize_path};
+use crate::utils::normalize_path;
 use crate::version::UnityVersion;
 use crate::{ProjectType, UnityProject, io};
 use futures::future::join_all;
-use log::error;
+use log::{error, warn};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
@@ -13,6 +13,220 @@ use std::path::Path;
 use vrc_get_litedb::bson::{Array, DateTime, Document, Value};
 use vrc_get_litedb::document;
 use vrc_get_litedb::file_io::BsonAutoId;
+
+#[derive(Debug)]
+pub enum Error {
+    LoadSettings(io::Error),
+    LoadLitedb(io::Error),
+    SaveSettings(io::Error),
+    SaveLitedb(io::Error),
+    BadPath(&'static str),
+    AlreadyExists,
+    ChangeProjectListNotSupported,
+}
+
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::LoadSettings(err) => write!(fmt, "Failed to load settings: {}", err),
+            Error::LoadLitedb(err) => write!(fmt, "Failed to load litedb: {}", err),
+            Error::SaveSettings(err) => write!(fmt, "Failed to save settings: {}", err),
+            Error::SaveLitedb(err) => write!(fmt, "Failed to save litedb: {}", err),
+            Error::BadPath(path) => write!(fmt, "Bad path: {}", path),
+            Error::AlreadyExists => write!(fmt, "Specified project already exists"),
+            Error::ChangeProjectListNotSupported => write!(
+                fmt,
+                "Adding / removing project is not supported for management session created with start_no_migration."
+            ),
+        }
+    }
+}
+
+pub struct ProjectManagement<'io> {
+    io: &'io DefaultEnvironmentIo,
+    json: Option<Settings>,
+    litedb: VccDatabaseConnection,
+}
+
+impl<'io> ProjectManagement<'io> {
+    pub async fn start(io: &'io DefaultEnvironmentIo) -> Result<ProjectManagement<'io>, Error> {
+        let mut json = Settings::load(io).await.map_err(Error::LoadSettings)?;
+        let mut litedb = VccDatabaseConnection::connect(io)
+            .await
+            .map_err(Error::LoadLitedb)?;
+
+        litedb.migrate(&json, io).await;
+        litedb.dedup_projects();
+        litedb.normalize_path();
+
+        json.load_from_db_inner(&litedb);
+
+        litedb.save(io).await.map_err(Error::SaveLitedb)?;
+
+        Ok(ProjectManagement {
+            io,
+            json: Some(json),
+            litedb,
+        })
+    }
+
+    /// Start project management without migrating from `settings.json`.
+    ///
+    /// Since this method does not touch `settings.json`, this session does not allow
+    /// adding or removing projects, which requires updating `settings.json`.
+    pub async fn start_no_migration(
+        io: &'io DefaultEnvironmentIo,
+    ) -> Result<ProjectManagement<'io>, Error> {
+        let mut litedb = VccDatabaseConnection::connect(io)
+            .await
+            .map_err(Error::LoadLitedb)?;
+
+        litedb.dedup_projects();
+        litedb.normalize_path();
+
+        litedb.save(io).await.map_err(Error::SaveLitedb)?;
+
+        Ok(ProjectManagement {
+            io,
+            json: None,
+            litedb,
+        })
+    }
+}
+
+impl<'io> ProjectManagement<'io> {
+    pub fn get_projects(&self) -> Vec<UserProject> {
+        (self.litedb.db)
+            .get_all(COLLECTION)
+            .cloned()
+            .map(UserProject::from_document)
+            .collect::<Vec<_>>()
+    }
+
+    pub async fn sync_with_real_projects(
+        &mut self,
+        skip_not_found: bool,
+        io: &DefaultEnvironmentIo,
+    ) -> io::Result<()> {
+        self.litedb
+            .sync_with_real_projects(skip_not_found, io)
+            .await
+    }
+
+    pub fn find_project(&self, project_path: &str) -> Option<UserProject> {
+        if !Path::new(project_path).is_absolute() {
+            warn!(
+                "{project_path} is not an absolute path. find_project does not support relative paths"
+            );
+            return None;
+        }
+        let project_path = normalize_path(project_path.as_ref());
+
+        (self.litedb.db)
+            .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into())
+            .next()
+            .cloned()
+            .map(UserProject::from_document)
+    }
+
+    pub async fn add_project(&mut self, project: &UnityProject) -> Result<(), Error> {
+        let json = self
+            .json
+            .as_mut()
+            .ok_or(Error::ChangeProjectListNotSupported)?;
+
+        let path = project.project_dir();
+        if !path.is_absolute() {
+            return Err(Error::BadPath("project path is not absolute"));
+        }
+        let path = normalize_path(project.project_dir());
+        let Some(path) = path.to_str() else {
+            return Err(Error::BadPath("project path is not utf8"));
+        };
+        let unity_version = project.unity_version();
+        let unity_revision = project.unity_revision();
+
+        let project_type = project.detect_project_type().await;
+
+        let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
+        new_project.set_unity_revision(unity_version, unity_revision.map(ToOwned::to_owned));
+
+        if (self.litedb.db)
+            .get_by_index(COLLECTION, "Path", &Value::String(path.into()))
+            .next()
+            .is_some()
+        {
+            return Err(Error::AlreadyExists);
+        }
+
+        (self.litedb.db)
+            .insert(
+                COLLECTION,
+                vec![new_project.to_bson()],
+                BsonAutoId::ObjectId,
+            )
+            .expect("insert should never fail");
+
+        json.add_user_project(path);
+
+        Ok(())
+    }
+
+    pub fn remove_project(&mut self, project: &UserProject) -> Result<(), Error> {
+        let json = self
+            .json
+            .as_mut()
+            .ok_or(Error::ChangeProjectListNotSupported)?;
+        (self.litedb.db).delete(COLLECTION, &[project.bson[ID].clone()]);
+        json.remove_user_project(project.path().unwrap());
+        Ok(())
+    }
+
+    pub fn sync_with_real_projects_information(
+        &mut self,
+        information: Vec<RealProjectInformation>,
+    ) {
+        self.litedb.sync_with_real_projects_information(information);
+    }
+
+    pub fn update_project(&mut self, project: &UserProject) {
+        (self.litedb.db)
+            .update(COLLECTION, vec![project.to_bson()])
+            .expect("update");
+    }
+
+    pub fn update_project_last_modified(&mut self, project_path: &str) -> Result<(), Error> {
+        if !Path::new(project_path).is_absolute() {
+            return Err(Error::BadPath("project path is not absolute"));
+        }
+        let project_path = normalize_path(project_path.as_ref());
+
+        let Some(mut project) = (self.litedb.db)
+            .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into())
+            .next()
+            .cloned()
+        else {
+            return Ok(());
+        };
+
+        project.insert(LAST_MODIFIED, DateTime::now());
+        self.litedb
+            .db
+            .update(COLLECTION, vec![project])
+            .expect("update");
+        Ok(())
+    }
+
+    pub async fn save(self) -> Result<(), Error> {
+        if let Some(json) = self.json {
+            json.save(self.io).await.map_err(Error::SaveSettings)?;
+        }
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        Ok(())
+    }
+}
 
 pub(crate) static COLLECTION: &str = "projects";
 pub(crate) static ID: &str = "_id";
@@ -31,15 +245,11 @@ pub(crate) static UNITY_PATH: &str = "unity_path";
 pub(crate) static IS_VALID: &str = "is_valid";
 
 impl VccDatabaseConnection {
-    pub async fn migrate(
-        &mut self,
-        settings: &Settings,
-        io: &DefaultEnvironmentIo,
-    ) -> io::Result<()> {
+    async fn migrate(&mut self, settings: &Settings, io: &DefaultEnvironmentIo) {
         let Some(setting_projects) = settings.user_projects() else {
             // The userProjects key is absent in settings.json.
             // The vcc.litedb is the single source of truth.
-            return Ok(());
+            return;
         };
         let projects = setting_projects
             .iter()
@@ -118,13 +328,11 @@ impl VccDatabaseConnection {
         }
 
         self.db.delete(COLLECTION, &ids_to_delete);
-
-        Ok(())
     }
 }
 
 impl VccDatabaseConnection {
-    pub fn normalize_path(&mut self) {
+    fn normalize_path(&mut self) {
         let mut to_update = vec![];
 
         for project in self.db.get_all(COLLECTION) {
@@ -150,7 +358,7 @@ impl VccDatabaseConnection {
 
     /// It might be better to call `normalize_path`, `RealProjectInformation::load_from_fs` and
     /// then `sync_with_real_projects_information` since `load_from_fs` may take some time.
-    pub async fn sync_with_real_projects(
+    async fn sync_with_real_projects(
         &mut self,
         skip_not_found: bool,
         io: &DefaultEnvironmentIo,
@@ -186,10 +394,7 @@ impl VccDatabaseConnection {
         Ok(())
     }
 
-    pub fn sync_with_real_projects_information(
-        &mut self,
-        information: Vec<RealProjectInformation>,
-    ) {
+    fn sync_with_real_projects_information(&mut self, information: Vec<RealProjectInformation>) {
         let by_path = information
             .iter()
             .map(|x| (x.path(), x))
@@ -264,7 +469,7 @@ impl VccDatabaseConnection {
         }
     }
 
-    pub fn dedup_projects(&mut self) {
+    fn dedup_projects(&mut self) {
         let projects = self.db.get_all(COLLECTION).collect::<Vec<_>>();
 
         let mut projects_by_path = HashMap::<_, Vec<_>>::new();
@@ -328,76 +533,12 @@ impl VccDatabaseConnection {
         self.db.delete(COLLECTION, &deletes);
     }
 
-    pub fn get_projects(&self) -> Vec<UserProject> {
+    pub(crate) fn get_projects(&self) -> Vec<UserProject> {
         self.db
             .get_all(COLLECTION)
             .cloned()
             .map(UserProject::from_document)
             .collect::<Vec<_>>()
-    }
-
-    pub fn find_project_bson(&self, project_path: &str) -> io::Result<Option<&Document>> {
-        check_absolute_path(project_path)?;
-        let project_path = normalize_path(project_path.as_ref());
-
-        Ok(self
-            .db
-            .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into())
-            .next())
-    }
-
-    pub fn find_project(&self, project_path: &str) -> io::Result<Option<UserProject>> {
-        Ok(self
-            .find_project_bson(project_path)?
-            .cloned()
-            .map(UserProject::from_document))
-    }
-
-    pub fn update_project_last_modified(&mut self, project_path: &str) -> io::Result<()> {
-        check_absolute_path(project_path)?;
-        let Some(mut project) = self.find_project_bson(project_path)?.cloned() else {
-            return Ok(());
-        };
-
-        project.insert(LAST_MODIFIED, DateTime::now());
-        self.db.update(COLLECTION, vec![project]).expect("update");
-        Ok(())
-    }
-
-    pub fn update_project(&mut self, project: &UserProject) {
-        self.db
-            .update(COLLECTION, vec![project.to_bson()])
-            .expect("update");
-    }
-
-    pub fn remove_project(&mut self, project: &UserProject) {
-        self.db.delete(COLLECTION, &[project.bson[ID].clone()]);
-    }
-
-    pub async fn add_project(&mut self, project: &UnityProject) -> io::Result<()> {
-        check_absolute_path(project.project_dir())?;
-        let path = normalize_path(project.project_dir());
-        let path = path.to_str().ok_or(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "project path is not utf8",
-        ))?;
-        let unity_version = project.unity_version();
-        let unity_revision = project.unity_revision();
-
-        let project_type = project.detect_project_type().await;
-
-        let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
-        new_project.set_unity_revision(unity_version, unity_revision.map(ToOwned::to_owned));
-
-        self.db
-            .insert(
-                COLLECTION,
-                vec![new_project.to_bson()],
-                BsonAutoId::ObjectId,
-            )
-            .expect("insert");
-
-        Ok(())
     }
 }
 
