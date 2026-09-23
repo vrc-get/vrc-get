@@ -516,7 +516,7 @@ pub async fn project_open_unity(
 
     {
         let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
-        if let Some(project) = projects.find_project(project_path.as_ref()) {
+        if let Some(project) = projects.find_project(project_path.as_ref())? {
             custom_args = project
                 .custom_unity_args()
                 .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
@@ -806,7 +806,7 @@ pub async fn project_get_custom_unity_args(
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
     let projects = ProjectManagement::start_no_migration(io.inner()).await?;
-    if let Some(project) = projects.find_project(project_path.as_ref()) {
+    if let Some(project) = projects.find_project(project_path.as_ref())? {
         Ok(project
             .custom_unity_args()
             .map(|x| x.iter().map(ToOwned::to_owned).collect()))
@@ -835,7 +835,7 @@ pub async fn project_get_unity_path(
     project_path: String,
 ) -> Result<Option<String>, RustError> {
     let projects = ProjectManagement::start_no_migration(io.inner()).await?;
-    if let Some(project) = projects.find_project(project_path.as_ref()) {
+    if let Some(project) = projects.find_project(project_path.as_ref())? {
         Ok(project.unity_path().map(ToOwned::to_owned))
     } else {
         Ok(None)

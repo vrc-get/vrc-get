@@ -126,7 +126,10 @@ impl ProjectRemove {
             .await
             .exit_context("starting project management");
 
-        let Some(project) = projects.find_project(self.path.as_ref()) else {
+        let Some(project) = projects
+            .find_project(self.path.as_ref())
+            .exit_context("finding project")
+        else {
             return println!("No project found or registered with path: {}", self.path);
         };
 

@@ -38,7 +38,7 @@ enum-map = "2"
 vrc-get-litedb = { version = "0.3.0-beta.8", optional = true, default-features = false, features = [
     'shared-mutex',
 ] }
-rusqlite = { version = "0.40.2", optional = true, default-features = false, features = ["bundled"] }
+rusqlite = { version = "0.40.2", optional = true, default-features = false, features = ["bundled", "cache"] }
 parking_lot = { version = "0.12.5", optional = true, features = ["arc_lock", "send_guard"] }
 tokio = { version = "1", features = ["fs", "process"] }
 serde_path_to_error = "0.1"

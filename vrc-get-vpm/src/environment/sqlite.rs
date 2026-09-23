@@ -1,4 +1,3 @@
-use crate::io;
 use crate::io::DefaultEnvironmentIo;
 use parking_lot::Mutex;
 use rusqlite::{Connection, ErrorCode, Transaction, TransactionBehavior};
@@ -13,11 +12,11 @@ pub struct SQLiteConnection {
 static FILE_NAME: &str = "vrc-get/vrc-get.db";
 
 impl SQLiteConnection {
-    pub async fn connect(io: &DefaultEnvironmentIo) -> io::Result<Self> {
+    pub(crate) async fn connect(io: &DefaultEnvironmentIo) -> Result<Self, rusqlite::Error> {
         let path = io.resolve(FILE_NAME.as_ref());
 
         spawn_blocking(|| {
-            let mut connection = Connection::open(path).map_err(map_err)?;
+            let mut connection = Connection::open(path)?;
 
             Self::initialize_database(&mut connection)?;
 
@@ -25,22 +24,21 @@ impl SQLiteConnection {
                 conn: Arc::new(Mutex::new(connection)),
             })
         })
-        .await?
+        .await
+        .unwrap()
     }
 
-    fn initialize_database(conn: &mut Connection) -> Result<(), io::Error> {
+    fn initialize_database(conn: &mut Connection) -> Result<(), rusqlite::Error> {
         loop {
-            let mut tx = conn
-                .transaction_with_behavior(TransactionBehavior::Deferred)
-                .map_err(map_err)?;
+            let mut tx = conn.transaction_with_behavior(TransactionBehavior::Deferred)?;
             match Self::initialize_database_inner(&mut tx) {
                 Ok(()) => {
-                    tx.commit().map_err(map_err)?;
+                    tx.commit()?;
                     return Ok(());
                 }
                 // SQLITE_BUSY likely means upgrading SHARED to RESERVED failed. retry from first.
                 Err(err) if err.sqlite_error_code() == Some(ErrorCode::DatabaseBusy) => continue,
-                Err(err) => return Err(map_err(err)),
+                Err(err) => return Err(err),
             }
         }
     }
@@ -182,10 +180,6 @@ impl Drop for ArcMutexTransaction {
     fn drop(&mut self) {
         self.finish_();
     }
-}
-
-pub(crate) fn map_err(err: rusqlite::Error) -> io::Error {
-    io::Error::other(err)
 }
 
 pub(crate) fn datetime_from_unix(time: i64) -> vrc_get_litedb::bson::DateTime {

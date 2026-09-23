@@ -207,7 +207,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
             }
         };
         match projects
-            .sync_with_real_projects_information(real_projects)
+            .sync_with_real_projects_informations(real_projects)
             .await
         {
             Ok(()) => {}
@@ -298,7 +298,7 @@ pub async fn environment_add_project_with_picker(
         if unity_projects.iter().any(|p| {
             projects
                 .find_project(p.project_dir().to_str().unwrap())
-                .is_some()
+                .is_ok_and(|x| x.is_some())
         }) {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
@@ -319,7 +319,7 @@ pub async fn environment_remove_project_by_path(
 ) -> Result<(), RustError> {
     let settings_mut = settings.extern_mutation().await;
     let mut projects = ProjectManagement::start(io.inner()).await?;
-    let Some(project) = projects.find_project(&project_path) else {
+    let Some(project) = projects.find_project(&project_path)? else {
         return Err(RustError::unrecoverable_str("project not found"));
     };
     projects
