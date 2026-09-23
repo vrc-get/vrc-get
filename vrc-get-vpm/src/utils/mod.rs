@@ -327,7 +327,10 @@ where
 }
 
 pub(crate) fn normalize_path_str(input: &str) -> String {
-    normalize_path(Path::new(input)).into_string().unwrap()
+    normalize_path(Path::new(input))
+        .into_os_string()
+        .into_string()
+        .unwrap()
 }
 
 pub(crate) fn normalize_path(input: &Path) -> PathBuf {
