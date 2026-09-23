@@ -222,12 +222,59 @@ impl<'io> ProjectManagement<'io> {
         Ok(())
     }
 
-    pub async fn update_project(&mut self, project: &UserProject) -> Result<(), Error> {
+    pub async fn set_favorite(&mut self, path: &str, favorite: bool) -> Result<bool, Error> {
+        let Some(mut project) = self.find_project(path) else {
+            return Ok(false);
+        };
+        project.set_favorite(favorite);
+
         (self.litedb.db)
             .update(COLLECTION, vec![project.to_bson()])
             .expect("update");
         self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
-        Ok(())
+        Ok(true)
+    }
+
+    pub async fn set_custom_unity_args(
+        &mut self,
+        path: &str,
+        args: Option<&[String]>,
+    ) -> Result<bool, Error> {
+        let Some(mut project) = self.find_project(path) else {
+            return Ok(false);
+        };
+        if let Some(args) = args {
+            project.set_custom_unity_args(args.to_vec());
+        } else {
+            project.clear_custom_unity_args();
+        }
+
+        (self.litedb.db)
+            .update(COLLECTION, vec![project.to_bson()])
+            .expect("update");
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        Ok(true)
+    }
+
+    pub async fn set_unity_path(
+        &mut self,
+        path: &str,
+        unity_path: Option<&str>,
+    ) -> Result<bool, Error> {
+        let Some(mut project) = self.find_project(path) else {
+            return Ok(false);
+        };
+        if let Some(unity_path) = unity_path {
+            project.set_unity_path(unity_path.to_string());
+        } else {
+            project.clear_unity_path();
+        }
+
+        (self.litedb.db)
+            .update(COLLECTION, vec![project.to_bson()])
+            .expect("update");
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        Ok(true)
     }
 
     pub async fn update_project_last_modified(&mut self, project_path: &str) -> Result<(), Error> {

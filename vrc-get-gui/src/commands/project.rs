@@ -823,17 +823,9 @@ pub async fn project_set_custom_unity_args(
     args: Option<Vec<String>>,
 ) -> Result<bool, RustError> {
     let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
-    if let Some(mut project) = projects.find_project(project_path.as_ref()) {
-        if let Some(args) = args {
-            project.set_custom_unity_args(args);
-        } else {
-            project.clear_custom_unity_args();
-        }
-        projects.update_project(&project).await?;
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+    Ok(projects
+        .set_custom_unity_args(&project_path, args.as_deref())
+        .await?)
 }
 
 #[tauri::command]
@@ -858,15 +850,7 @@ pub async fn project_set_unity_path(
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
     let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
-    if let Some(mut project) = projects.find_project(project_path.as_ref()) {
-        if let Some(unity_path) = unity_path {
-            project.set_unity_path(unity_path);
-        } else {
-            project.clear_unity_path();
-        }
-        projects.update_project(&project).await?;
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+    Ok(projects
+        .set_unity_path(&project_path, unity_path.as_deref())
+        .await?)
 }

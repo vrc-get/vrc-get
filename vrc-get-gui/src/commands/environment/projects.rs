@@ -523,11 +523,9 @@ pub async fn environment_set_favorite_project(
     favorite: bool,
 ) -> Result<(), RustError> {
     let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
-    let Some(mut project) = projects.find_project(&project_path) else {
+    if !projects.set_favorite(&project_path, favorite).await? {
         return Err(RustError::unrecoverable_str("project not found"));
     };
-    project.set_favorite(favorite);
-    projects.update_project(&project).await?;
     Ok(())
 }
 
