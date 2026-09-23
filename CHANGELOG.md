@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- `vrc-get repo export --project [<path>]` to export only the repositories required to resolve a project's locked packages [`#3074`](https://github.com/vrc-get/vrc-get/pull/3074)
 
 ### Changed
 
