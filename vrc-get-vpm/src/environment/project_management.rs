@@ -13,6 +13,7 @@ use log::{error, trace, warn};
 use rusqlite::TransactionBehavior;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE;
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::num::NonZeroI64;
@@ -75,7 +76,7 @@ impl<'io> ProjectManagement<'io> {
         litedb.dedup_projects();
         litedb.normalize_path();
         sqlite
-            .sync_with_litedb(&mut litedb, io, SyncWithLitedbMode::TrustLitedb)
+            .sync_with_litedb(&mut litedb, io, json.project_list_sync_mode())
             .await?;
 
         json.load_from_db_inner(
@@ -103,18 +104,10 @@ impl<'io> ProjectManagement<'io> {
     pub async fn start_no_migration(
         io: &'io DefaultEnvironmentIo,
     ) -> Result<ProjectManagement<'io>, Error> {
-        let mut litedb = VccDatabaseConnection::connect(io)
+        let litedb = VccDatabaseConnection::connect(io)
             .await
             .map_err(Error::LoadLitedb)?;
-        let mut sqlite = SQLiteConnection::connect(io).await.map_err(Error::SQLite)?;
-
-        litedb.dedup_projects();
-        litedb.normalize_path();
-        sqlite
-            .sync_with_litedb(&mut litedb, io, SyncWithLitedbMode::TrustLitedb)
-            .await?;
-
-        litedb.save(io).await.map_err(Error::SaveLitedb)?;
+        let sqlite = SQLiteConnection::connect(io).await.map_err(Error::SQLite)?;
 
         Ok(ProjectManagement {
             io,
@@ -809,7 +802,7 @@ impl VccDatabaseConnection {
 ///
 /// In both modes, projects that do not have `litedb_objectid` column will not be removed.
 /// `litedb_objectid` will be set when projects are live in LiteDB.
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum SyncWithLitedbMode {
     /// Add projects from litedb to SQLite, and then add projects from SQLite to LiteDB.
     /// In this mode, projects from either database will be live.

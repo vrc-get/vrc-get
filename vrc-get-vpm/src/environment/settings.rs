@@ -122,7 +122,7 @@ impl Settings {
     }
 }
 
-/// VPM Settings (vrc-get extensions)
+/// vrc-get extensions
 impl Settings {
     pub fn ignore_curated_repository(&self) -> bool {
         self.vrc_get.ignore_curated_repository()
@@ -130,6 +130,11 @@ impl Settings {
 
     pub fn ignore_official_repository(&self) -> bool {
         self.vrc_get.ignore_official_repository()
+    }
+
+    #[cfg(feature = "experimental-project-management")]
+    pub fn project_list_sync_mode(&self) -> super::project_management::SyncWithLitedbMode {
+        self.vrc_get.project_list_sync_mode()
     }
 }
 
