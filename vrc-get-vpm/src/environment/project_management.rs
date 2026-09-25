@@ -218,7 +218,7 @@ impl<'io> ProjectManagement<'io> {
         // remove deleted projects
         // we don't delete from sqlite since we migrating may want to do 'keep both' depending on the mode
         let ids_to_delete = (db_projects.iter().map(|proj| &proj[ID]))
-            .filter(|id| id.as_object_id().is_some_and(|x| retain_ids.contains(&x)))
+            .filter(|id| !id.as_object_id().is_some_and(|x| retain_ids.contains(&x)))
             .cloned()
             .collect::<Vec<_>>();
         trace!(
