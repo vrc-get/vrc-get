@@ -163,7 +163,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
         let io = app.state::<DefaultEnvironmentIo>();
 
         let real_projects = join_all(projects.into_iter().map(async |project| {
-            match ValidRealProjectInformation::load_from_fs(&io, project.to_owned()).await {
+            let real_project = match ValidRealProjectInformation::load_from_fs(&io, project.to_owned()).await {
                 Ok(Some(project)) => {
                     app.emit(
                         "projects-updated",
@@ -189,6 +189,23 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
                     error!(gui_toast = false; "Error updating project information of {project}: {err}");
                     RealProjectInformation::Invalid(InvalidRealProjectInformation::new(project))
                 }
+            };
+
+            let mut projects = match ProjectManagement::start_no_migration(io.inner()).await {
+                Ok(connection) => connection,
+                Err(e) => {
+                    error!("Error opening database: {e}");
+                    return;
+                }
+            };
+            match projects
+                .sync_with_real_projects_information(real_project)
+                .await
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    error!("Error updating database: {e}");
+                }
             }
         }))
         .await;
@@ -198,24 +215,6 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
             "updating database real project information of {} projects",
             real_projects.len()
         );
-
-        let mut projects = match ProjectManagement::start_no_migration(io.inner()).await {
-            Ok(connection) => connection,
-            Err(e) => {
-                error!("Error opening database: {e}");
-                return;
-            }
-        };
-        match projects
-            .sync_with_real_projects_informations(real_projects)
-            .await
-        {
-            Ok(()) => {}
-            Err(e) => {
-                error!("Error updating database: {e}");
-                return;
-            }
-        }
 
         info!("updated database based on real project information");
     }
