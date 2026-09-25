@@ -94,6 +94,7 @@ macro_rules! spawn_blocking {
 
 impl<'io> ProjectManagement<'io> {
     pub async fn start(io: &'io DefaultEnvironmentIo) -> Result<ProjectManagement<'io>, Error> {
+        (io.create_dir_all("vrc-get".as_ref()).await).map_err(Error::LoadSettings)?;
         let mut json = Settings::load(io).await.map_err(Error::LoadSettings)?;
         let mut litedb = VccDatabaseConnection::connect(io)
             .await
