@@ -46,11 +46,27 @@ fn clean_dir(path: &Path) {
 const VCC_LITEDB: &str = "vcc.liteDb";
 const SETTINGS_JSON: &str = "settings.json";
 
-fn test_settings_json_with_projects(env_projects_str: &str) -> String {
+macro_rules! test_settings_json_with_projects {
+    ($env_projects_str: expr$(,)?) => {
+        test_settings_json_with_projects($env_projects_str, "", "")
+    };
+    ($env_projects_str: expr, additional_projects = $additional_projects:expr$(,)?) => {
+        test_settings_json_with_projects($env_projects_str, $additional_projects, "")
+    };
+    ($env_projects_str: expr, additional_props = $additional_props:expr$(,)?) => {
+        test_settings_json_with_projects($env_projects_str, "", $additional_props)
+    };
+}
+
+fn test_settings_json_with_projects(
+    env_projects_str: &str,
+    additional_projects: &str,
+    additional_props: &str,
+) -> String {
     format!(
         r#"{{
-  "userProjects": [
-    "{env_projects_str}/Blank 2019 project",
+{additional_props}  "userProjects": [
+{additional_projects}    "{env_projects_str}/Blank 2019 project",
     "{env_projects_str}/Blank 2022 project",
     "{env_projects_str}/HistoryOfAvatarOptimizer",
     "{env_projects_str}/VPMPackageAutoInstaller",
@@ -60,7 +76,19 @@ fn test_settings_json_with_projects(env_projects_str: &str) -> String {
     )
 }
 
-fn defined_projects_in_settings_json(env_projects_str: &str) -> Vec<String> {
+macro_rules! defined_projects_in_settings_json {
+    ($env_projects_str: expr$(,)?) => {
+        defined_projects_in_settings_json($env_projects_str, vec![])
+    };
+    ($env_projects_str: expr, additional_projects = [$($path_format: tt),*$(,)?]$(,)?) => {
+        defined_projects_in_settings_json($env_projects_str, vec![$(format!$path_format),*])
+    };
+}
+
+fn defined_projects_in_settings_json(
+    env_projects_str: &str,
+    additional: Vec<String>,
+) -> Vec<String> {
     [
         format!("{env_projects_str}/Blank 2019 project"),
         format!("{env_projects_str}/Blank 2022 project"),
@@ -69,6 +97,7 @@ fn defined_projects_in_settings_json(env_projects_str: &str) -> Vec<String> {
         format!("{env_projects_str}/CrashOnExitWithLogTypeFullName"),
     ]
     .into_iter()
+    .chain(additional)
     .sorted()
     .collect_vec()
 }
@@ -83,7 +112,19 @@ fn load_projects_in_settings_json(settings_json: &[u8]) -> Vec<String> {
         .collect_vec()
 }
 
-fn test_litedb_file_with_projects(env_projects_str: &str) -> Vec<u8> {
+macro_rules! test_litedb_file_with_projects {
+    ($env_projects_str: expr$(,)?) => {
+        test_litedb_file_with_projects($env_projects_str, vec![])
+    };
+    ($env_projects_str: expr, additional_projects = $additional_projects:expr$(,)?) => {
+        test_litedb_file_with_projects($env_projects_str, $additional_projects)
+    };
+}
+
+fn test_litedb_file_with_projects(
+    env_projects_str: &str,
+    additional_projects: Vec<vrc_get_litedb::bson::Document>,
+) -> Vec<u8> {
     let mut litedb = LiteDBFile::new();
     litedb
         .insert(
@@ -132,7 +173,10 @@ fn test_litedb_file_with_projects(env_projects_str: &str) -> Vec<u8> {
                     "Type" => ProjectType::Avatars as i32,
                     "Favorite" => false,
                 },
-            ],
+            ]
+            .into_iter()
+            .chain(additional_projects)
+            .collect(),
             BsonAutoId::ObjectId,
         )
         .unwrap();
@@ -172,7 +216,7 @@ async fn load_no_litedb_environment() {
     clean_dir(&env_dir);
     std::fs::write(
         env_dir.join(SETTINGS_JSON),
-        test_settings_json_with_projects(env_projects_str),
+        test_settings_json_with_projects!(env_projects_str),
     )
     .unwrap();
 
@@ -183,11 +227,11 @@ async fn load_no_litedb_environment() {
     // check
     assert_eq!(
         load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
-        defined_projects_in_settings_json(env_projects_str),
+        defined_projects_in_settings_json!(env_projects_str),
     );
     assert_eq!(
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
-        defined_projects_in_settings_json(env_projects_str),
+        defined_projects_in_settings_json!(env_projects_str),
     );
 }
 
@@ -204,12 +248,12 @@ async fn both_litedb_and_settings() {
     clean_dir(&env_dir);
     std::fs::write(
         env_dir.join(SETTINGS_JSON),
-        test_settings_json_with_projects(env_projects_str),
+        test_settings_json_with_projects!(env_projects_str),
     )
     .unwrap();
     std::fs::write(
         env_dir.join(VCC_LITEDB),
-        test_litedb_file_with_projects(env_projects_str),
+        test_litedb_file_with_projects!(env_projects_str),
     )
     .unwrap();
 
@@ -220,11 +264,11 @@ async fn both_litedb_and_settings() {
     // check data
     assert_eq!(
         load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
-        defined_projects_in_settings_json(env_projects_str),
+        defined_projects_in_settings_json!(env_projects_str),
     );
     assert_eq!(
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
-        defined_projects_in_settings_json(env_projects_str),
+        defined_projects_in_settings_json!(env_projects_str),
     );
 }
 
@@ -246,7 +290,7 @@ async fn no_project_data_in_settings_json() {
     std::fs::write(env_dir.join(SETTINGS_JSON), "{}").unwrap();
     std::fs::write(
         env_dir.join(VCC_LITEDB),
-        test_litedb_file_with_projects(env_projects_str),
+        test_litedb_file_with_projects!(env_projects_str),
     )
     .unwrap();
 
@@ -277,7 +321,7 @@ async fn no_settings_json() {
     clean_dir(&env_dir);
     std::fs::write(
         env_dir.join(VCC_LITEDB),
-        test_litedb_file_with_projects(env_projects_str),
+        test_litedb_file_with_projects!(env_projects_str),
     )
     .unwrap();
 
