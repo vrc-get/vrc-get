@@ -168,6 +168,9 @@ impl<'io> ProjectManagement<'io> {
             if let Some(proj) = db_projects_by_path.get(*project) {
                 if let Some(id) = proj[ID].as_object_id() {
                     retain_ids.insert(id);
+                    trace!("migrate: keeping project id {id:?} for {project}");
+                } else {
+                    trace!("migrate: keeping no valid id for {project}");
                 }
             } else {
                 async fn get_project_type(
@@ -196,6 +199,11 @@ impl<'io> ProjectManagement<'io> {
                 }
 
                 // insert projects to both databases
+                let object_id = *project.litedb_objectid.get_or_insert_with(ObjectId::new);
+                trace!(
+                    "migrate: adding new project {} with {object_id:?}",
+                    project.path
+                );
                 spawn_blocking!(captures(project, tx), move || {
                     Self::add_sqlite_single_project(&tx, &mut project)?;
                     Ok(())
@@ -213,6 +221,10 @@ impl<'io> ProjectManagement<'io> {
             .filter(|id| id.as_object_id().is_some_and(|x| retain_ids.contains(&x)))
             .cloned()
             .collect::<Vec<_>>();
+        trace!(
+            "migrate: removing {} projects from litedb",
+            ids_to_delete.len()
+        );
         litedb.db.delete(COLLECTION, &ids_to_delete);
 
         Ok(())
@@ -234,6 +246,7 @@ impl<'io> ProjectManagement<'io> {
             .flat_map(|values| values.into_iter().skip(1))
             .cloned()
             .collect::<Vec<_>>();
+        trace!("dedup_projects: deleting {} projects", deletes.len());
 
         litedb.db.delete(COLLECTION, &deletes);
     }

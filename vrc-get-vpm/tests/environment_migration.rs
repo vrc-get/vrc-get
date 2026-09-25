@@ -165,6 +165,7 @@ fn load_projects_in_litedb(litedb: &[u8]) -> Vec<String> {
 #[tokio::test]
 async fn load_no_litedb_environment() {
     // initialize env
+    common::init_log();
     let env_dir = get_temp_path("environment");
     let env_projects = get_temp_path("env_projects");
     let env_projects_str = env_projects.to_str().unwrap();
@@ -196,6 +197,7 @@ async fn load_no_litedb_environment() {
 #[tokio::test]
 async fn both_litedb_and_settings() {
     // initialize environment
+    common::init_log();
     let env_dir = get_temp_path("environment");
     let env_projects = get_temp_path("env_projects");
     let env_projects_str = env_projects.to_str().unwrap();
@@ -236,6 +238,7 @@ async fn both_litedb_and_settings() {
 #[tokio::test]
 async fn no_project_data_in_settings_json() {
     // initialize environment
+    common::init_log();
     let env_dir = get_temp_path("environment");
     let env_projects = get_temp_path("env_projects");
     let env_projects_str = env_projects.to_str().unwrap();
@@ -267,6 +270,7 @@ async fn no_project_data_in_settings_json() {
 #[tokio::test]
 async fn no_settings_json() {
     // initialize environment
+    common::init_log();
     let env_dir = get_temp_path("environment");
     let env_projects = get_temp_path("env_projects");
     let env_projects_str = env_projects.to_str().unwrap();
