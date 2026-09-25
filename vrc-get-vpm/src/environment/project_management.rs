@@ -14,14 +14,12 @@ use rusqlite::TransactionBehavior;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::num::NonZeroI64;
 use std::path::Path;
 use tokio::task::spawn_blocking;
 use vrc_get_litedb::bson::{DateTime, Document, ObjectId, Value};
 use vrc_get_litedb::file_io::BsonAutoId;
-use vrc_get_litedb::{bson, document};
 
 #[derive(Debug)]
 pub enum Error {
@@ -103,8 +101,7 @@ impl<'io> ProjectManagement<'io> {
         let mut sqlite = SQLiteConnection::connect(io).await.map_err(Error::SQLite)?;
 
         Self::migrate(&mut litedb, &mut sqlite, &json, io).await?;
-        litedb.dedup_projects();
-        litedb.normalize_path();
+        Self::dedup_projects(&mut litedb);
         sqlite
             .sync_with_litedb(&mut litedb, io, json.project_list_sync_mode())
             .await?;
@@ -158,11 +155,21 @@ impl<'io> ProjectManagement<'io> {
             .filter_map(|x| Some((x.get("Path").as_str()?, x)))
             .collect::<HashMap<_, _>>();
 
-        let mut to_insert = vec![];
+        let mut retain_ids = HashSet::new();
+        let conn = sqlite.conn.clone();
+        let mut tx = spawn_blocking!(captures(), move || {
+            conn.lock_arc()
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(Error::SQLite)
+        })?;
 
         // add new projects
         for project in &projects {
-            if !db_projects_by_path.contains_key(*project) {
+            if let Some(proj) = db_projects_by_path.get(*project) {
+                if let Some(id) = proj[ID].as_object_id() {
+                    retain_ids.insert(id);
+                }
+            } else {
                 async fn get_project_type(
                     io: &DefaultEnvironmentIo,
                     path: &Path,
@@ -187,54 +194,48 @@ impl<'io> ProjectManagement<'io> {
                 if unity_version.is_some() {
                     project.unity_revision = unity_revision;
                 }
-                to_insert.push(project);
+
+                // insert projects to both databases
+                spawn_blocking!(captures(project, tx), move || {
+                    Self::add_sqlite_single_project(&tx, &mut project)?;
+                    Ok(())
+                })?;
+                (litedb.db)
+                    .insert(COLLECTION, vec![project.to_bson()], BsonAutoId::ObjectId)
+                    .expect("inserting document");
+                retain_ids.insert(project.litedb_objectid.unwrap());
             }
         }
-
-        // insert projects to both databases
-        if !to_insert.is_empty() {
-            let conn = sqlite.conn.clone();
-            spawn_blocking!(captures(to_insert), move || {
-                let tx = conn
-                    .lock_arc()
-                    .transaction_with_behavior(TransactionBehavior::Immediate)
-                    .map_err(Error::SQLite)?;
-
-                for user_project in &mut to_insert {
-                    Self::add_sqlite_single_project(&tx, user_project)?;
-                }
-
-                tx.commit().map_err(Error::SQLite)?;
-                Ok(())
-            })?;
-
-            litedb
-                .db
-                .insert(
-                    COLLECTION,
-                    to_insert.iter().map(|x| x.to_bson()).collect(),
-                    BsonAutoId::ObjectId,
-                )
-                .expect("inserting document");
-        }
-
-        let mut ids_to_delete = vec![];
 
         // remove deleted projects
-        // we don't delete from sqlite since we migrating may want to do 'keep both' dependin on the mode
-        for project in db_projects.iter() {
-            if project[PATH]
-                .as_str()
-                .map(|path| !projects.contains(path))
-                .unwrap_or(true)
-            {
-                ids_to_delete.push(project.get(ID).clone());
-            }
-        }
-
+        // we don't delete from sqlite since we migrating may want to do 'keep both' depending on the mode
+        let ids_to_delete = (db_projects.iter().map(|proj| &proj[ID]))
+            .filter(|id| id.as_object_id().is_some_and(|x| retain_ids.contains(&x)))
+            .cloned()
+            .collect::<Vec<_>>();
         litedb.db.delete(COLLECTION, &ids_to_delete);
 
         Ok(())
+    }
+
+    fn dedup_projects(litedb: &mut VccDatabaseConnection) {
+        let projects = litedb.db.get_all(COLLECTION).collect::<Vec<_>>();
+
+        let mut projects_by_path = HashMap::<_, Vec<_>>::new();
+
+        for project in projects {
+            if let Some(path) = project[PATH].as_str() {
+                (projects_by_path.entry(path.to_string()).or_default()).push(&project[ID]);
+            }
+        }
+
+        let deletes = projects_by_path
+            .into_values()
+            .flat_map(|values| values.into_iter().skip(1))
+            .cloned()
+            .collect::<Vec<_>>();
+
+        litedb.db.delete(COLLECTION, &deletes);
     }
 
     /// Start project management without migrating from `settings.json`.
@@ -756,96 +757,6 @@ pub(crate) static CUSTOM_UNITY_ARGS: &str = "custom_unity_args";
 pub(crate) static UNITY_PATH: &str = "unity_path";
 pub(crate) static IS_VALID: &str = "is_valid";
 
-impl VccDatabaseConnection {
-    fn normalize_path(&mut self) {
-        let mut to_update = vec![];
-
-        for project in self.db.get_all(COLLECTION) {
-            let Some(path) = project[PATH].as_str() else {
-                continue;
-            };
-
-            let normalized = normalize_path(path.as_ref());
-            if normalized.to_str().unwrap() != path {
-                let mut project = project.clone();
-                project.insert(PATH, normalized.into_os_string().into_string().unwrap());
-
-                to_update.push(project);
-            }
-        }
-
-        if !to_update.is_empty() {
-            self.db
-                .update(COLLECTION, to_update)
-                .expect("updating project");
-        }
-    }
-
-    fn dedup_projects(&mut self) {
-        let projects = self.db.get_all(COLLECTION).collect::<Vec<_>>();
-
-        let mut projects_by_path = HashMap::<_, Vec<_>>::new();
-
-        for project in projects {
-            if let Some(path) = project[PATH].as_str() {
-                projects_by_path
-                    .entry(path.to_string())
-                    .or_default()
-                    .push(project);
-            }
-        }
-
-        let mut updates = vec![];
-        let mut deletes = vec![];
-
-        for (_, values) in projects_by_path {
-            if values.len() == 1 {
-                continue;
-            }
-
-            // update favorite and last modified
-
-            let favorite = values
-                .iter()
-                .any(|x| x[FAVORITE].as_bool().unwrap_or(false));
-            let created_at = values
-                .iter()
-                .filter_map(|x| x[CREATED_AT].as_date_time())
-                .min()
-                .unwrap();
-            let last_modified = values
-                .iter()
-                .filter_map(|x| x[LAST_MODIFIED].as_date_time())
-                .max()
-                .unwrap();
-
-            let mut values_iter = values.into_iter();
-            let mut project = Cow::Borrowed(values_iter.next().unwrap());
-            if project[FAVORITE].as_bool() != Some(favorite) {
-                project.to_mut().insert(FAVORITE, favorite);
-            }
-            if project[LAST_MODIFIED].as_date_time() != Some(last_modified) {
-                project.to_mut().insert(LAST_MODIFIED, last_modified);
-            }
-            if project[CREATED_AT].as_date_time() != Some(created_at) {
-                project.to_mut().insert(CREATED_AT, created_at);
-            }
-
-            if let Cow::Owned(project) = project {
-                updates.push(project);
-            }
-
-            // remove rest
-            for project in values_iter {
-                deletes.push(project[ID].clone());
-            }
-        }
-
-        self.db.update(COLLECTION, updates).expect("update");
-        self.db.delete(COLLECTION, &deletes);
-    }
-}
-
 /// This enum specifies the mode for synchronizing projects between SQLite and LiteDB.
 ///
 /// For historical reasons, vrc-get has two sources of the project list: litedb, which is list
@@ -901,18 +812,17 @@ impl SQLiteConnection {
             let mut inserted_projects = BTreeSet::new();
 
             // Copy projects from LiteDB to SQLite with upsert
-            {
-                let mut upsert;
-                match mode {
-                    SyncWithLitedbMode::ProjectsUnion => {
-                        upsert = tx.prepare("INSERT INTO projects \
+            let mut upsert;
+            match mode {
+                SyncWithLitedbMode::ProjectsUnion => {
+                    upsert = tx.prepare("INSERT INTO projects \
                             (path, litedb_objectid, unity_version_with_revision, created_at, last_modified, type, favorite, custom_unity_args, unity_path, is_valid)\
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
                         ON CONFLICT (path) DO UPDATE SET litedb_objectid = excluded.litedb_objectid")
-                            .unwrap();
-                    }
-                    SyncWithLitedbMode::TrustLitedb => {
-                        upsert = tx.prepare("INSERT INTO projects \
+                        .unwrap();
+                }
+                SyncWithLitedbMode::TrustLitedb => {
+                    upsert = tx.prepare("INSERT INTO projects \
                             (path, litedb_objectid, unity_version_with_revision, created_at, last_modified, type, favorite, custom_unity_args, unity_path, is_valid)\
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
                         ON CONFLICT (path) DO UPDATE SET \
@@ -923,74 +833,57 @@ impl SQLiteConnection {
                             type = excluded.type, \
                             favorite = excluded.favorite\
                             ")
-                            .unwrap();
-                    }
+                        .unwrap();
                 }
+            }
 
-                for l_proj in &litedb_projects {
-                    if let Some(object_id) = l_proj.get(ID).as_object_id()
-                        && let Some(unity_version) = UnityVersion::parse(l_proj[UNITY_VERSION].as_str().unwrap())
-                        && let Some(path) = l_proj[PATH].as_str()
-                        && let Some(created_at) = l_proj[CREATED_AT].as_date_time()
-                        && let Some(last_modified) = l_proj[LAST_MODIFIED].as_date_time()
-                        && let Some(project_type) = l_proj[TYPE].as_i32()
-                    {
-                        let favorite = l_proj[FAVORITE].as_bool().unwrap_or(false);
-                        let unity_revision = {
-                            if let Some(unity_version) = l_proj[UNITY_VERSION].as_str() {
-                                l_proj
-                                    .get(VRC_GET)
-                                    .as_document()
-                                    .filter(|x| x[CACHED_UNITY_REVISION].as_str() == Some(unity_version))
-                                    .and_then(|x| x[UNITY_REVISION].as_str())
-                            } else {
-                                None
-                            }
-                        };
-                        let unity_version_with_revision = if let Some(revision) = unity_revision {
-                            format!("{unity_version}({revision})")
-                        } else {
-                            unity_version.to_string()
-                        };
-                        let custom_unity_args = l_proj
-                            .get(VRC_GET)
-                            .as_document()
-                            .and_then(|x| x[CUSTOM_UNITY_ARGS].as_array())
-                            .and_then(|x| {
-                                x.as_slice()
-                                    .iter()
-                                    .map(|x| x.as_str().map(|x| x.to_owned()))
-                                    .collect::<Option<Vec<_>>>()
-                            });
-                        let unity_path = l_proj[VRC_GET]
-                            .as_document()
-                            .and_then(|x| x[UNITY_PATH].as_str());
-                        let is_valid_project = l_proj
-                            .get(VRC_GET)
-                            .as_document()
-                            .and_then(|x| x[IS_VALID].as_bool());
-                        // TODO: tx.set_last_insert_rowid(0); instead
-                        let pre_last_insert_rowid = tx.last_insert_rowid();
-                        upsert.execute((
-                            path,
-                            object_id.as_bytes().encode_hex::<String>(),
-                            unity_version_with_revision,
-                            created_at.as_unix_milliseconds() / 1000,
-                            last_modified.as_unix_milliseconds() / 1000,
-                            ProjectType::from_i32(project_type).unwrap_or(ProjectType::Unknown) as i32,
-                            favorite,
-                            custom_unity_args.map(|x| serde_json::to_string(&x).unwrap()),
-                            unity_path,
-                            is_valid_project.unwrap_or(true),
-                        )).map_err(Error::SQLite)?;
-                        let last_insert_rowid = tx.last_insert_rowid();
-                        if last_insert_rowid != pre_last_insert_rowid {
-                            trace!("Project inserted into SQLite: ({path}, {object_id:?})");
-                            inserted_projects.insert(last_insert_rowid);
-                        }
+            for l_proj in &litedb_projects {
+                if let Some(object_id) = l_proj.get(ID).as_object_id()
+                    && let Some(unity_version) = l_proj[UNITY_VERSION].as_str().and_then(UnityVersion::parse)
+                    && let Some(path) = l_proj[PATH].as_str()
+                    && let Some(created_at) = l_proj[CREATED_AT].as_date_time()
+                    && let Some(last_modified) = l_proj[LAST_MODIFIED].as_date_time()
+                    && let Some(project_type) = l_proj[TYPE].as_i32()
+                {
+                    let favorite = l_proj[FAVORITE].as_bool().unwrap_or(false);
+                    let vrc_get = l_proj.get(VRC_GET).as_document();
+                    let unity_revision = vrc_get
+                        .filter(|x| x[CACHED_UNITY_REVISION].as_str() == Some(&unity_version.to_string()))
+                        .and_then(|x| x[UNITY_REVISION].as_str());
+                    let custom_unity_args = vrc_get
+                        .and_then(|x| x[CUSTOM_UNITY_ARGS].as_array())
+                        .and_then(|x| {
+                            x.as_slice()
+                                .iter()
+                                .map(|x| x.as_str().map(|x| x.to_owned()))
+                                .collect::<Option<Vec<_>>>()
+                        });
+                    let unity_path = vrc_get.and_then(|x| x[UNITY_PATH].as_str());
+                    let is_valid_project = vrc_get.and_then(|x| x[IS_VALID].as_bool());
+                    let unity_version_with_revision = unity_version_with_revision(unity_version, unity_revision);
+
+                    // TODO: tx.set_last_insert_rowid(0); instead
+                    let pre_last_insert_rowid = tx.last_insert_rowid();
+                    upsert.execute((
+                        path,
+                        object_id.as_bytes().encode_hex::<String>(),
+                        unity_version_with_revision,
+                        created_at.as_unix_milliseconds() / 1000,
+                        last_modified.as_unix_milliseconds() / 1000,
+                        ProjectType::from_i32(project_type).unwrap_or(ProjectType::Unknown) as i32,
+                        favorite,
+                        custom_unity_args.map(|x| serde_json::to_string(&x).unwrap()),
+                        unity_path,
+                        is_valid_project.unwrap_or(true),
+                    )).map_err(Error::SQLite)?;
+                    let last_insert_rowid = tx.last_insert_rowid();
+                    if last_insert_rowid != pre_last_insert_rowid {
+                        trace!("Project inserted into SQLite: ({path}, {object_id:?})");
+                        inserted_projects.insert(last_insert_rowid);
                     }
                 }
             }
+            upsert.finalize().map_err(Error::SQLite)?;
 
             let mut projects_to_insert: Vec<Document> = vec![];
             match mode {
@@ -999,40 +892,19 @@ impl SQLiteConnection {
                     let mut l_proj_by_id = litedb_projects.into_iter().flat_map(|x| Some((x.get(ID).as_object_id()?, x))).collect::<HashMap<_, _>>();
                     let id_by_path = l_proj_by_id.iter().flat_map(|(&id, proj)| Some((proj[PATH].as_str()?.to_string(), id))).collect::<BTreeMap<_, _>>();
 
-                    let mut get_projects = tx.prepare("SELECT \
-                            id, path, litedb_objectid, unity_version_with_revision, created_at, last_modified, type, favorite, custom_unity_args, unity_path, is_valid \
-                            FROM projects")
-                        .unwrap();
+                    let mut get_projects = GetProjectRunner::prepare(&tx, "");
                     let mut update_object_id = tx.prepare("UPDATE projects SET litedb_objectid = ? WHERE id = ?").unwrap();
-                    let id_col = get_projects.column_index("id").unwrap();
-                    let path_col = get_projects.column_index("path").unwrap();
-                    let litedb_objectid_col = get_projects.column_index("litedb_objectid").unwrap();
-                    let unity_version_with_revision_col = get_projects.column_index("unity_version_with_revision").unwrap();
-                    let created_at_col = get_projects.column_index("created_at").unwrap();
-                    let last_modified_col = get_projects.column_index("last_modified").unwrap();
-                    let project_type_col = get_projects.column_index("type").unwrap();
-                    let favorite_col = get_projects.column_index("favorite").unwrap();
 
                     let mut query = get_projects.query(()).unwrap();
                     while let Some(row) = query.next().map_err(Error::SQLite)? {
-                        let id = row.get::<_, i64>(id_col).unwrap();
-                        if inserted_projects.contains(&id) {
+                        let mut user_project = GetProjectRunner::read_row(row);
+
+                        if inserted_projects.contains(&user_project.id.map(NonZeroI64::get).unwrap_or(0)) {
                             continue;
                         }
-                        let object_id = row.get_ref(litedb_objectid_col).unwrap().as_bytes_or_null().expect("litedb_objectid as bytes");
-                        let object_id = if let Some(object_id_hex) = object_id {
-                            let mut object_id_bytes = [0u8; _];
-                            if hex::decode_to_slice(object_id_hex, &mut object_id_bytes).is_ok()
-                            {
-                                Some(bson::ObjectId::from_bytes(object_id_bytes))
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        };
+                        let object_id = user_project.litedb_objectid;
 
-                        let path = row.get_ref(path_col).unwrap().as_str().expect("path as str");
+                        let path = &user_project.path;
 
                         if let Some(object_id) = object_id
                             && let Some(existing) = l_proj_by_id.get_mut(&object_id)
@@ -1043,31 +915,17 @@ impl SQLiteConnection {
                         } else if let Some(object_id) = id_by_path.get(path) {
                             // Not bad, the project was not found with the id, but found by path
                             trace!("Project already exists in the database by the path: ({path}, {object_id:?}): {:?}", l_proj_by_id[object_id]);
-                            update_object_id.execute((object_id.as_bytes().encode_hex::<String>(), id)).map_err(Error::SQLite)?;
+                            update_object_id.execute((object_id.as_bytes().encode_hex::<String>(), user_project.id)).map_err(Error::SQLite)?;
                         } else {
                             // There is no project in the database with the given id or path
                             // We need to insert this project to litedb
                             trace!("Project does not exist in the database with the given id or path");
-                            let unity_version = row.get_ref(unity_version_with_revision_col).unwrap().as_str().unwrap();
-                            let unity_version = unity_version.split_once('(').map(|(v, _)| v.trim_end()).unwrap_or(unity_version);
-                            let created_at = row.get_ref(created_at_col).unwrap().as_i64().unwrap();
-                            let last_modified = row.get_ref(last_modified_col).unwrap().as_i64().unwrap();
-                            let project_type = row.get_ref(project_type_col).unwrap().as_i64().unwrap();
-                            let favorite = row.get::<_, bool>(favorite_col).unwrap();
+                            let litedb_id = ObjectId::new();
+                            user_project.litedb_objectid = Some(litedb_id);
 
-                            let litedb_id = bson::ObjectId::new();
+                            projects_to_insert.push(user_project.to_bson());
 
-                            projects_to_insert.push(document! {
-                                ID => litedb_id,
-                                PATH => path,
-                                UNITY_VERSION => unity_version,
-                                CREATED_AT => datetime_from_unix(created_at),
-                                LAST_MODIFIED => datetime_from_unix(last_modified),
-                                TYPE => project_type as i32,
-                                FAVORITE => favorite,
-                            });
-
-                            update_object_id.execute((litedb_id.as_bytes().encode_hex::<String>(), id)).map_err(Error::SQLite)?;
+                            update_object_id.execute((litedb_id.as_bytes().encode_hex::<String>(), user_project.id)).map_err(Error::SQLite)?;
                         }
                     }
                 }
