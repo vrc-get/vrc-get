@@ -4,7 +4,9 @@ use log::warn;
 use std::cmp::Reverse;
 use std::fmt::{Display, Formatter};
 use std::path::Path;
-use vrc_get_vpm::environment::{Settings, VccDatabaseConnection, find_unity_hub};
+use vrc_get_vpm::environment::{
+    ProjectManagement, Settings, VccDatabaseConnection, find_unity_hub,
+};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::{UnityProject, unity_hub};
 
@@ -38,19 +40,6 @@ pub enum Project {
 
 multi_command!(Project is List, Add, Remove);
 
-async fn migrate_sanitize_projects(
-    connection: &mut VccDatabaseConnection,
-    io: &DefaultEnvironmentIo,
-    settings: &Settings,
-) {
-    // migrate from settings json
-    connection
-        .migrate(settings, io)
-        .await
-        .exit_context("migrating from settings.json");
-    connection.dedup_projects();
-}
-
 /// List projects
 #[derive(Parser)]
 #[command(author, version)]
@@ -62,31 +51,22 @@ pub struct ProjectList {
 impl ProjectList {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let settings = Settings::load(&io).await.exit_context("loading settings");
-
-        let mut connection = VccDatabaseConnection::connect(&io)
+        let mut projects = ProjectManagement::start(&io)
             .await
-            .exit_context("connecting to database");
+            .exit_context("starting project management");
 
-        migrate_sanitize_projects(&mut connection, &io, &settings).await;
-
-        connection
+        projects
             .sync_with_real_projects(false, &io)
             .await
             .exit_context("syncing with real projects");
 
-        let mut projects = connection.get_projects();
+        let mut projects_list = projects.get_projects();
 
-        connection
-            .save(&io)
-            .await
-            .exit_context("saving updated database");
+        projects_list.sort_by_key(|x| Reverse(x.last_modified()));
 
-        projects.sort_by_key(|x| Reverse(x.last_modified()));
-
-        for project in projects.iter() {
-            let Some(path) = project.path() else { continue };
-            let Some(name) = project.name() else { continue };
+        for project in projects_list.iter() {
+            let path = project.path();
+            let name = project.name();
             let unity_version = project
                 .unity_version()
                 .map(|x| x.to_string())
@@ -113,10 +93,9 @@ pub struct ProjectAdd {
 impl ProjectAdd {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let mut settings = Settings::load(&io).await.exit_context("loading settings");
-        let mut connection = VccDatabaseConnection::connect(&io)
+        let mut projects = ProjectManagement::start(&io)
             .await
-            .exit_context("connecting to database");
+            .exit_context("starting project management");
 
         let project_path = absolute_path(Path::new(self.path.as_ref()));
         let project_io = DefaultProjectIo::new(project_path.into());
@@ -124,18 +103,10 @@ impl ProjectAdd {
             .await
             .exit_context("loading specified project");
 
-        migrate_sanitize_projects(&mut connection, &io, &settings).await;
-
-        connection
-            .add_project(&project)
+        projects
+            .add_projects(std::slice::from_ref(&project))
             .await
             .exit_context("adding project");
-
-        connection.save(&io).await.exit_context("saving database");
-        settings
-            .load_from_db(&connection)
-            .exit_context("saving database");
-        settings.save(&io).await.exit_context("saving settings");
     }
 }
 
@@ -151,27 +122,21 @@ pub struct ProjectRemove {
 impl ProjectRemove {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let mut settings = Settings::load(&io).await.exit_context("loading settings");
-        let mut connection = VccDatabaseConnection::connect(&io)
+        let mut projects = ProjectManagement::start(&io)
             .await
-            .exit_context("connecting to database");
+            .exit_context("starting project management");
 
-        let Some(project) = connection
+        let Some(project) = projects
             .find_project(self.path.as_ref())
-            .exit_context("getting projects")
+            .exit_context("finding project")
         else {
-            return println!("No project found at {}", self.path);
+            return println!("No project found or registered with path: {}", self.path);
         };
 
-        migrate_sanitize_projects(&mut connection, &io, &settings).await;
-
-        connection.remove_project(&project);
-
-        connection.save(&io).await.exit_context("saving database");
-        settings
-            .load_from_db(&connection)
-            .exit_context("saving database");
-        settings.save(&io).await.exit_context("saving environment");
+        projects
+            .remove_projects(std::slice::from_ref(&project))
+            .await
+            .exit_context("removing project");
     }
 }
 

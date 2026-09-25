@@ -87,7 +87,7 @@ impl Settings {
 
 #[cfg(feature = "experimental-project-management")]
 impl Settings {
-    pub fn user_projects(&self) -> Option<&[Box<str>]> {
+    pub(crate) fn user_projects(&self) -> Option<&[Box<str>]> {
         self.vpm.user_projects()
     }
 
@@ -95,21 +95,15 @@ impl Settings {
         self.vpm.retain_user_projects(f)
     }
 
-    pub fn add_user_project(&mut self, path: &str) {
+    pub(crate) fn add_user_project(&mut self, path: &str) {
         self.vpm.add_user_project(path);
     }
 
-    pub fn remove_user_project(&mut self, path: &str) {
+    pub(crate) fn remove_user_project(&mut self, path: &str) {
         self.vpm.remove_user_project(path);
     }
 
-    pub fn load_from_db(&mut self, connection: &super::VccDatabaseConnection) -> io::Result<()> {
-        let projects = connection.get_projects();
-        let mut project_paths = projects
-            .iter()
-            .filter_map(|x| x.path())
-            .collect::<HashSet<_>>();
-
+    pub(crate) fn load_from_db_inner(&mut self, mut project_paths: HashSet<&str>) {
         // remove removed projects
         self.vpm
             .retain_user_projects(|x| project_paths.contains(&x));
@@ -125,12 +119,10 @@ impl Settings {
         for x in project_paths {
             self.vpm.add_user_project(x);
         }
-
-        Ok(())
     }
 }
 
-/// VPM Settings (vrc-get extensions)
+/// vrc-get extensions
 impl Settings {
     pub fn ignore_curated_repository(&self) -> bool {
         self.vrc_get.ignore_curated_repository()
@@ -138,6 +130,11 @@ impl Settings {
 
     pub fn ignore_official_repository(&self) -> bool {
         self.vrc_get.ignore_official_repository()
+    }
+
+    #[cfg(feature = "experimental-project-management")]
+    pub fn project_list_sync_mode(&self) -> super::project_management::SyncWithLitedbMode {
+        self.vrc_get.project_list_sync_mode()
     }
 }
 

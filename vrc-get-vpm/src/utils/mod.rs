@@ -326,6 +326,14 @@ where
     try_load_json(io, path).await.map(|x| x.unwrap_or_default())
 }
 
+#[allow(dead_code)]
+pub(crate) fn normalize_path_str(input: &str) -> String {
+    normalize_path(Path::new(input))
+        .into_os_string()
+        .into_string()
+        .unwrap()
+}
+
 pub(crate) fn normalize_path(input: &Path) -> PathBuf {
     let mut result = PathBuf::with_capacity(input.as_os_str().len());
 
