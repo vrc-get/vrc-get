@@ -65,7 +65,7 @@ impl SQLiteConnection {
                     id INTEGER PRIMARY KEY,\
                     path TEXT NOT NULL UNIQUE,\
                     litedb_objectid TEXT UNIQUE,\
-                    unity_version_with_revision TEXT NOT NULL,\
+                    unity_version_with_revision TEXT,\
                     created_at UNIX SECONDS TIMESTAMP INTEGER NOT NULL,\
                     last_modified UNIX SECONDS TIMESTAMP INTEGER NOT NULL,\
                     type INTEGER NOT NULL,\

@@ -315,23 +315,26 @@ impl GetProjectRunner {
         let (unity_version, unity_revision) = {
             let version = row
                 .get_ref(unity_version_with_revision_col)
-                .and_then(|x| Ok(x.as_str()?))
+                .and_then(|x| Ok(x.as_str_or_null()?))
                 .expect("unity_version");
-            let (unity_version, revision) = version
-                .split_once('(')
-                .map(|(unity_version, revision)| {
-                    (
-                        unity_version.trim_end(),
-                        Some(revision.trim_end_matches(')')),
-                    )
-                })
-                .unwrap_or((version, None));
+            if let Some(version) = version {
+                let (unity_version, revision) = version
+                    .split_once('(')
+                    .map(|(unity_version, revision)| {
+                        (
+                            unity_version.trim_end(),
+                            Some(revision.trim_end_matches(')')),
+                        )
+                    })
+                    .unwrap_or((version, None));
 
-            (
-                (!unity_version.is_empty())
-                    .then(|| UnityVersion::parse(unity_version).expect("unparsable unity version")),
-                revision.map(|x| x.to_string()),
-            )
+                (
+                    Some(UnityVersion::parse(unity_version).expect("unparsable unity version")),
+                    revision.map(|x| x.to_string()),
+                )
+            } else {
+                (None, None)
+            }
         };
         let created_at = row.get(created_at_col).expect("created_at");
         let last_modified = row.get(last_modified_col).expect("last_modified");
