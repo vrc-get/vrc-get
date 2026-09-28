@@ -1161,7 +1161,7 @@ impl UserProject {
         self.unity_path.as_deref()
     }
 
-    pub fn is_valid_project(&self) -> Option<bool> {
-        Some(self.is_valid)
+    pub fn is_valid_project(&self) -> bool {
+        self.is_valid
     }
 }

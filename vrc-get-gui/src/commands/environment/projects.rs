@@ -39,7 +39,7 @@ pub struct TauriProject {
     created_at: i64,
     favorite: bool,
     is_exists: bool,
-    is_valid: Option<bool>,
+    is_valid: bool,
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]

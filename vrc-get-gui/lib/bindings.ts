@@ -333,7 +333,7 @@ export type TauriProject = {
 	created_at: number,
 	favorite: boolean,
 	is_exists: boolean,
-	is_valid: boolean | null,
+	is_valid: boolean,
 };
 
 export type TauriProjectCreationInformation = {
@@ -472,3 +472,4 @@ export type UpdaterStatus =
  *  `VRC_GET_GUI_UPDATER_UPDATE_SUGGESTION_MESSAGE` environment variable at build time.
  */
 "UpdaterDisabled";
+
