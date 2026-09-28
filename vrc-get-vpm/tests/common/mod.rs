@@ -113,9 +113,10 @@ pub fn block_on<F: Future>(f: F) -> F::Output {
 #[track_caller]
 pub fn get_temp_path(base_name: &str) -> PathBuf {
     Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!(
-        "{base_name}/{}_L{}",
+        "{base_name}{sep}{}_L{}",
         env!("CARGO_CRATE_NAME"),
-        std::panic::Location::caller().line()
+        std::panic::Location::caller().line(),
+        sep = std::path::MAIN_SEPARATOR,
     ))
 }
 
