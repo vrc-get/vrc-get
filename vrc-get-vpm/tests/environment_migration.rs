@@ -339,3 +339,178 @@ async fn no_settings_json() {
         defined_projects_in_litedb(env_projects_str),
     );
 }
+
+/// If there is a relative path in settings.json, there is no stable behavior for it.
+///
+/// vrc-get decides to not support relative paths in settings.json and exclude them for migration.
+/// As a result, relative paths are removed from settings.json.
+#[tokio::test]
+async fn relative_path_in_settings_json_and_database() {
+    // initialize environment
+    common::init_log();
+    let env_dir = get_temp_path("environment");
+    let env_projects = get_temp_path("env_projects");
+    let env_projects_str = env_projects.to_str().unwrap();
+    clean_dir(&env_dir);
+    std::fs::write(
+        env_dir.join(SETTINGS_JSON),
+        test_settings_json_with_projects!(
+            env_projects_str,
+            additional_projects = r##"    "relative-path-here",
+"##,
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        env_dir.join(VCC_LITEDB),
+        test_litedb_file_with_projects!(
+            env_projects_str,
+            additional_projects = vec![vrc_get_litedb::document! {
+                "Path" => "relative-path-here",
+                "UnityVersion" => "2022.3.22f1",
+                "CreatedAt" => DateTime::now(),
+                "LastModified" => DateTime::now(),
+                "Type" => ProjectType::Avatars as i32,
+                "Favorite" => false,
+            },]
+        ),
+    )
+    .unwrap();
+
+    // run code
+    let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
+    ProjectManagement::start(io).await.unwrap(); // does migration
+
+    // check data
+    assert_eq!(
+        load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
+        defined_projects_in_settings_json!(env_projects_str),
+    );
+    assert_eq!(
+        load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
+        defined_projects_in_settings_json!(env_projects_str),
+    );
+}
+
+/// vrc-get considers projects with non-objectid _id as invalid.
+#[tokio::test]
+async fn invalid_object_id() {
+    // initialize environment
+    common::init_log();
+    let env_dir = get_temp_path("environment");
+    let env_projects = get_temp_path("env_projects");
+    let env_projects_str = env_projects.to_str().unwrap();
+    clean_dir(&env_dir);
+    std::fs::write(
+        env_dir.join(SETTINGS_JSON),
+        test_settings_json_with_projects!(
+            env_projects_str,
+            additional_projects = &format!(
+                r#""{env_projects_str}/bad id",
+"#,
+            )
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        env_dir.join(VCC_LITEDB),
+        test_litedb_file_with_projects!(
+            env_projects_str,
+            additional_projects = vec![vrc_get_litedb::document! {
+                "_id" => "_",
+                "Path" => format!("{env_projects_str}/bad id"),
+                "UnityVersion" => "2022.3.22f1",
+                "CreatedAt" => DateTime::now(),
+                "LastModified" => DateTime::now(),
+                "Type" => ProjectType::Avatars as i32,
+                "Favorite" => false,
+            },]
+        ),
+    )
+    .unwrap();
+
+    // run code
+    let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
+    ProjectManagement::start(io).await.unwrap(); // does migration
+
+    // check data
+    assert_eq!(
+        load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
+        defined_projects_in_settings_json!(env_projects_str),
+    );
+    assert_eq!(
+        load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
+        defined_projects_in_settings_json!(env_projects_str),
+    );
+}
+
+/// vrc-get considers projects with non-objectid _id as invalid.
+#[tokio::test]
+async fn migrate_with_real_project() {
+    // initialize environment
+    common::init_log();
+    let env_dir = get_temp_path("environment");
+    let env_projects = get_temp_path("env_projects");
+    let env_projects_str = env_projects.to_str().unwrap();
+    clean_dir(&env_dir);
+    std::fs::write(
+        env_dir.join(SETTINGS_JSON),
+        test_settings_json_with_projects!(
+            env_projects_str,
+            additional_projects = &format!(
+                r#""{env_projects_str}/real-project",
+"#,
+            )
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        env_dir.join(VCC_LITEDB),
+        test_litedb_file_with_projects!(env_projects_str),
+    )
+    .unwrap();
+    // create fake project
+    std::fs::create_dir_all(format!("{env_projects_str}/real-project")).unwrap();
+    std::fs::create_dir_all(format!("{env_projects_str}/real-project/Assets")).unwrap();
+    std::fs::create_dir_all(format!("{env_projects_str}/real-project/Packages")).unwrap();
+    std::fs::create_dir_all(format!("{env_projects_str}/real-project/ProjectSettings")).unwrap();
+    std::fs::write(
+        format!("{env_projects_str}/real-project/ProjectSettings/ProjectVersion.txt"),
+        b"m_EditorVersion: 2019.4.31f1
+m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
+",
+    )
+    .unwrap();
+
+    // run code
+    let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
+    ProjectManagement::start(io).await.unwrap(); // does migration
+
+    // check data
+    assert_eq!(
+        load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
+        defined_projects_in_settings_json!(
+            env_projects_str,
+            additional_projects = [("{env_projects_str}/real-project")],
+        ),
+    );
+    assert_eq!(
+        load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
+        defined_projects_in_settings_json!(
+            env_projects_str,
+            additional_projects = [("{env_projects_str}/real-project")],
+        ),
+    );
+    assert_eq!(
+        LiteDBFile::parse(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap())
+            .unwrap()
+            .get_by_index(
+                "projects",
+                "Path",
+                &format!("{env_projects_str}/real-project").into()
+            )
+            .next()
+            .unwrap()["UnityVersion"],
+        vrc_get_litedb::bson::Value::String("2019.4.31f1".into())
+    )
+}
