@@ -24,6 +24,7 @@
 #![cfg(feature = "experimental-project-management")]
 
 use crate::common::get_temp_path;
+use hex::ToHex;
 use itertools::Itertools;
 use rusqlite::fallible_iterator::FallibleIterator;
 use std::path::{Path, PathBuf};
@@ -48,6 +49,7 @@ fn clean_dir(path: &Path) {
 const VCC_LITEDB: &str = "vcc.liteDb";
 const VRC_GET_SQLITE: &str = "vrc-get/vrc-get.db";
 const SETTINGS_JSON: &str = "settings.json";
+const VRC_GET_SETTINGS: &str = "vrc-get/settings.json";
 
 macro_rules! test_settings_json_with_projects {
     ($env_projects_str: expr$(,)?) => {
@@ -519,7 +521,7 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    let manage = ProjectManagement::start(io).await.unwrap(); // does migration
+    ProjectManagement::start(io).await.unwrap(); // does migration
 
     // check data
     assert_eq!(
@@ -555,15 +557,92 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
             .unwrap()["UnityVersion"],
         vrc_get_litedb::bson::Value::String("2019.4.31f1".into())
     );
-    assert_eq!(
-        rusqlite::Connection::open(env_dir.join(VRC_GET_SQLITE))
-            .unwrap()
-            .query_one(
-                "SELECT unity_version_with_revision FROM projects WHERE path = ?",
-                [&format!("{env_projects_str}/real-project")],
-                |x| x.get::<_, String>(0)
+}
+
+#[tokio::test]
+async fn sqlite_migrations_new_projects() {
+    // initialize environment
+    common::init_log();
+    let env_dir = get_temp_path("environment");
+    let env_projects = get_temp_path("env_projects");
+    let env_projects_str = env_projects.to_str().unwrap();
+    clean_dir(&env_dir);
+    std::fs::write(
+        env_dir.join(SETTINGS_JSON),
+        test_settings_json_with_projects!(
+            env_projects_str,
+            additional_projects = &format!(
+                r#""{env_projects_str}/real-project",
+                "{env_projects_str}/litedb-extended-project",
+"#,
             )
-            .unwrap(),
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        env_dir.join(VCC_LITEDB),
+        test_litedb_file_with_projects!(
+            env_projects_str,
+            additional_projects = vec![vrc_get_litedb::document! {
+                "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"extendedproj"),
+                "Path" => format!("{env_projects_str}/litedb-extended-project"),
+                "UnityVersion" => "2022.3.22f1",
+                "CreatedAt" => vrc_get_litedb::date!(2022-03-02 11:02:14),
+                "LastModified" => vrc_get_litedb::date!(2024-03-02 12:15:00),
+                "Type" => ProjectType::Avatars as i32,
+                "Favorite" => true,
+                "vrc-get" => vrc_get_litedb::document! {
+                    "cached_unity_version" => "2022.3.22f1",
+                    "unity_revision" => "887be4894c44",
+                    "custom_unity_args" => vrc_get_litedb::array!["-batchmode"],
+                    "unity_path" => "/Applications/Unity.app/Contents/MacOS/Unity",
+                    "is_valid" => false,
+                },
+            }]
+        ),
+    )
+    .unwrap();
+    // create fake project
+    std::fs::create_dir_all(format!("{env_projects_str}/real-project")).unwrap();
+    std::fs::create_dir_all(format!("{env_projects_str}/real-project/Assets")).unwrap();
+    std::fs::create_dir_all(format!("{env_projects_str}/real-project/Packages")).unwrap();
+    std::fs::create_dir_all(format!("{env_projects_str}/real-project/ProjectSettings")).unwrap();
+    std::fs::write(
+        format!("{env_projects_str}/real-project/ProjectSettings/ProjectVersion.txt"),
+        b"m_EditorVersion: 2019.4.31f1
+m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
+",
+    )
+    .unwrap();
+
+    // run code
+    let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
+    let manage = ProjectManagement::start(io).await.unwrap(); // does migration
+
+    // check data
+    assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+        defined_projects_in_settings_json!(
+            env_projects_str,
+            additional_projects = [
+                ("{env_projects_str}/real-project"),
+                ("{env_projects_str}/litedb-extended-project")
+            ],
+        ),
+    );
+    let conn = rusqlite::Connection::open(env_dir.join(VRC_GET_SQLITE)).unwrap();
+    let get_project_version = |path: &str| {
+        conn.query_one(
+            "SELECT unity_version_with_revision FROM projects WHERE path = ?",
+            [path],
+            |x| x.get::<_, String>(0),
+        )
+        .unwrap()
+    };
+
+    // project listed in settings.json and not in litedb, and exists in fs: load data from fs
+    assert_eq!(
+        get_project_version(&format!("{env_projects_str}/real-project")),
         "2019.4.31f1(bd5abf232a62)".to_string(),
     );
     let real_project = manage
@@ -575,16 +654,15 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
         Some(UnityVersion::new_f1(2019, 4, 31))
     );
     assert_eq!(real_project.unity_revision(), Some("bd5abf232a62"));
-
     assert_eq!(
-        rusqlite::Connection::open(env_dir.join(VRC_GET_SQLITE))
-            .unwrap()
-            .query_one(
-                "SELECT unity_version_with_revision FROM projects WHERE path = ?",
-                [&format!("{env_projects_str}/HistoryOfAvatarOptimizer")],
-                |x| x.get::<_, String>(0)
-            )
-            .unwrap(),
+        real_project.path(),
+        &format!("{env_projects_str}/real-project")
+    );
+    assert_eq!(real_project.name(), "real-project");
+
+    // project listed in litedb, and not exists in fs: copy from litedb
+    assert_eq!(
+        get_project_version(&format!("{env_projects_str}/HistoryOfAvatarOptimizer")),
         "2022.3.22f1".to_string(),
     );
     let real_project = manage
@@ -596,4 +674,305 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
         Some(UnityVersion::new_f1(2022, 3, 22))
     );
     assert_eq!(real_project.unity_revision(), None);
+
+    // project listed in litedb, and not exists in fs: copy from litedb, with vrc-get extensions
+    assert_eq!(
+        get_project_version(&format!("{env_projects_str}/litedb-extended-project")),
+        "2022.3.22f1(887be4894c44)".to_string(),
+    );
+    let real_project = manage
+        .find_project(&format!("{env_projects_str}/litedb-extended-project"))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        real_project.path(),
+        &format!("{env_projects_str}/litedb-extended-project")
+    );
+    assert_eq!(real_project.name(), "litedb-extended-project");
+    assert_eq!(
+        real_project.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"extendedproj"))
+    );
+    assert_eq!(
+        real_project.crated_at(),
+        vrc_get_litedb::date!(2022-03-02 11:02:14)
+    );
+    assert_eq!(
+        real_project.last_modified(),
+        vrc_get_litedb::date!(2024-03-02 12:15:00)
+    );
+    assert_eq!(
+        real_project.unity_version(),
+        Some(UnityVersion::new_f1(2022, 3, 22))
+    );
+    assert_eq!(real_project.unity_revision(), Some("887be4894c44"));
+    assert_eq!(real_project.project_type(), ProjectType::Avatars);
+    assert!(real_project.favorite());
+    assert_eq!(
+        real_project.custom_unity_args(),
+        Some(&["-batchmode".to_string()][..])
+    );
+    assert_eq!(
+        real_project.unity_path(),
+        Some("/Applications/Unity.app/Contents/MacOS/Unity")
+    );
+    assert!(!real_project.is_valid_project());
+}
+
+async fn sqlite_migrations_with_projects_in_database_prepare(
+    env_dir: &Path,
+    env_projects_str: &str,
+) {
+    clean_dir(env_dir);
+    {
+        // Create tables
+        let io = &DefaultEnvironmentIo::new(env_dir.into());
+        ProjectManagement::start(io).await.unwrap();
+
+        std::fs::create_dir_all(env_dir.join(VRC_GET_SQLITE).parent().unwrap()).unwrap();
+        let conn = rusqlite::Connection::open(env_dir.join(VRC_GET_SQLITE)).unwrap();
+        let mut stmt = conn
+            .prepare(
+                "INSERT INTO projects \
+                    (path, litedb_objectid, unity_version_with_revision, \
+                    created_at, last_modified, type, favorite, is_valid)\
+                VALUES (?, ?, ?, unixepoch('now'), unixepoch('now'), 0, 0, 1) ",
+            )
+            .unwrap();
+        stmt.execute((
+            format!("{env_projects_str}/sqlite-only-no-id"),
+            Option::<String>::None,
+            "2022.3.22f1(887be4894c44)",
+        ))
+        .unwrap();
+        stmt.execute((
+            format!("{env_projects_str}/sqlite-only-with-id"),
+            vrc_get_litedb::bson::ObjectId::from_bytes(*b"sqlite-only ")
+                .as_bytes()
+                .encode_hex::<String>(),
+            "2022.3.22f1(887be4894c44)",
+        ))
+        .unwrap();
+        stmt.execute((
+            format!("{env_projects_str}/id-mismatch"),
+            vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch1")
+                .as_bytes()
+                .encode_hex::<String>(),
+            "2022.3.22f1(887be4894c44)",
+        ))
+        .unwrap();
+        stmt.execute((
+            format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
+            vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0")
+                .as_bytes()
+                .encode_hex::<String>(),
+            "2022.3.22f1(887be4894c44)",
+        ))
+        .unwrap();
+        stmt.execute((
+            format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-sqlite"),
+            vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1")
+                .as_bytes()
+                .encode_hex::<String>(),
+            "2022.3.22f1(887be4894c44)",
+        ))
+        .unwrap();
+    }
+    std::fs::write(
+        env_dir.join(SETTINGS_JSON),
+        test_settings_json_with_projects!(
+            env_projects_str,
+            additional_projects = &format!(
+                r#""{env_projects_str}/litedb-good",
+                "{env_projects_str}/id-mismatch",
+                "{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb",
+                "{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb",
+"#,
+            )
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        env_dir.join(VCC_LITEDB),
+        test_litedb_file_with_projects!(
+            env_projects_str,
+            additional_projects = vec![
+                vrc_get_litedb::document! {
+                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"litedbgoodpr"),
+                    "Path" => format!("{env_projects_str}/litedb-good"),
+                    "UnityVersion" => "2022.3.22f1",
+                    "CreatedAt" => vrc_get_litedb::date!(2022-03-02 11:02:14),
+                    "LastModified" => vrc_get_litedb::date!(2024-03-02 12:15:00),
+                    "Type" => ProjectType::Avatars as i32,
+                    "Favorite" => true,
+                },
+                vrc_get_litedb::document! {
+                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch0"),
+                    "Path" => format!("{env_projects_str}/id-mismatch"),
+                    "UnityVersion" => "2022.3.22f1",
+                    "CreatedAt" => vrc_get_litedb::date!(2022-03-12 11:02:14),
+                    "LastModified" => vrc_get_litedb::date!(2024-03-03 12:15:00),
+                    "Type" => ProjectType::Avatars as i32,
+                    "Favorite" => true,
+                },
+                vrc_get_litedb::document! {
+                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0"),
+                    "Path" => format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb"),
+                    "UnityVersion" => "2022.3.22f1",
+                    "CreatedAt" => vrc_get_litedb::date!(2022-03-12 11:02:14),
+                    "LastModified" => vrc_get_litedb::date!(2024-03-03 12:15:00),
+                    "Type" => ProjectType::Avatars as i32,
+                    "Favorite" => true,
+                },
+                vrc_get_litedb::document! {
+                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1"),
+                    "Path" => format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+                    "UnityVersion" => "2022.3.22f1",
+                    "CreatedAt" => DateTime::now().add_days(1).unwrap(),
+                    "LastModified" => DateTime::now().add_days(1).unwrap(),
+                    "Type" => ProjectType::Avatars as i32,
+                    "Favorite" => true,
+                },
+            ]
+        ),
+    )
+    .unwrap();
+}
+
+#[tokio::test]
+async fn sqlite_migrations_with_projects_in_database_projects_union() {
+    // initialize environment
+    common::init_log();
+    let env_dir = get_temp_path("environment");
+    let env_projects = get_temp_path("env_projects");
+    let env_projects_str = env_projects.to_str().unwrap();
+    sqlite_migrations_with_projects_in_database_prepare(&env_dir, env_projects_str).await;
+    std::fs::write(env_dir.join(VRC_GET_SETTINGS), r#"{")":"ProjectsUnion"}"#).unwrap();
+
+    // run code
+    let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
+    let manage = ProjectManagement::start(io).await.unwrap(); // does migration
+
+    // check data
+    assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+        defined_projects_in_settings_json!(
+            env_projects_str,
+            additional_projects = [
+                ("{env_projects_str}/litedb-good"),
+                ("{env_projects_str}/sqlite-only-no-id"),
+                ("{env_projects_str}/sqlite-only-with-id"),
+                ("{env_projects_str}/id-mismatch"),
+                ("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
+                ("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+            ],
+        ),
+    );
+
+    let get_project = |name: &str| {
+        manage
+            .find_project(&format!("{env_projects_str}/{name}"))
+            .unwrap()
+    };
+
+    let id_mismatch = get_project("id-mismatch").unwrap();
+    assert_eq!(
+        id_mismatch.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch0"))
+    );
+
+    let sqlite_only_no_id = get_project("sqlite-only-no-id").unwrap();
+    assert!(sqlite_only_no_id.litedb_objectid().is_none());
+
+    let sqlite_only_with_id = get_project("sqlite-only-with-id").unwrap();
+    assert!(sqlite_only_with_id.litedb_objectid().is_some());
+
+    let litedb_good = get_project("litedb-good").unwrap();
+    assert_eq!(
+        litedb_good.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"litedbgoodpr"))
+    );
+
+    let patch_mismatch_0 = get_project("path-mismatch-0-sqlite-is-newer-sqlite").unwrap();
+    assert_eq!(
+        patch_mismatch_0.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0"))
+    );
+    assert!(get_project("path-mismatch-0-sqlite-is-newer-litedb").is_none());
+
+    let path_mismatch_1 = get_project("path-mismatch-1-litedb-is-newer-litedb").unwrap();
+    assert_eq!(
+        path_mismatch_1.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1"))
+    );
+    assert!(get_project("path-mismatch-1-litedb-is-newer-sqlite").is_none());
+}
+
+#[tokio::test]
+//#[cfg(false)]
+async fn sqlite_migrations_with_projects_in_database_trust_litedb() {
+    // initialize environment
+    common::init_log();
+    let env_dir = get_temp_path("environment");
+    let env_projects = get_temp_path("env_projects");
+    let env_projects_str = env_projects.to_str().unwrap();
+    sqlite_migrations_with_projects_in_database_prepare(&env_dir, env_projects_str).await;
+    std::fs::write(
+        env_dir.join(VRC_GET_SETTINGS),
+        r#"{"projectListSyncMode":"TrustLitedb"}"#,
+    )
+    .unwrap();
+
+    // run code
+    let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
+    let manage = ProjectManagement::start(io).await.unwrap(); // does migration
+
+    // check data
+    assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+        defined_projects_in_settings_json!(
+            env_projects_str,
+            additional_projects = [
+                ("{env_projects_str}/litedb-good"),
+                // We keep sqlite-only-no-id since it does not have on ID and it means sqlite-only project,
+                // VCC-incompatible projects
+                ("{env_projects_str}/sqlite-only-no-id"),
+                ("{env_projects_str}/id-mismatch"),
+                ("{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb"),
+                ("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+            ],
+        ),
+    );
+
+    let get_project = |name: &str| {
+        manage
+            .find_project(&format!("{env_projects_str}/{name}"))
+            .unwrap()
+    };
+
+    let id_mismatch = get_project("id-mismatch").unwrap();
+    assert_eq!(
+        id_mismatch.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch0"))
+    );
+
+    let litedb_good = get_project("litedb-good").unwrap();
+    assert_eq!(
+        litedb_good.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"litedbgoodpr"))
+    );
+
+    let path_mismatch_0 = get_project("path-mismatch-0-sqlite-is-newer-litedb").unwrap();
+    assert_eq!(
+        path_mismatch_0.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0"))
+    );
+    assert!(get_project("path-mismatch-0-sqlite-is-newer-sqlite").is_none());
+
+    let path_mismatch_1 = get_project("path-mismatch-1-litedb-is-newer-litedb").unwrap();
+    assert_eq!(
+        path_mismatch_1.litedb_objectid(),
+        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1"))
+    );
+    assert!(get_project("path-mismatch-1-litedb-is-newer-sqlite").is_none());
 }

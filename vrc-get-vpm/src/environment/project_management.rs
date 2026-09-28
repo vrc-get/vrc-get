@@ -1115,6 +1115,11 @@ impl UserProject {
         }
     }
 
+    #[doc(hidden)]
+    pub fn litedb_objectid(&self) -> Option<ObjectId> {
+        self.litedb_objectid
+    }
+
     pub fn path(&self) -> &str {
         self.path.as_str()
     }
