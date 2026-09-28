@@ -25,12 +25,14 @@
 
 use crate::common::get_temp_path;
 use itertools::Itertools;
-use std::path::Path;
+use rusqlite::fallible_iterator::FallibleIterator;
+use std::path::{Path, PathBuf};
 use vrc_get_litedb::bson::DateTime;
 use vrc_get_litedb::file_io::{BsonAutoId, LiteDBFile};
 use vrc_get_vpm::ProjectType;
 use vrc_get_vpm::environment::ProjectManagement;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::version::UnityVersion;
 
 mod common;
 
@@ -44,6 +46,7 @@ fn clean_dir(path: &Path) {
 }
 
 const VCC_LITEDB: &str = "vcc.liteDb";
+const VRC_GET_SQLITE: &str = "vrc-get/vrc-get.db";
 const SETTINGS_JSON: &str = "settings.json";
 
 macro_rules! test_settings_json_with_projects {
@@ -205,6 +208,18 @@ fn load_projects_in_litedb(litedb: &[u8]) -> Vec<String> {
         .collect_vec()
 }
 
+fn load_projects_in_sqlite(path: PathBuf) -> Vec<String> {
+    rusqlite::Connection::open(path)
+        .unwrap()
+        .prepare("SELECT path FROM projects ORDER BY path")
+        .unwrap()
+        .query(())
+        .unwrap()
+        .map(|x| x.get::<_, String>(0))
+        .collect::<Vec<_>>()
+        .unwrap()
+}
+
 /// Migrate from settings.json => vcc.liteDb for VCC 2.1.x or older compatibility
 #[tokio::test]
 async fn load_no_litedb_environment() {
@@ -270,6 +285,10 @@ async fn both_litedb_and_settings() {
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
         defined_projects_in_settings_json!(env_projects_str),
     );
+    assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+        defined_projects_in_settings_json!(env_projects_str),
+    );
 }
 
 /// When the settings.json does not have `userProjects` key,
@@ -307,6 +326,10 @@ async fn no_project_data_in_settings_json() {
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
         defined_projects_in_litedb(env_projects_str),
     );
+    assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+        defined_projects_in_litedb(env_projects_str),
+    );
 }
 
 /// When no settings.json is there, we treat empty userProjects are there.
@@ -336,6 +359,10 @@ async fn no_settings_json() {
     );
     assert_eq!(
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
+        defined_projects_in_litedb(env_projects_str),
+    );
+    assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
         defined_projects_in_litedb(env_projects_str),
     );
 }
@@ -390,6 +417,10 @@ async fn relative_path_in_settings_json_and_database() {
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
         defined_projects_in_settings_json!(env_projects_str),
     );
+    assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+        defined_projects_in_settings_json!(env_projects_str),
+    );
 }
 
 /// vrc-get considers projects with non-objectid _id as invalid.
@@ -442,6 +473,10 @@ async fn invalid_object_id() {
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
         defined_projects_in_settings_json!(env_projects_str),
     );
+    assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+        defined_projects_in_settings_json!(env_projects_str),
+    );
 }
 
 /// vrc-get considers projects with non-objectid _id as invalid.
@@ -484,7 +519,7 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-    ProjectManagement::start(io).await.unwrap(); // does migration
+    let manage = ProjectManagement::start(io).await.unwrap(); // does migration
 
     // check data
     assert_eq!(
@@ -502,6 +537,13 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
         ),
     );
     assert_eq!(
+        load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+        defined_projects_in_settings_json!(
+            env_projects_str,
+            additional_projects = [("{env_projects_str}/real-project")],
+        ),
+    );
+    assert_eq!(
         LiteDBFile::parse(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap())
             .unwrap()
             .get_by_index(
@@ -512,5 +554,46 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
             .next()
             .unwrap()["UnityVersion"],
         vrc_get_litedb::bson::Value::String("2019.4.31f1".into())
-    )
+    );
+    assert_eq!(
+        rusqlite::Connection::open(env_dir.join(VRC_GET_SQLITE))
+            .unwrap()
+            .query_one(
+                "SELECT unity_version_with_revision FROM projects WHERE path = ?",
+                [&format!("{env_projects_str}/real-project")],
+                |x| x.get::<_, String>(0)
+            )
+            .unwrap(),
+        "2019.4.31f1(bd5abf232a62)".to_string(),
+    );
+    let real_project = manage
+        .find_project(&format!("{env_projects_str}/real-project"))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        real_project.unity_version(),
+        Some(UnityVersion::new_f1(2019, 4, 31))
+    );
+    assert_eq!(real_project.unity_revision(), Some("bd5abf232a62"));
+
+    assert_eq!(
+        rusqlite::Connection::open(env_dir.join(VRC_GET_SQLITE))
+            .unwrap()
+            .query_one(
+                "SELECT unity_version_with_revision FROM projects WHERE path = ?",
+                [&format!("{env_projects_str}/HistoryOfAvatarOptimizer")],
+                |x| x.get::<_, String>(0)
+            )
+            .unwrap(),
+        "2022.3.22f1".to_string(),
+    );
+    let real_project = manage
+        .find_project(&format!("{env_projects_str}/HistoryOfAvatarOptimizer"))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        real_project.unity_version(),
+        Some(UnityVersion::new_f1(2022, 3, 22))
+    );
+    assert_eq!(real_project.unity_revision(), None);
 }
