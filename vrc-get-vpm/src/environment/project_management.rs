@@ -821,11 +821,16 @@ impl SQLiteConnection {
     ) -> Result<(), Error> {
         let litedb_projects = (litedb.db).get_all(COLLECTION).cloned().collect::<Vec<_>>();
         let conn = self.conn.clone();
-        let projects_to_insert = spawn_blocking(move || {
+
+        trace!("Syncing with LiteDB with {mode:?}");
+
+        let (projects_to_update, projects_to_insert) = spawn_blocking(move || {
             let tx = conn
                 .lock_arc()
                 .transaction_with_behavior(TransactionBehavior::Immediate)
                 .map_err(Error::SQLite)?;
+
+            let mut projects_to_update: Vec<Document> = vec![];
 
             let mut inserted_projects = BTreeSet::new();
 
@@ -835,8 +840,11 @@ impl SQLiteConnection {
                 SyncWithLitedbMode::ProjectsUnion => {
                     upsert = tx.prepare("INSERT INTO projects \
                             (path, litedb_objectid, unity_version_with_revision, created_at, last_modified, type, favorite, custom_unity_args, unity_path, is_valid)\
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
-                        ON CONFLICT (path) DO UPDATE SET litedb_objectid = excluded.litedb_objectid")
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                        ON CONFLICT (path) DO UPDATE SET litedb_objectid = excluded.litedb_objectid \
+                        ON CONFLICT (litedb_objectid) DO UPDATE SET litedb_objectid = excluded.litedb_objectid \
+                        RETURNING id, path, last_modified
+                        ")
                         .unwrap();
                 }
                 SyncWithLitedbMode::TrustLitedb => {
@@ -849,7 +857,15 @@ impl SQLiteConnection {
                             created_at = excluded.created_at, \
                             last_modified = excluded.last_modified, \
                             type = excluded.type, \
-                            favorite = excluded.favorite\
+                            favorite = excluded.favorite \
+                        ON CONFLICT (litedb_objectid) DO UPDATE SET \
+                            path = excluded.path, \
+                            unity_version_with_revision = excluded.unity_version_with_revision, \
+                            created_at = excluded.created_at, \
+                            last_modified = excluded.last_modified, \
+                            type = excluded.type, \
+                            favorite = excluded.favorite \
+                        RETURNING id, path, last_modified
                             ")
                         .unwrap();
                 }
@@ -882,7 +898,7 @@ impl SQLiteConnection {
 
                     // TODO: tx.set_last_insert_rowid(0); instead
                     let pre_last_insert_rowid = tx.last_insert_rowid();
-                    upsert.execute((
+                    let (updated_row, on_db_path, db_last_modified) = upsert.query_one((
                         path,
                         object_id.as_bytes().encode_hex::<String>(),
                         unity_version_with_revision,
@@ -893,11 +909,33 @@ impl SQLiteConnection {
                         custom_unity_args.map(|x| serde_json::to_string(&x).unwrap()),
                         unity_path,
                         is_valid_project.unwrap_or(true),
-                    )).map_err(Error::SQLite)?;
+                    ), |row| {
+                        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?, row.get::<_, i64>(2)?))
+                    }).map_err(Error::SQLite)?;
                     let last_insert_rowid = tx.last_insert_rowid();
                     if last_insert_rowid != pre_last_insert_rowid {
                         trace!("Project inserted into SQLite: ({path}, {object_id:?})");
                         inserted_projects.insert(last_insert_rowid);
+                    }
+                    if on_db_path != path {
+                        trace!("Tried inserting project into SQLite ({path:?}, {object_id:?}), but path disagrees. assuming either has changed path: {on_db_path:?}");
+                        let db_last_modified = datetime_from_unix(db_last_modified);
+                        // As of writing, neither vrc-get and VCC have a feature to rename / move the project.
+                        // However, we see path disagree so we assume either has changed the path.
+                        // We assume moving project would update the 'last modified' column and
+                        // use newer path.
+                        if db_last_modified < last_modified {
+                            trace!("Litedb last_modified is newer than SQLite last_modified. updating sqlite");
+                            tx.execute("UPDATE projects SET path = ?, last_modified = unixepoch('now') WHERE litedb_objectid = ?", (path, object_id.as_bytes().encode_hex::<String>())).map_err(Error::SQLite)?;
+                            inserted_projects.insert(updated_row);
+                        } else {
+                            trace!("SQLite last_modified is newer than Litedb last_modified. updating Litedb");
+                            let mut l_proj = l_proj.clone();
+                            l_proj.insert(PATH, Value::String(path.to_string()));
+                            l_proj.insert(LAST_MODIFIED, Value::DateTime(db_last_modified));
+                            projects_to_update.push(l_proj);
+                            inserted_projects.insert(updated_row);
+                        }
                     }
                 }
             }
@@ -920,20 +958,21 @@ impl SQLiteConnection {
                         if inserted_projects.contains(&user_project.id.map(NonZeroI64::get).unwrap_or(0)) {
                             continue;
                         }
-                        let object_id = user_project.litedb_objectid;
+                        let Some(object_id) = user_project.litedb_objectid else {
+                            continue;
+                        };
 
                         let path = &user_project.path;
 
-                        if let Some(object_id) = object_id
-                            && let Some(existing) = l_proj_by_id.get_mut(&object_id)
+                        if let Some(existing) = l_proj_by_id.get_mut(&object_id)
                             && let Some(existing_path) = existing[PATH].as_str()
                             && existing_path == path {
                             // Good News! the project already exists in the database! with the correct path
                             trace!("Project already exists in the database with the correct path: ({path}, {object_id:?}): {:?}", existing);
                         } else if let Some(object_id) = id_by_path.get(path) {
-                            // Not bad, the project was not found with the id, but found by path
-                            trace!("Project already exists in the database by the path: ({path}, {object_id:?}): {:?}", l_proj_by_id[object_id]);
-                            update_object_id.execute((object_id.as_bytes().encode_hex::<String>(), user_project.id)).map_err(Error::SQLite)?;
+                            // Project exists in database but object id and path disagress. This case is not reachable since
+                            // first loop over litedb should have 'fixed' it
+                            error!("Please Report an Bug: Project already exists in the database by the path: ({path}, {object_id:?}): {:?}", l_proj_by_id[object_id]);
                         } else {
                             // There is no project in the database with the given id or path
                             // We need to insert this project to litedb
@@ -950,7 +989,9 @@ impl SQLiteConnection {
                 SyncWithLitedbMode::TrustLitedb => {
                     // remove projects does not exist in LiteDB
                     let mut stmt = tx.prepare("DELETE FROM projects WHERE litedb_objectid IS NOT NULL AND path NOT IN (SELECT value from json_each(?)) RETURNING projects.path").unwrap();
-                    let mut rows = stmt.query((serde_json::to_string(&litedb_projects.iter().flat_map(|x| x[PATH].as_str()).collect::<Vec<&str>>()).unwrap(),)).unwrap();
+                    let json = serde_json::to_string(&litedb_projects.iter().flat_map(|x| x[PATH].as_str()).collect::<Vec<&str>>()).unwrap();
+                    trace!("removed projects: {:?}", json);
+                    let mut rows = stmt.query((json,)).unwrap();
                     while let Some(rows) = rows.next().map_err(Error::SQLite)? {
                         trace!("removed {}", rows.get::<_, String>(0).unwrap())
                     }
@@ -959,7 +1000,7 @@ impl SQLiteConnection {
 
             tx.commit().unwrap();
 
-            Ok(projects_to_insert)
+            Ok((projects_to_update, projects_to_insert))
         })
             .await
             .unwrap()?;
@@ -968,6 +1009,10 @@ impl SQLiteConnection {
             .db
             .insert(COLLECTION, projects_to_insert, BsonAutoId::ObjectId)
             .expect("insert");
+        litedb
+            .db
+            .update(COLLECTION, projects_to_update)
+            .expect("update");
 
         litedb.save(io).await.map_err(Error::SaveLitedb)?;
 
