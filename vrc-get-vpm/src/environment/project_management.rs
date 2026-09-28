@@ -215,6 +215,7 @@ impl<'io> ProjectManagement<'io> {
                 retain_ids.insert(project.litedb_objectid.unwrap());
             }
         }
+        spawn_blocking!(captures(), move || tx.commit().map_err(Error::SQLite))?;
 
         // remove deleted projects
         // we don't delete from sqlite since we migrating may want to do 'keep both' depending on the mode
