@@ -991,7 +991,7 @@ impl SQLiteConnection {
                 SyncWithLitedbMode::TrustLitedb => {
                     // remove projects does not exist in LiteDB
                     let mut stmt = tx.prepare("DELETE FROM projects WHERE litedb_objectid IS NOT NULL AND path NOT IN (SELECT value from json_each(?)) RETURNING projects.path").unwrap();
-                    let json = serde_json::to_string(&litedb_projects.iter().flat_map(|x| x[PATH].as_str()).collect::<Vec<&str>>()).unwrap();
+                    let json = serde_json::to_string(&litedb_projects.iter().flat_map(|x| x[PATH].as_str()).map(normalize_path_str).collect::<Vec<_>>()).unwrap();
                     trace!("removed projects: {:?}", json);
                     let mut rows = stmt.query((json,)).unwrap();
                     while let Some(rows) = rows.next().map_err(Error::SQLite)? {
