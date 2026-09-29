@@ -46,6 +46,14 @@ fn clean_dir(path: &Path) {
     std::fs::create_dir_all(path).unwrap();
 }
 
+fn normalize_path(path: String) -> String {
+    if std::path::MAIN_SEPARATOR != '/' {
+        path.replace("/", std::path::MAIN_SEPARATOR_STR)
+    } else {
+        path
+    }
+}
+
 const VCC_LITEDB: &str = "vcc.liteDb";
 const VRC_GET_SQLITE: &str = "vrc-get/vrc-get.db";
 const SETTINGS_JSON: &str = "settings.json";
@@ -53,40 +61,36 @@ const VRC_GET_SETTINGS: &str = "vrc-get/settings.json";
 
 macro_rules! test_settings_json_with_projects {
     ($env_projects_str: expr$(,)?) => {
-        test_settings_json_with_projects($env_projects_str, "", "")
+        test_settings_json_with_projects($env_projects_str, vec![])
     };
     ($env_projects_str: expr, additional_projects = $additional_projects:expr$(,)?) => {
-        test_settings_json_with_projects($env_projects_str, $additional_projects, "")
-    };
-    ($env_projects_str: expr, additional_props = $additional_props:expr$(,)?) => {
-        test_settings_json_with_projects($env_projects_str, "", $additional_props)
+        test_settings_json_with_projects($env_projects_str, $additional_projects)
     };
 }
 
 fn test_settings_json_with_projects(
     env_projects_str: &str,
-    additional_projects: &str,
-    additional_props: &str,
+    additional_projects: Vec<String>,
 ) -> String {
-    format!(
-        r#"{{
-{additional_props}  "userProjects": [
-{additional_projects}    "{env_projects_str}/Blank 2019 project",
-    "{env_projects_str}/Blank 2022 project",
-    "{env_projects_str}/HistoryOfAvatarOptimizer",
-    "{env_projects_str}/VPMPackageAutoInstaller",
-    "{env_projects_str}/CrashOnExitWithLogTypeFullName"
-  ]
-}}"#
-    )
+    use serde_json::*;
+    to_string_pretty(&json!({
+        "userProjects": additional_projects.into_iter().chain([
+            format!("{env_projects_str}/Blank 2019 project"),
+            format!("{env_projects_str}/Blank 2022 project"),
+            format!("{env_projects_str}/HistoryOfAvatarOptimizer"),
+            format!("{env_projects_str}/VPMPackageAutoInstaller"),
+            format!("{env_projects_str}/CrashOnExitWithLogTypeFullName"),
+        ]).collect::<Vec<_>>()
+    }))
+    .unwrap()
 }
 
 macro_rules! defined_projects_in_settings_json {
     ($env_projects_str: expr$(,)?) => {
         defined_projects_in_settings_json($env_projects_str, vec![])
     };
-    ($env_projects_str: expr, additional_projects = [$($path_format: tt),*$(,)?]$(,)?) => {
-        defined_projects_in_settings_json($env_projects_str, vec![$(format!$path_format),*])
+    ($env_projects_str: expr, additional_projects = [$($path_format: expr),*$(,)?]$(,)?) => {
+        defined_projects_in_settings_json($env_projects_str, vec![$($path_format),*])
     };
 }
 
@@ -103,6 +107,7 @@ fn defined_projects_in_settings_json(
     ]
     .into_iter()
     .chain(additional)
+    .map(normalize_path)
     .sorted()
     .collect_vec()
 }
@@ -113,6 +118,7 @@ fn load_projects_in_settings_json(settings_json: &[u8]) -> Vec<String> {
         .unwrap()
         .iter()
         .map(|p| p.as_str().unwrap().to_string())
+        .map(normalize_path)
         .sorted()
         .collect_vec()
 }
@@ -198,6 +204,7 @@ fn defined_projects_in_litedb(env_projects_str: &str) -> Vec<String> {
     ]
     .into_iter()
     .sorted()
+    .map(normalize_path)
     .collect_vec()
 }
 
@@ -207,6 +214,7 @@ fn load_projects_in_litedb(litedb: &[u8]) -> Vec<String> {
         .get_all("projects")
         .map(|p| p["Path"].as_str().unwrap().to_string())
         .sorted()
+        .map(normalize_path)
         .collect_vec()
 }
 
@@ -385,8 +393,7 @@ async fn relative_path_in_settings_json_and_database() {
         env_dir.join(SETTINGS_JSON),
         test_settings_json_with_projects!(
             env_projects_str,
-            additional_projects = r##"    "relative-path-here",
-"##,
+            additional_projects = vec!["relative-path-here".into()],
         ),
     )
     .unwrap();
@@ -438,10 +445,7 @@ async fn invalid_object_id() {
         env_dir.join(SETTINGS_JSON),
         test_settings_json_with_projects!(
             env_projects_str,
-            additional_projects = &format!(
-                r#""{env_projects_str}/bad id",
-"#,
-            )
+            additional_projects = vec![format!("{env_projects_str}/bad id")],
         ),
     )
     .unwrap();
@@ -494,10 +498,7 @@ async fn migrate_with_real_project() {
         env_dir.join(SETTINGS_JSON),
         test_settings_json_with_projects!(
             env_projects_str,
-            additional_projects = &format!(
-                r#""{env_projects_str}/real-project",
-"#,
-            )
+            additional_projects = vec![format!("{env_projects_str}/real-project")],
         ),
     )
     .unwrap();
@@ -528,21 +529,21 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
         load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
         defined_projects_in_settings_json!(
             env_projects_str,
-            additional_projects = [("{env_projects_str}/real-project")],
+            additional_projects = [format!("{env_projects_str}/real-project")],
         ),
     );
     assert_eq!(
         load_projects_in_settings_json(&std::fs::read(env_dir.join(SETTINGS_JSON)).unwrap()),
         defined_projects_in_settings_json!(
             env_projects_str,
-            additional_projects = [("{env_projects_str}/real-project")],
+            additional_projects = [format!("{env_projects_str}/real-project")],
         ),
     );
     assert_eq!(
         load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
         defined_projects_in_settings_json!(
             env_projects_str,
-            additional_projects = [("{env_projects_str}/real-project")],
+            additional_projects = [format!("{env_projects_str}/real-project")],
         ),
     );
     assert_eq!(
@@ -571,11 +572,10 @@ async fn sqlite_migrations_new_projects() {
         env_dir.join(SETTINGS_JSON),
         test_settings_json_with_projects!(
             env_projects_str,
-            additional_projects = &format!(
-                r#""{env_projects_str}/real-project",
-                "{env_projects_str}/litedb-extended-project",
-"#,
-            )
+            additional_projects = vec![
+                format!("{env_projects_str}/real-project"),
+                format!("{env_projects_str}/litedb-extended-project"),
+            ],
         ),
     )
     .unwrap();
@@ -625,8 +625,8 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
         defined_projects_in_settings_json!(
             env_projects_str,
             additional_projects = [
-                ("{env_projects_str}/real-project"),
-                ("{env_projects_str}/litedb-extended-project")
+                format!("{env_projects_str}/real-project"),
+                format!("{env_projects_str}/litedb-extended-project")
             ],
         ),
     );
@@ -740,13 +740,13 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
             )
             .unwrap();
         stmt.execute((
-            format!("{env_projects_str}/sqlite-only-no-id"),
+            normalize_path(format!("{env_projects_str}/sqlite-only-no-id")),
             Option::<String>::None,
             "2022.3.22f1(887be4894c44)",
         ))
         .unwrap();
         stmt.execute((
-            format!("{env_projects_str}/sqlite-only-with-id"),
+            normalize_path(format!("{env_projects_str}/sqlite-only-with-id")),
             vrc_get_litedb::bson::ObjectId::from_bytes(*b"sqlite-only ")
                 .as_bytes()
                 .encode_hex::<String>(),
@@ -754,7 +754,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
         ))
         .unwrap();
         stmt.execute((
-            format!("{env_projects_str}/id-mismatch"),
+            normalize_path(format!("{env_projects_str}/id-mismatch")),
             vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch1")
                 .as_bytes()
                 .encode_hex::<String>(),
@@ -762,7 +762,9 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
         ))
         .unwrap();
         stmt.execute((
-            format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
+            normalize_path(format!(
+                "{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"
+            )),
             vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0")
                 .as_bytes()
                 .encode_hex::<String>(),
@@ -770,7 +772,9 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
         ))
         .unwrap();
         stmt.execute((
-            format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-sqlite"),
+            normalize_path(format!(
+                "{env_projects_str}/path-mismatch-1-litedb-is-newer-sqlite"
+            )),
             vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1")
                 .as_bytes()
                 .encode_hex::<String>(),
@@ -782,13 +786,12 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
         env_dir.join(SETTINGS_JSON),
         test_settings_json_with_projects!(
             env_projects_str,
-            additional_projects = &format!(
-                r#""{env_projects_str}/litedb-good",
-                "{env_projects_str}/id-mismatch",
-                "{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb",
-                "{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb",
-"#,
-            )
+            additional_projects = vec![
+                format!("{env_projects_str}/litedb-good"),
+                format!("{env_projects_str}/id-mismatch"),
+                format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb"),
+                format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+            ],
         ),
     )
     .unwrap();
@@ -859,12 +862,12 @@ async fn sqlite_migrations_with_projects_in_database_projects_union() {
         defined_projects_in_settings_json!(
             env_projects_str,
             additional_projects = [
-                ("{env_projects_str}/litedb-good"),
-                ("{env_projects_str}/sqlite-only-no-id"),
-                ("{env_projects_str}/sqlite-only-with-id"),
-                ("{env_projects_str}/id-mismatch"),
-                ("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
-                ("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+                format!("{env_projects_str}/litedb-good"),
+                format!("{env_projects_str}/sqlite-only-no-id"),
+                format!("{env_projects_str}/sqlite-only-with-id"),
+                format!("{env_projects_str}/id-mismatch"),
+                format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
+                format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
             ],
         ),
     );
@@ -933,13 +936,13 @@ async fn sqlite_migrations_with_projects_in_database_trust_litedb() {
         defined_projects_in_settings_json!(
             env_projects_str,
             additional_projects = [
-                ("{env_projects_str}/litedb-good"),
+                format!("{env_projects_str}/litedb-good"),
                 // We keep sqlite-only-no-id since it does not have on ID and it means sqlite-only project,
                 // VCC-incompatible projects
-                ("{env_projects_str}/sqlite-only-no-id"),
-                ("{env_projects_str}/id-mismatch"),
-                ("{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb"),
-                ("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+                format!("{env_projects_str}/sqlite-only-no-id"),
+                format!("{env_projects_str}/id-mismatch"),
+                format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb"),
+                format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
             ],
         ),
     );
