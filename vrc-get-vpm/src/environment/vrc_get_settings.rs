@@ -1,7 +1,10 @@
 use crate::io;
-use crate::io::{DefaultEnvironmentIo, IoTrait};
-use crate::utils::{parse_json_file, read_to_end};
+use crate::io::DefaultEnvironmentIo;
+use crate::utils::load_json_or_default;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
+
+type JsonObject = Map<String, Value>;
 
 /// since this file is vrc-get specific, additional keys can be removed
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -11,6 +14,12 @@ struct AsJson {
     ignore_official_repository: bool,
     #[serde(default)]
     ignore_curated_repository: bool,
+    #[cfg(feature = "experimental-project-management")]
+    #[serde(default)]
+    project_list_sync_mode: super::project_management::SyncWithLitedbMode,
+
+    #[serde(flatten)]
+    rest: JsonObject,
 }
 
 #[derive(Debug, Clone)]
@@ -22,19 +31,7 @@ const JSON_PATH: &str = "vrc-get/settings.json";
 
 impl VrcGetSettings {
     pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
-        //let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
-
-        let parsed = match io.open(JSON_PATH.as_ref()).await {
-            Ok(file) => match read_to_end(file).await? {
-                vec if vec.is_empty() => Default::default(),
-                vec => {
-                    log::warn!("vrc-get specific settings file is experimental feature!");
-                    parse_json_file(&vec, JSON_PATH.as_ref())?
-                }
-            },
-            Err(ref e) if e.kind() == io::ErrorKind::NotFound => Default::default(),
-            Err(e) => return Err(e),
-        };
+        let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
         Ok(Self { parsed })
     }
@@ -45,5 +42,10 @@ impl VrcGetSettings {
 
     pub fn ignore_curated_repository(&self) -> bool {
         self.parsed.ignore_curated_repository
+    }
+
+    #[cfg(feature = "experimental-project-management")]
+    pub fn project_list_sync_mode(&self) -> super::project_management::SyncWithLitedbMode {
+        self.parsed.project_list_sync_mode
     }
 }

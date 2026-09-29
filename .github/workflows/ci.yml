@@ -106,10 +106,10 @@ jobs:
             target/${{ matrix.triple }}/debug/vrc-get*
             target/${{ matrix.triple }}/debug/libvrc-get*
       - name: Build tests
-        run: cargo build --tests --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm
+        run: cargo build --tests --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm --features experimental-project-management,experimental-unity-management
       - name: Run tests
         if: ${{ matrix.run-test }}
-        run: cargo test --verbose --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm
+        run: cargo test --verbose --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm --features experimental-project-management,experimental-unity-management
       - name: Check binary is statically linked
         shell: bash
         if: ${{ matrix.static-linked }}

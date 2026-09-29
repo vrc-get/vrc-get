@@ -118,3 +118,11 @@ pub fn get_temp_path(base_name: &str) -> PathBuf {
         std::panic::Location::caller().line()
     ))
 }
+
+pub fn init_log() {
+    env_logger::Builder::new()
+        .filter_level(log::LevelFilter::Trace)
+        .is_test(true)
+        .try_init()
+        .ok();
+}
