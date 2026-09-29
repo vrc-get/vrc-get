@@ -1024,7 +1024,7 @@ impl SQLiteConnection {
 
                         if let Some(existing) = l_proj_by_id.get_mut(&object_id)
                             && let Some(existing_path) = existing[PATH].as_str()
-                            && existing_path == path {
+                            && &normalize_path_str(existing_path) == path {
                             // Good News! the project already exists in the database! with the correct path
                             trace!("Project already exists in the database with the correct path: ({path}, {object_id:?}): {:?}", existing);
                         } else if let Some(existing) = id_by_path.get(path) {
