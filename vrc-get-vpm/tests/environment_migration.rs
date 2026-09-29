@@ -850,7 +850,11 @@ async fn sqlite_migrations_with_projects_in_database_projects_union() {
     let env_projects = get_temp_path("env_projects");
     let env_projects_str = env_projects.to_str().unwrap();
     sqlite_migrations_with_projects_in_database_prepare(&env_dir, env_projects_str).await;
-    std::fs::write(env_dir.join(VRC_GET_SETTINGS), r#"{")":"ProjectsUnion"}"#).unwrap();
+    std::fs::write(
+        env_dir.join(VRC_GET_SETTINGS),
+        r#"{"projectListSyncMode":"ProjectsUnion"}"#,
+    )
+    .unwrap();
 
     // run code
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
