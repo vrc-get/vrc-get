@@ -874,7 +874,11 @@ impl SQLiteConnection {
 
             for l_proj in &litedb_projects {
                 if let Some(object_id) = l_proj.get(ID).as_object_id()
-                    && let Some(unity_version) = l_proj[UNITY_VERSION].as_str().and_then(UnityVersion::parse)
+                    && let Some(unity_version) = match l_proj[UNITY_VERSION].as_str().map(UnityVersion::parse) {
+                        Some(Some(v)) => Some(Some(v)),
+                        Some(None) => None,
+                        None => Some(None),
+                    }
                     && let Some(path) = l_proj[PATH].as_str()
                     && let Some(created_at) = l_proj[CREATED_AT].as_date_time()
                     && let Some(last_modified) = l_proj[LAST_MODIFIED].as_date_time()
@@ -884,7 +888,7 @@ impl SQLiteConnection {
                     let favorite = l_proj[FAVORITE].as_bool().unwrap_or(false);
                     let vrc_get = l_proj.get(VRC_GET).as_document();
                     let unity_revision = vrc_get
-                        .filter(|x| x[CACHED_UNITY_REVISION].as_str() == Some(&unity_version.to_string()))
+                        .filter(|x| x[CACHED_UNITY_REVISION].as_str() == unity_version.map(|x| x.to_string()).as_deref() && unity_version.is_some())
                         .and_then(|x| x[UNITY_REVISION].as_str());
                     let custom_unity_args = vrc_get
                         .and_then(|x| x[CUSTOM_UNITY_ARGS].as_array())
@@ -896,7 +900,7 @@ impl SQLiteConnection {
                         });
                     let unity_path = vrc_get.and_then(|x| x[UNITY_PATH].as_str());
                     let is_valid_project = vrc_get.and_then(|x| x[IS_VALID].as_bool());
-                    let unity_version_with_revision = unity_version_with_revision(unity_version, unity_revision);
+                    let unity_version_with_revision = unity_version.map(|unity_version| unity_version_with_revision(unity_version, unity_revision));
 
                     // TODO: tx.set_last_insert_rowid(0); instead
                     let pre_last_insert_rowid = tx.last_insert_rowid();
@@ -975,7 +979,7 @@ impl SQLiteConnection {
                         // This might link updateAt and other metadata to incorrect paths, but we ignore it, at least for now.
                         let path_conflict_id = tx.query_one("SELECT id FROM projects WHERE path = ?", [&path], |row| row.get::<_, i64>(0)).map_err(Error::SQLite)?;
                         let (object_id_conflict_id, path_of_object_id_on_db) = tx.query_one("SELECT id, path FROM projects WHERE litedb_objectid = ?", [&object_id.as_bytes().encode_hex::<String>()], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))).map_err(Error::SQLite)?;
-                        trace!("Conflicted with {path_conflict_id} on path and {object_id_conflict_id} ({path_of_object_id_on_db:?}) on object_id. swapping the path of both entries");
+                        trace!("Conflicted with {path_conflict_id} on path and {object_id_conflict_id} ({path_of_object_id_on_db:?}) on object_id. swapping the path of both entries: {path:?}, {object_id:?}");
 
                         tx.execute("UPDATE projects SET path = CAST(random() AS TEXT) WHERE id = ?", (object_id_conflict_id,)).map_err(Error::SQLite)?;
                         tx.execute("UPDATE projects SET path = ? WHERE id = ?", (&path_of_object_id_on_db, path_conflict_id)).map_err(Error::SQLite)?;
