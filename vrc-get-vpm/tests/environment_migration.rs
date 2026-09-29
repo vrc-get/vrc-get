@@ -54,6 +54,10 @@ fn normalize_path(path: String) -> String {
     }
 }
 
+fn object_id(bytes: &[u8; 12]) -> vrc_get_litedb::bson::ObjectId {
+    vrc_get_litedb::bson::ObjectId::from_bytes(*bytes)
+}
+
 const VCC_LITEDB: &str = "vcc.liteDb";
 const VRC_GET_SQLITE: &str = "vrc-get/vrc-get.db";
 const SETTINGS_JSON: &str = "settings.json";
@@ -584,7 +588,7 @@ async fn sqlite_migrations_new_projects() {
         test_litedb_file_with_projects!(
             env_projects_str,
             additional_projects = vec![vrc_get_litedb::document! {
-                "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"extendedproj"),
+                "_id" => object_id(b"extendedproj"),
                 "Path" => format!("{env_projects_str}/litedb-extended-project"),
                 "UnityVersion" => "2022.3.22f1",
                 "CreatedAt" => vrc_get_litedb::date!(2022-03-02 11:02:14),
@@ -691,7 +695,7 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
     assert_eq!(real_project.name(), "litedb-extended-project");
     assert_eq!(
         real_project.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"extendedproj"))
+        Some(object_id(b"extendedproj"))
     );
     assert_eq!(
         real_project.crated_at(),
@@ -747,17 +751,13 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
         .unwrap();
         stmt.execute((
             normalize_path(format!("{env_projects_str}/sqlite-only-with-id")),
-            vrc_get_litedb::bson::ObjectId::from_bytes(*b"sqlite-only ")
-                .as_bytes()
-                .encode_hex::<String>(),
+            object_id(b"sqlite-only ").as_bytes().encode_hex::<String>(),
             "2022.3.22f1(887be4894c44)",
         ))
         .unwrap();
         stmt.execute((
             normalize_path(format!("{env_projects_str}/id-mismatch")),
-            vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch1")
-                .as_bytes()
-                .encode_hex::<String>(),
+            object_id(b"id-mismatch1").as_bytes().encode_hex::<String>(),
             "2022.3.22f1(887be4894c44)",
         ))
         .unwrap();
@@ -765,9 +765,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
             normalize_path(format!(
                 "{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"
             )),
-            vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0")
-                .as_bytes()
-                .encode_hex::<String>(),
+            object_id(b"pathmismatc0").as_bytes().encode_hex::<String>(),
             "2022.3.22f1(887be4894c44)",
         ))
         .unwrap();
@@ -775,9 +773,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
             normalize_path(format!(
                 "{env_projects_str}/path-mismatch-1-litedb-is-newer-sqlite"
             )),
-            vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1")
-                .as_bytes()
-                .encode_hex::<String>(),
+            object_id(b"pathmismatc1").as_bytes().encode_hex::<String>(),
             "2022.3.22f1(887be4894c44)",
         ))
         .unwrap();
@@ -785,17 +781,13 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
             normalize_path(format!(
                 "{env_projects_str}/both-conflict-0-path-conflicter"
             )),
-            vrc_get_litedb::bson::ObjectId::from_bytes(*b"random014752")
-                .as_bytes()
-                .encode_hex::<String>(),
+            object_id(b"random014752").as_bytes().encode_hex::<String>(),
             "2022.3.22f1(887be4894c44)",
         ))
         .unwrap();
         stmt.execute((
             normalize_path(format!("{env_projects_str}/both-conflict-0-id-conflicter")),
-            vrc_get_litedb::bson::ObjectId::from_bytes(*b"bothconflic0")
-                .as_bytes()
-                .encode_hex::<String>(),
+            object_id(b"bothconflic0").as_bytes().encode_hex::<String>(),
             "2022.3.22f1(887be4894c44)",
         ))
         .unwrap();
@@ -820,7 +812,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
             env_projects_str,
             additional_projects = vec![
                 vrc_get_litedb::document! {
-                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"litedbgoodpr"),
+                    "_id" => object_id(b"litedbgoodpr"),
                     "Path" => format!("{env_projects_str}/litedb-good"),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => vrc_get_litedb::date!(2022-03-02 11:02:14),
@@ -829,7 +821,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
                     "Favorite" => true,
                 },
                 vrc_get_litedb::document! {
-                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch0"),
+                    "_id" => object_id(b"id-mismatch0"),
                     "Path" => format!("{env_projects_str}/id-mismatch"),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => vrc_get_litedb::date!(2022-03-12 11:02:14),
@@ -838,7 +830,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
                     "Favorite" => true,
                 },
                 vrc_get_litedb::document! {
-                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0"),
+                    "_id" => object_id(b"pathmismatc0"),
                     "Path" => format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb"),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => vrc_get_litedb::date!(2022-03-12 11:02:14),
@@ -847,7 +839,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
                     "Favorite" => true,
                 },
                 vrc_get_litedb::document! {
-                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1"),
+                    "_id" => object_id(b"pathmismatc1"),
                     "Path" => format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => DateTime::now().add_days(1).unwrap(),
@@ -856,7 +848,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
                     "Favorite" => true,
                 },
                 vrc_get_litedb::document! {
-                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"bothconflic0"),
+                    "_id" => object_id(b"bothconflic0"),
                     "Path" => format!("{env_projects_str}/both-conflict-0-path-conflicter"),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => DateTime::now().add_days(1).unwrap(),
@@ -915,7 +907,7 @@ async fn sqlite_migrations_with_projects_in_database_projects_union() {
     let id_mismatch = get_project("id-mismatch").unwrap();
     assert_eq!(
         id_mismatch.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch0"))
+        Some(object_id(b"id-mismatch0"))
     );
 
     let sqlite_only_no_id = get_project("sqlite-only-no-id").unwrap();
@@ -927,20 +919,20 @@ async fn sqlite_migrations_with_projects_in_database_projects_union() {
     let litedb_good = get_project("litedb-good").unwrap();
     assert_eq!(
         litedb_good.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"litedbgoodpr"))
+        Some(object_id(b"litedbgoodpr"))
     );
 
     let patch_mismatch_0 = get_project("path-mismatch-0-sqlite-is-newer-sqlite").unwrap();
     assert_eq!(
         patch_mismatch_0.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0"))
+        Some(object_id(b"pathmismatc0"))
     );
     assert!(get_project("path-mismatch-0-sqlite-is-newer-litedb").is_none());
 
     let path_mismatch_1 = get_project("path-mismatch-1-litedb-is-newer-litedb").unwrap();
     assert_eq!(
         path_mismatch_1.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1"))
+        Some(object_id(b"pathmismatc1"))
     );
     assert!(get_project("path-mismatch-1-litedb-is-newer-sqlite").is_none());
 }
@@ -991,26 +983,26 @@ async fn sqlite_migrations_with_projects_in_database_trust_litedb() {
     let id_mismatch = get_project("id-mismatch").unwrap();
     assert_eq!(
         id_mismatch.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"id-mismatch0"))
+        Some(object_id(b"id-mismatch0"))
     );
 
     let litedb_good = get_project("litedb-good").unwrap();
     assert_eq!(
         litedb_good.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"litedbgoodpr"))
+        Some(object_id(b"litedbgoodpr"))
     );
 
     let path_mismatch_0 = get_project("path-mismatch-0-sqlite-is-newer-litedb").unwrap();
     assert_eq!(
         path_mismatch_0.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc0"))
+        Some(object_id(b"pathmismatc0"))
     );
     assert!(get_project("path-mismatch-0-sqlite-is-newer-sqlite").is_none());
 
     let path_mismatch_1 = get_project("path-mismatch-1-litedb-is-newer-litedb").unwrap();
     assert_eq!(
         path_mismatch_1.litedb_objectid(),
-        Some(vrc_get_litedb::bson::ObjectId::from_bytes(*b"pathmismatc1"))
+        Some(object_id(b"pathmismatc1"))
     );
     assert!(get_project("path-mismatch-1-litedb-is-newer-sqlite").is_none());
 }
