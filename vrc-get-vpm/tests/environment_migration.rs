@@ -782,7 +782,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
                 "{env_projects_str}/both-conflict-0-path-conflicter"
             )),
             object_id(b"random014752").as_bytes().encode_hex::<String>(),
-            "2022.3.22f1(887be4894c44)",
+            "2019.4.31f1(bd5abf232a62)",
         ))
         .unwrap();
         stmt.execute((
@@ -935,6 +935,30 @@ async fn sqlite_migrations_with_projects_in_database_projects_union() {
         Some(object_id(b"pathmismatc1"))
     );
     assert!(get_project("path-mismatch-1-litedb-is-newer-sqlite").is_none());
+
+    let conflict_0_path_conflicter = get_project("both-conflict-0-path-conflicter").unwrap();
+    assert_eq!(
+        conflict_0_path_conflicter.litedb_objectid(),
+        Some(object_id(b"bothconflic0"))
+    );
+    assert_eq!(
+        conflict_0_path_conflicter.unity_revision(),
+        Some("887be4894c44")
+    );
+
+    let conflict_0_id_conflicter = get_project("both-conflict-0-id-conflicter").unwrap();
+    assert_ne!(
+        conflict_0_id_conflicter.litedb_objectid(),
+        Some(object_id(b"random014752"))
+    );
+    assert_ne!(
+        conflict_0_id_conflicter.litedb_objectid(),
+        Some(object_id(b"bothconflic0"))
+    );
+    assert_eq!(
+        conflict_0_id_conflicter.unity_revision(),
+        Some("bd5abf232a62")
+    );
 }
 
 #[tokio::test]
@@ -1005,4 +1029,11 @@ async fn sqlite_migrations_with_projects_in_database_trust_litedb() {
         Some(object_id(b"pathmismatc1"))
     );
     assert!(get_project("path-mismatch-1-litedb-is-newer-sqlite").is_none());
+
+    let conflict_0_path_conflicter = get_project("both-conflict-0-path-conflicter").unwrap();
+    assert_eq!(
+        conflict_0_path_conflicter.litedb_objectid(),
+        Some(object_id(b"bothconflic0"))
+    );
+    assert_eq!(conflict_0_path_conflicter.unity_revision(), None);
 }
