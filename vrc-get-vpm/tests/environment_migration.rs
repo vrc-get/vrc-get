@@ -781,6 +781,24 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
             "2022.3.22f1(887be4894c44)",
         ))
         .unwrap();
+        stmt.execute((
+            normalize_path(format!(
+                "{env_projects_str}/both-conflict-0-path-conflicter"
+            )),
+            vrc_get_litedb::bson::ObjectId::from_bytes(*b"random014752")
+                .as_bytes()
+                .encode_hex::<String>(),
+            "2022.3.22f1(887be4894c44)",
+        ))
+        .unwrap();
+        stmt.execute((
+            normalize_path(format!("{env_projects_str}/both-conflict-0-id-conflicter")),
+            vrc_get_litedb::bson::ObjectId::from_bytes(*b"bothconflic0")
+                .as_bytes()
+                .encode_hex::<String>(),
+            "2022.3.22f1(887be4894c44)",
+        ))
+        .unwrap();
     }
     std::fs::write(
         env_dir.join(SETTINGS_JSON),
@@ -791,6 +809,7 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
                 format!("{env_projects_str}/id-mismatch"),
                 format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb"),
                 format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+                format!("{env_projects_str}/both-conflict-0-path-conflicter"),
             ],
         ),
     )
@@ -836,6 +855,15 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
                     "Type" => ProjectType::Avatars as i32,
                     "Favorite" => true,
                 },
+                vrc_get_litedb::document! {
+                    "_id" => vrc_get_litedb::bson::ObjectId::from_bytes(*b"bothconflic0"),
+                    "Path" => format!("{env_projects_str}/both-conflict-0-path-conflicter"),
+                    "UnityVersion" => "2022.3.22f1",
+                    "CreatedAt" => DateTime::now().add_days(1).unwrap(),
+                    "LastModified" => DateTime::now().add_days(1).unwrap(),
+                    "Type" => ProjectType::Avatars as i32,
+                    "Favorite" => true,
+                },
             ]
         ),
     )
@@ -872,6 +900,8 @@ async fn sqlite_migrations_with_projects_in_database_projects_union() {
                 format!("{env_projects_str}/id-mismatch"),
                 format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
                 format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+                format!("{env_projects_str}/both-conflict-0-path-conflicter"),
+                format!("{env_projects_str}/both-conflict-0-id-conflicter"),
             ],
         ),
     );
@@ -947,6 +977,7 @@ async fn sqlite_migrations_with_projects_in_database_trust_litedb() {
                 format!("{env_projects_str}/id-mismatch"),
                 format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-litedb"),
                 format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+                format!("{env_projects_str}/both-conflict-0-path-conflicter"),
             ],
         ),
     );
