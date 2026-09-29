@@ -213,8 +213,8 @@ fn load_projects_in_litedb(litedb: &[u8]) -> Vec<String> {
         .unwrap()
         .get_all("projects")
         .map(|p| p["Path"].as_str().unwrap().to_string())
-        .sorted()
         .map(normalize_path)
+        .sorted()
         .collect_vec()
 }
 
@@ -552,7 +552,7 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
             .get_by_index(
                 "projects",
                 "Path",
-                &format!("{env_projects_str}/real-project").into()
+                &normalize_path(format!("{env_projects_str}/real-project")).into()
             )
             .next()
             .unwrap()["UnityVersion"],
@@ -634,7 +634,7 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
     let get_project_version = |path: &str| {
         conn.query_one(
             "SELECT unity_version_with_revision FROM projects WHERE path = ?",
-            [path],
+            [normalize_path(path.into())],
             |x| x.get::<_, String>(0),
         )
         .unwrap()
@@ -656,7 +656,7 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
     assert_eq!(real_project.unity_revision(), Some("bd5abf232a62"));
     assert_eq!(
         real_project.path(),
-        &format!("{env_projects_str}/real-project")
+        &normalize_path(format!("{env_projects_str}/real-project"))
     );
     assert_eq!(real_project.name(), "real-project");
 
@@ -686,7 +686,7 @@ m_EditorVersionWithRevision: 2019.4.31f1 (bd5abf232a62)
         .unwrap();
     assert_eq!(
         real_project.path(),
-        &format!("{env_projects_str}/litedb-extended-project")
+        &normalize_path(format!("{env_projects_str}/litedb-extended-project"))
     );
     assert_eq!(real_project.name(), "litedb-extended-project");
     assert_eq!(
