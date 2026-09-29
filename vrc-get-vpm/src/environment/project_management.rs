@@ -146,14 +146,14 @@ impl<'io> ProjectManagement<'io> {
                     false
                 }
             })
-            .map(|x| x.as_ref())
+            .map(|x| normalize_path_str(x.as_ref()))
             .collect::<HashSet<_>>();
 
         let db_projects = litedb.db.get_all(COLLECTION).cloned().collect::<Vec<_>>();
 
         let db_projects_by_path = db_projects
             .iter()
-            .filter_map(|x| Some((x.get("Path").as_str()?, x)))
+            .filter_map(|x| Some((normalize_path_str(x.get("Path").as_str()?), x)))
             .collect::<HashMap<_, _>>();
 
         let mut retain_ids = HashSet::new();
@@ -166,7 +166,8 @@ impl<'io> ProjectManagement<'io> {
 
         // add new projects
         for project in &projects {
-            if let Some(proj) = db_projects_by_path.get(*project) {
+            let project = project.as_str();
+            if let Some(proj) = db_projects_by_path.get(project) {
                 if let Some(id) = proj[ID].as_object_id() {
                     retain_ids.insert(id);
                     trace!("migrate: keeping project id {id:?} for {project}");
@@ -194,7 +195,7 @@ impl<'io> ProjectManagement<'io> {
                 )
                 .await
                 .unwrap_or((ProjectType::Unknown, None, None));
-                let mut project = UserProject::new((*project).into(), unity_version, project_type);
+                let mut project = UserProject::new(project.into(), unity_version, project_type);
                 if unity_version.is_some() {
                     project.unity_revision = unity_revision;
                 }
@@ -879,6 +880,7 @@ impl SQLiteConnection {
                     && let Some(last_modified) = l_proj[LAST_MODIFIED].as_date_time()
                     && let Some(project_type) = l_proj[TYPE].as_i32()
                 {
+                    let path = &normalize_path_str(path) as &str;
                     let favorite = l_proj[FAVORITE].as_bool().unwrap_or(false);
                     let vrc_get = l_proj.get(VRC_GET).as_document();
                     let unity_revision = vrc_get
@@ -946,7 +948,7 @@ impl SQLiteConnection {
                 SyncWithLitedbMode::ProjectsUnion => {
                     // Copy projects from SQLite to LiteDB
                     let mut l_proj_by_id = litedb_projects.into_iter().flat_map(|x| Some((x.get(ID).as_object_id()?, x))).collect::<HashMap<_, _>>();
-                    let id_by_path = l_proj_by_id.iter().flat_map(|(&id, proj)| Some((proj[PATH].as_str()?.to_string(), id))).collect::<BTreeMap<_, _>>();
+                    let id_by_path = l_proj_by_id.iter().flat_map(|(&id, proj)| Some((normalize_path_str(proj[PATH].as_str()?), id))).collect::<BTreeMap<_, _>>();
 
                     let mut get_projects = GetProjectRunner::prepare(&tx, "");
                     let mut update_object_id = tx.prepare("UPDATE projects SET litedb_objectid = ? WHERE id = ?").unwrap();
