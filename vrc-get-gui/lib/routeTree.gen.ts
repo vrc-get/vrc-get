@@ -18,7 +18,7 @@ import { Route as MainLogIndexRouteImport } from './../app/_main/log/index'
 import { Route as MainDevPaletteIndexRouteImport } from './../app/_main/dev-palette/index'
 import { Route as SetupSetupUnityHubIndexRouteImport } from './../app/_setup/setup/unity-hub/index'
 import { Route as SetupSetupSystemSettingIndexRouteImport } from './../app/_setup/setup/system-setting/index'
-import { Route as SetupSetupProjectPathIndexRouteImport } from './../app/_setup/setup/project-path/index'
+import { Route as SetupSetupProjectsIndexRouteImport } from './../app/_setup/setup/projects/index'
 import { Route as SetupSetupFinishIndexRouteImport } from './../app/_setup/setup/finish/index'
 import { Route as SetupSetupBackupsIndexRouteImport } from './../app/_setup/setup/backups/index'
 import { Route as SetupSetupAppearanceIndexRouteImport } from './../app/_setup/setup/appearance/index'
@@ -72,12 +72,11 @@ const SetupSetupSystemSettingIndexRoute =
     path: '/setup/system-setting/',
     getParentRoute: () => SetupRouteRoute,
   } as any)
-const SetupSetupProjectPathIndexRoute =
-  SetupSetupProjectPathIndexRouteImport.update({
-    id: '/setup/project-path/',
-    path: '/setup/project-path/',
-    getParentRoute: () => SetupRouteRoute,
-  } as any)
+const SetupSetupProjectsIndexRoute = SetupSetupProjectsIndexRouteImport.update({
+  id: '/setup/projects/',
+  path: '/setup/projects/',
+  getParentRoute: () => SetupRouteRoute,
+} as any)
 const SetupSetupFinishIndexRoute = SetupSetupFinishIndexRouteImport.update({
   id: '/setup/finish/',
   path: '/setup/finish/',
@@ -138,7 +137,7 @@ export interface FileRoutesByFullPath {
   '/setup/appearance/': typeof SetupSetupAppearanceIndexRoute
   '/setup/backups/': typeof SetupSetupBackupsIndexRoute
   '/setup/finish/': typeof SetupSetupFinishIndexRoute
-  '/setup/project-path/': typeof SetupSetupProjectPathIndexRoute
+  '/setup/projects/': typeof SetupSetupProjectsIndexRoute
   '/setup/system-setting/': typeof SetupSetupSystemSettingIndexRoute
   '/setup/unity-hub/': typeof SetupSetupUnityHubIndexRoute
 }
@@ -156,7 +155,7 @@ export interface FileRoutesByTo {
   '/setup/appearance': typeof SetupSetupAppearanceIndexRoute
   '/setup/backups': typeof SetupSetupBackupsIndexRoute
   '/setup/finish': typeof SetupSetupFinishIndexRoute
-  '/setup/project-path': typeof SetupSetupProjectPathIndexRoute
+  '/setup/projects': typeof SetupSetupProjectsIndexRoute
   '/setup/system-setting': typeof SetupSetupSystemSettingIndexRoute
   '/setup/unity-hub': typeof SetupSetupUnityHubIndexRoute
 }
@@ -177,7 +176,7 @@ export interface FileRoutesById {
   '/_setup/setup/appearance/': typeof SetupSetupAppearanceIndexRoute
   '/_setup/setup/backups/': typeof SetupSetupBackupsIndexRoute
   '/_setup/setup/finish/': typeof SetupSetupFinishIndexRoute
-  '/_setup/setup/project-path/': typeof SetupSetupProjectPathIndexRoute
+  '/_setup/setup/projects/': typeof SetupSetupProjectsIndexRoute
   '/_setup/setup/system-setting/': typeof SetupSetupSystemSettingIndexRoute
   '/_setup/setup/unity-hub/': typeof SetupSetupUnityHubIndexRoute
 }
@@ -197,7 +196,7 @@ export interface FileRouteTypes {
     | '/setup/appearance/'
     | '/setup/backups/'
     | '/setup/finish/'
-    | '/setup/project-path/'
+    | '/setup/projects/'
     | '/setup/system-setting/'
     | '/setup/unity-hub/'
   fileRoutesByTo: FileRoutesByTo
@@ -215,7 +214,7 @@ export interface FileRouteTypes {
     | '/setup/appearance'
     | '/setup/backups'
     | '/setup/finish'
-    | '/setup/project-path'
+    | '/setup/projects'
     | '/setup/system-setting'
     | '/setup/unity-hub'
   id:
@@ -235,7 +234,7 @@ export interface FileRouteTypes {
     | '/_setup/setup/appearance/'
     | '/_setup/setup/backups/'
     | '/_setup/setup/finish/'
-    | '/_setup/setup/project-path/'
+    | '/_setup/setup/projects/'
     | '/_setup/setup/system-setting/'
     | '/_setup/setup/unity-hub/'
   fileRoutesById: FileRoutesById
@@ -311,11 +310,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupSetupSystemSettingIndexRouteImport
       parentRoute: typeof SetupRouteRoute
     }
-    '/_setup/setup/project-path/': {
-      id: '/_setup/setup/project-path/'
-      path: '/setup/project-path'
-      fullPath: '/setup/project-path/'
-      preLoaderRoute: typeof SetupSetupProjectPathIndexRouteImport
+    '/_setup/setup/projects/': {
+      id: '/_setup/setup/projects/'
+      path: '/setup/projects'
+      fullPath: '/setup/projects/'
+      preLoaderRoute: typeof SetupSetupProjectsIndexRouteImport
       parentRoute: typeof SetupRouteRoute
     }
     '/_setup/setup/finish/': {
@@ -409,7 +408,7 @@ interface SetupRouteRouteChildren {
   SetupSetupAppearanceIndexRoute: typeof SetupSetupAppearanceIndexRoute
   SetupSetupBackupsIndexRoute: typeof SetupSetupBackupsIndexRoute
   SetupSetupFinishIndexRoute: typeof SetupSetupFinishIndexRoute
-  SetupSetupProjectPathIndexRoute: typeof SetupSetupProjectPathIndexRoute
+  SetupSetupProjectsIndexRoute: typeof SetupSetupProjectsIndexRoute
   SetupSetupSystemSettingIndexRoute: typeof SetupSetupSystemSettingIndexRoute
   SetupSetupUnityHubIndexRoute: typeof SetupSetupUnityHubIndexRoute
 }
@@ -418,7 +417,7 @@ const SetupRouteRouteChildren: SetupRouteRouteChildren = {
   SetupSetupAppearanceIndexRoute: SetupSetupAppearanceIndexRoute,
   SetupSetupBackupsIndexRoute: SetupSetupBackupsIndexRoute,
   SetupSetupFinishIndexRoute: SetupSetupFinishIndexRoute,
-  SetupSetupProjectPathIndexRoute: SetupSetupProjectPathIndexRoute,
+  SetupSetupProjectsIndexRoute: SetupSetupProjectsIndexRoute,
   SetupSetupSystemSettingIndexRoute: SetupSetupSystemSettingIndexRoute,
   SetupSetupUnityHubIndexRoute: SetupSetupUnityHubIndexRoute,
 }

@@ -77,8 +77,8 @@
     "setup:unity-hub:not found": "No se encontró Unity Hub.",
 
     "setup:steps card:ProjectPath": "Guardardado",
-    "setup:project-path:heading": "Ubicación de guardado del proyecto",
-    "setup:project-path:description": "Cuando creas un proyecto con ALCOM, el proyecto se guardará en esta ubicación.",
+    "setup:projects:projects-path": "Ubicación de guardado del proyecto",
+    "setup:projects:projects-path description": "Cuando creas un proyecto con ALCOM, el proyecto se guardará en esta ubicación.",
 
     "setup:steps card:Backups": "Respaldos",
     "setup:backups:heading": "Ajustes de copia de seguridad del proyecto",

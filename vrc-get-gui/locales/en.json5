@@ -76,9 +76,10 @@
     "setup:unity-hub:detection failed description": "Please click the above \"Recheck Installation\" button to re-detect Unity Hub installation. If this doesn't work, ALCOM fails to detect your Unity Hub installation. Please set Unity Hub Manually below.",
     "setup:unity-hub:not found": "Unity Hub was not found.",
 
-    "setup:steps card:ProjectPath": "Save Location",
-    "setup:project-path:heading": "Project Save Location",
-    "setup:project-path:description": "When you create project with ALCOM, the project will be saved in this location.",
+    "setup:steps card:Projects": "Projects",
+    "setup:projects:heading": "Projects",
+    "setup:projects:projects-path": "Save Location",
+    "setup:projects:projects-path description": "When you create project with ALCOM, the project will be saved in this location.",
 
     "setup:steps card:Backups": "Backup Settings",
     "setup:backups:heading": "Project Backup Settings",

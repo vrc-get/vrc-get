@@ -65,7 +65,7 @@ pub async fn environment_set_project_sorting(
 pub enum SetupPages {
     Appearance,
     UnityHub,
-    ProjectPath,
+    Projects,
     Backups,
     SystemSetting,
 }
@@ -75,7 +75,8 @@ impl SetupPages {
         match self {
             SetupPages::Appearance => 0x00000001,
             SetupPages::UnityHub => 0x00000002,
-            SetupPages::ProjectPath => 0x00000004,
+            // 0x00000004 was ProjectPath, but replaced with Projects
+            SetupPages::Projects => 0x00000020,
             SetupPages::Backups => 0x00000008,
             SetupPages::SystemSetting => 0x00000010,
         }
@@ -91,14 +92,14 @@ impl SetupPages {
             &[
                 SetupPages::Appearance,
                 SetupPages::UnityHub,
-                SetupPages::ProjectPath,
+                SetupPages::Projects,
                 SetupPages::Backups,
             ]
         } else {
             &[
                 SetupPages::Appearance,
                 SetupPages::UnityHub,
-                SetupPages::ProjectPath,
+                SetupPages::Projects,
                 SetupPages::Backups,
                 SetupPages::SystemSetting,
             ]
@@ -109,7 +110,7 @@ impl SetupPages {
         match self {
             SetupPages::Appearance => "/setup/appearance/",
             SetupPages::UnityHub => "/setup/unity-hub/",
-            SetupPages::ProjectPath => "/setup/project-path/",
+            SetupPages::Projects => "/setup/projects/",
             SetupPages::Backups => "/setup/backups/",
             SetupPages::SystemSetting => "/setup/system-setting/",
         }

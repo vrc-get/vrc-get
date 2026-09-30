@@ -106,7 +106,7 @@ function StepCard({ current }: { current: SetupPages | null }) {
 				<StepElement
 					current={current}
 					finisheds={finisheds}
-					pageId={"ProjectPath"}
+					pageId={"Projects"}
 				/>
 				<StepElement
 					current={current}

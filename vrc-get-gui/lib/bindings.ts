@@ -186,7 +186,7 @@ export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "Open
 
 export type RustError = { type: "Unrecoverable"; message: string } | { type: "Localizable" } & (LocalizableRustError) | { type: "Handleable"; message: string; body: HandleableRustError };
 
-export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting";
+export type SetupPages = "Appearance" | "UnityHub" | "Projects" | "Backups" | "SystemSetting";
 
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful";
 

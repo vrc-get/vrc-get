@@ -13,18 +13,18 @@ import { tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 
-export const Route = createFileRoute("/_setup/setup/project-path/")({
+export const Route = createFileRoute("/_setup/setup/projects/")({
 	component: Page,
 });
 
 function Page() {
 	return (
 		<SetupPageBase
-			heading={tc("setup:project-path:heading")}
+			heading={tc("setup:projects:heading")}
 			Body={Body}
 			nextPage={"/setup/backups"}
 			prevPage={"/setup/unity-hub"}
-			pageId={"ProjectPath"}
+			pageId={"Projects"}
 		/>
 	);
 }
@@ -62,8 +62,9 @@ function Body({ environment }: BodyProps) {
 
 	return (
 		<>
+			<h3>{tc("setup:projects:projects-path")}</h3>
 			<CardDescription className={"whitespace-normal"}>
-				{tc("setup:project-path:description")}
+				{tc("setup:projects:projects-path description")}
 			</CardDescription>
 			<FilePathRow
 				path={environment.default_project_path}

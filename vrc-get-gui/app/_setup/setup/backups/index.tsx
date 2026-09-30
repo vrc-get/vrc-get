@@ -29,7 +29,7 @@ function Page() {
 			nextPage={
 				shouldInstallDeepLink ? "/setup/system-setting" : "/setup/finish"
 			}
-			prevPage={"/setup/project-path"}
+			prevPage={"/setup/projects"}
 			pageId={"Backups"}
 		/>
 	);

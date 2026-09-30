@@ -71,8 +71,8 @@
     "setup:unity-hub:not found": "没有找到 Unity Hub。",
 
     "setup:steps card:ProjectPath": "保存位置",
-    "setup:project-path:heading": "项目保存位置",
-    "setup:project-path:description": "使用 ALCOM 创建项目时，项目将保存在此位置。<br/>稍后您可以在设置界面更改这个设置。",
+    "setup:projects:projects-path": "项目保存位置",
+    "setup:projects:projects-path description": "使用 ALCOM 创建项目时，项目将保存在此位置。<br/>稍后您可以在设置界面更改这个设置。",
 
     "setup:steps card:Backups": "备份设置",
     "setup:backups:heading": "项目备份设置",
