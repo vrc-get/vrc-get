@@ -20,16 +20,10 @@ export const Route = createFileRoute("/_setup/setup/backups/")({
 });
 
 function Page() {
-	const shouldInstallDeepLink = useGlobalInfo().shouldInstallDeepLink;
-
 	return (
 		<SetupPageBase
 			heading={tc("setup:backups:heading")}
 			Body={Body}
-			nextPage={
-				shouldInstallDeepLink ? "/setup/system-setting" : "/setup/finish"
-			}
-			prevPage={"/setup/projects"}
 			pageId={"Backups"}
 		/>
 	);

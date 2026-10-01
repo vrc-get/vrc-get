@@ -149,6 +149,7 @@ export type GlobalInfo = {
 	defaultUnityArguments: string[],
 	vpmHomeFolder: string,
 	checkForUpdates: boolean,
+	setupPages: ([SetupPages, string])[],
 	shouldInstallDeepLink: boolean,
 };
 

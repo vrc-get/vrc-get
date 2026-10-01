@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Circle, CircleCheck, CircleChevronRight } from "lucide-react";
 import type React from "react";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,6 @@ export type BodyProps = Readonly<{
 export function SetupPageBase({
 	heading,
 	Body,
-	nextPage,
-	prevPage,
 	onFinish,
 	backContent = tc("setup:back"),
 	nextContent = tc("setup:next"),
@@ -26,8 +24,6 @@ export function SetupPageBase({
 }: {
 	heading: React.ReactNode;
 	Body: React.ComponentType<BodyProps>;
-	nextPage: string;
-	prevPage: string | null;
 	onFinish?: () => void;
 	backContent?: React.ReactNode;
 	nextContent?: React.ReactNode;
@@ -35,6 +31,26 @@ export function SetupPageBase({
 	withoutSteps?: boolean;
 }) {
 	const navigate = useNavigate();
+
+	const finishedPages = useQuery({
+		queryKey: ["environmentGetFinishedSetupPages"],
+		queryFn: async () => commands.environmentGetFinishedSetupPages(),
+		initialData: [],
+	}).data;
+	const setupPages = useGlobalInfo().setupPages;
+	const currentPageIndex = setupPages.findIndex(([page]) => page === pageId);
+	const prevPage =
+		currentPageIndex > 0
+			? setupPages[currentPageIndex - 1]?.[1]
+			: setupPages.at(-1)![1];
+	const nextPage =
+		pageId == null
+			? "/projects"
+			: (setupPages
+					.slice(currentPageIndex + 1)
+					.filter(([pageId, _]) => !finishedPages.includes(pageId))[0]?.[1] ??
+				"/setup/finish");
+	console.log("page", setupPages, currentPageIndex, prevPage, nextPage);
 
 	const result = useQuery({
 		queryKey: ["environmentGetSettings"],
@@ -88,38 +104,20 @@ function StepCard({ current }: { current: SetupPages | null }) {
 		initialData: [],
 	}).data;
 
-	const shouldInstallDeepLink = useGlobalInfo().shouldInstallDeepLink;
+	const setupPages = useGlobalInfo().setupPages;
 
 	return (
 		<Card className={"w-48 p-4"}>
 			<ol className={"flex flex-col gap-2"}>
-				<StepElement
-					current={current}
-					finisheds={finisheds}
-					pageId={"Appearance"}
-				/>
-				<StepElement
-					current={current}
-					finisheds={finisheds}
-					pageId={"UnityHub"}
-				/>
-				<StepElement
-					current={current}
-					finisheds={finisheds}
-					pageId={"Projects"}
-				/>
-				<StepElement
-					current={current}
-					finisheds={finisheds}
-					pageId={"Backups"}
-				/>
-				{shouldInstallDeepLink && (
+				{setupPages.map(([pageId, link]) => (
 					<StepElement
+						key={pageId}
 						current={current}
 						finisheds={finisheds}
-						pageId={"SystemSetting"}
+						pageId={pageId}
+						link={link}
 					/>
-				)}
+				))}
 			</ol>
 		</Card>
 	);
@@ -129,10 +127,12 @@ function StepElement({
 	current,
 	finisheds,
 	pageId,
+	link,
 }: {
 	current: SetupPages | null;
 	finisheds: SetupPages[];
 	pageId: SetupPages;
+	link: string;
 }) {
 	const finished = finisheds.includes(pageId);
 	const active = current === pageId;
@@ -140,14 +140,19 @@ function StepElement({
 		<li
 			className={`${active ? "text-foreground" : finished ? "text-success" : "text-foreground/50"} flex gap-1`}
 		>
-			{finished ? (
-				<CircleCheck />
-			) : active ? (
-				<CircleChevronRight />
-			) : (
-				<Circle />
-			)}
-			{tc(`setup:steps card:${pageId}`)}
+			<Link
+				to={link}
+				className={`${!active && finished ? "" : "cursor-not-allowed"} flex gap-1`}
+			>
+				{finished ? (
+					<CircleCheck />
+				) : active ? (
+					<CircleChevronRight />
+				) : (
+					<Circle />
+				)}
+				{tc(`setup:steps card:${pageId}`)}
+			</Link>
 		</li>
 	);
 }
