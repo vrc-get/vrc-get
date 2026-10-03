@@ -154,6 +154,14 @@ impl Settings {
     ) {
         self.vrc_get.set_project_list_sync_mode(mode);
     }
+
+    pub fn ignore_vrchat_repositories(&self) -> bool {
+        self.ignore_official_repository() || self.ignore_curated_repository()
+    }
+
+    pub fn set_ignore_vrchat_repositories(&mut self, value: bool) {
+        self.vrc_get.set_ignore_vrchat_repositories(value);
+    }
 }
 
 /// User Package Managements
