@@ -68,6 +68,8 @@ pub enum SetupPages {
     Projects,
     Backups,
     SystemSetting,
+    // legacy
+    ProjectPath,
 }
 
 impl SetupPages {
@@ -75,10 +77,11 @@ impl SetupPages {
         match self {
             SetupPages::Appearance => 0x00000001,
             SetupPages::UnityHub => 0x00000002,
-            // 0x00000004 was ProjectPath, but replaced with Projects
             SetupPages::Projects => 0x00000020,
             SetupPages::Backups => 0x00000008,
             SetupPages::SystemSetting => 0x00000010,
+            // legacy
+            SetupPages::ProjectPath => 0x00000004,
         }
     }
 
@@ -106,6 +109,18 @@ impl SetupPages {
         }
     }
 
+    pub fn all_pages() -> &'static [SetupPages] {
+        &[
+            SetupPages::Appearance,
+            SetupPages::UnityHub,
+            SetupPages::Projects,
+            SetupPages::Backups,
+            SetupPages::SystemSetting,
+            // legacy
+            SetupPages::ProjectPath,
+        ]
+    }
+
     pub fn path(self) -> &'static str {
         match self {
             SetupPages::Appearance => "/setup/appearance/",
@@ -113,6 +128,8 @@ impl SetupPages {
             SetupPages::Projects => "/setup/projects/",
             SetupPages::Backups => "/setup/backups/",
             SetupPages::SystemSetting => "/setup/system-setting/",
+            // legacy
+            SetupPages::ProjectPath => panic!("Removed Project Page"),
         }
     }
 }
@@ -120,12 +137,11 @@ impl SetupPages {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_get_finished_setup_pages(
-    app: AppHandle,
     config: State<'_, GuiConfigState>,
 ) -> Result<Vec<SetupPages>, RustError> {
     let setup_process_progress = config.get().setup_process_progress;
 
-    Ok(SetupPages::pages(&app)
+    Ok(SetupPages::all_pages()
         .iter()
         .copied()
         .filter(|page| page.is_finished(setup_process_progress))

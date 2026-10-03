@@ -33,7 +33,7 @@ use crate::io::{DefaultEnvironmentIo, DirEntry, IoTrait};
 #[cfg(feature = "experimental-project-management")]
 pub use project_management::{
     Error as ProjectManagementError, InvalidRealProjectInformation, ProjectManagement,
-    RealProjectInformation, UserProject, ValidRealProjectInformation,
+    RealProjectInformation, SyncWithLitedbMode, UserProject, ValidRealProjectInformation,
 };
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
