@@ -1,6 +1,6 @@
 use crate::io;
 use crate::io::{DefaultEnvironmentIo, IoTrait};
-use crate::utils::{parse_json_file, read_to_end};
+use crate::utils::{parse_json_file, read_to_end, save_json};
 use serde::{Deserialize, Serialize};
 
 /// since this file is vrc-get specific, additional keys can be removed
@@ -45,5 +45,14 @@ impl VrcGetSettings {
 
     pub fn ignore_curated_repository(&self) -> bool {
         self.parsed.ignore_curated_repository
+    }
+
+    pub fn set_ignore_vrchat_repositories(&mut self, value: bool) {
+        self.parsed.ignore_official_repository = value;
+        self.parsed.ignore_curated_repository = value;
+    }
+
+    pub async fn save(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
+        save_json(io, JSON_PATH.as_ref(), &self.parsed).await
     }
 }
