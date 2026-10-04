@@ -42,7 +42,8 @@ export function SetupPageBase({
 	const prevPage =
 		currentPageIndex > 0
 			? setupPages[currentPageIndex - 1]?.[1]
-			: setupPages.at(-1)![1];
+			: // biome-ignore lint/style/noNonNullAssertion: setupPages is not empty
+				setupPages.at(-1)![1];
 	const nextPage =
 		pageId == null
 			? "/projects"

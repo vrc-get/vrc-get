@@ -10,7 +10,6 @@ import {
 import { CardDescription } from "@/components/ui/card";
 import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
-import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { type BodyProps, SetupPageBase } from "../-setup-page-base";

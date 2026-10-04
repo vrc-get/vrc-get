@@ -2,7 +2,8 @@
 
 import {
 	queryOptions,
-	useMutation, useQuery,
+	useMutation,
+	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -11,11 +12,6 @@ import {
 	ProjectPathWarnings,
 } from "@/components/common-setting-parts";
 import { CardDescription } from "@/components/ui/card";
-import { assertNever } from "@/lib/assert-never";
-import { commands, TauriSyncWithLitedbMode } from "@/lib/bindings";
-import { tc } from "@/lib/i18n";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 import {
 	Select,
 	SelectContent,
@@ -23,6 +19,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { assertNever } from "@/lib/assert-never";
+import { commands, type TauriSyncWithLitedbMode } from "@/lib/bindings";
+import { tc } from "@/lib/i18n";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 
 export const Route = createFileRoute("/_setup/setup/projects/")({
 	component: Page,
@@ -118,9 +119,7 @@ function Body({ environment }: BodyProps) {
 			/>
 			<ProjectPathWarnings projectPath={environment.default_project_path} />
 			<div
-				className={
-					`flex flex-col grow gap-3 compact:gap-2 ${existingUser ? "outline-2 outline-offset-[6px] rounded-sm outline-warning relative" : ""}`
-				}
+				className={`flex flex-col grow gap-3 compact:gap-2 ${existingUser ? "outline-2 outline-offset-[6px] rounded-sm outline-warning relative" : ""}`}
 			>
 				{existingUser && (
 					<div
@@ -129,10 +128,10 @@ function Body({ environment }: BodyProps) {
 							"before:content-[''] before:absolute before:left-full before:top-1/2 before:transform-[translateY(-50%)] before:border-t-[6px] before:border-b-[6px] before:border-l-[--spacing(6)] before:border-transparent before:border-l-warning"
 						}
 					>
-						New Setting is added!
+						{tc("setup:projects:new-setting-is-added")}
 					</div>
 				)}
-				<h3>Project List</h3>
+				<h3>{tc("setup:projects:sync-mode")}</h3>
 				<Select
 					value={environment.project_list_sync_mode}
 					onValueChange={(value) =>
@@ -140,22 +139,22 @@ function Body({ environment }: BodyProps) {
 					}
 				>
 					<SelectTrigger className={"min-w-0 whitespace-normal"}>
-						<SelectValue/>
+						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value={"ProjectsUnion"}>
-							Preserve projects removed in VCC (For users who primarily use ALCOM)
+							{tc("setup:projects:sync-mode:ProjectsUnion")}
 						</SelectItem>
 						<SelectItem value={"TrustLitedb"}>
-							Use VCC's project list (For users who primarily use VCC)
+							{tc("setup:projects:sync-mode:TrustLitedb")}
 						</SelectItem>
 					</SelectContent>
 				</Select>
 				<CardDescription className={"whitespace-normal"}>
-					Preserves projects removed from VCC and keeps them in the ALCOM project list. Unlike VCC, ALCOM keeps projects it cannot access, such as those on external or network drives.
+					{tc("setup:projects:sync-mode:ProjectsUnion:description")}
 				</CardDescription>
 				<CardDescription className={"whitespace-normal"}>
-					Uses VCC's project list as the source of truth. Projects removed from VCC will also be removed from the ALCOM project list.
+					{tc("setup:projects:sync-mode:TrustLitedb:description")}
 				</CardDescription>
 			</div>
 		</>
