@@ -5,6 +5,7 @@
 
 extern crate windows_sys;
 
+use core::ffi::c_void;
 use core::ptr::NonNull;
 use core::{
     mem,
@@ -449,7 +450,7 @@ fn error_out(out: &WCstr) {
 // prevent crt from linking
 
 #[unsafe(no_mangle)]
-pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+pub extern "C" fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void {
     for i in 0..n {
         unsafe { *dest.add(i) = *src.add(i) };
     }
@@ -457,7 +458,7 @@ pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn memset(dest: *mut u8, c: core::ffi::c_int, n: usize) -> *mut u8 {
+pub extern "C" fn memset(dest: *mut c_void, c: core::ffi::c_int, n: usize) -> *mut c_void {
     for i in 0..n {
         unsafe { *dest.add(i) = c as u8 };
     }
