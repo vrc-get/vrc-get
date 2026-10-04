@@ -20,7 +20,7 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_Security",
 ] }
 tempfile = "3.27.0"
-minisign-verify = "0.2.5"
+minisign-verify = "0.3.0"
 base64 = "0.22.1"
 
 [build-dependencies]
