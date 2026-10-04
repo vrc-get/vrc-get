@@ -450,7 +450,7 @@ fn error_out(out: &WCstr) {
 // prevent crt from linking
 
 #[unsafe(no_mangle)]
-pub extern "C" fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void {
+pub unsafe extern "C" fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void {
     for i in 0..n {
         unsafe { *dest.add(i) = *src.add(i) };
     }
@@ -458,7 +458,7 @@ pub extern "C" fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mu
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn memset(dest: *mut c_void, c: core::ffi::c_int, n: usize) -> *mut c_void {
+pub unsafe extern "C" fn memset(dest: *mut c_void, c: core::ffi::c_int, n: usize) -> *mut c_void {
     for i in 0..n {
         unsafe { *dest.add(i) = c as u8 };
     }
@@ -466,7 +466,7 @@ pub extern "C" fn memset(dest: *mut c_void, c: core::ffi::c_int, n: usize) -> *m
 }
 
 #[unsafe(no_mangle)]
-const unsafe fn wcslen(mut s: *const u16) -> usize {
+const unsafe extern "C" fn wcslen(mut s: *const u16) -> usize {
     unsafe {
         let mut len = 0;
 
