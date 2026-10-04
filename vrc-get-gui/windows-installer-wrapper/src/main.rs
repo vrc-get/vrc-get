@@ -298,19 +298,6 @@ impl WCString {
     }
 }
 
-const unsafe fn wcslen(mut s: *const u16) -> usize {
-    unsafe {
-        let mut len = 0;
-
-        while *s != 0 {
-            len += 1;
-            s = s.add(1);
-        }
-
-        len
-    }
-}
-
 struct StackPath {
     buf: [u16; MAX_PATH as usize],
 }
@@ -475,4 +462,18 @@ pub extern "C" fn memset(dest: *mut u8, c: core::ffi::c_int, n: usize) -> *mut u
         unsafe { *dest.add(i) = c as u8 };
     }
     dest
+}
+
+#[unsafe(no_mangle)]
+const unsafe fn wcslen(mut s: *const u16) -> usize {
+    unsafe {
+        let mut len = 0;
+
+        while *s != 0 {
+            len += 1;
+            s = s.add(1);
+        }
+
+        len
+    }
 }
