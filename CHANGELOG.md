@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Changed how the Project List is managed `#3184`
+  - Added a project list for ALCOM / vrc-get and logic to sync it with VCC's project list.
+  - Added a configuration option for the project list syncing mode.
 
 ### Deprecated
 
