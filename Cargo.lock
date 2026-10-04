@@ -3182,7 +3182,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 name = "online-installer"
 version = "0.1.1-beta.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "embed-manifest",
  "minisign-verify 0.2.5",
  "semver",
