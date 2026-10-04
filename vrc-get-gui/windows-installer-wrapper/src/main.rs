@@ -449,6 +449,7 @@ fn error_out(out: &WCstr) {
 // prevent crt from linking
 
 #[unsafe(no_mangle)]
+#[allow(suspicious_runtime_symbol_definitions)]
 pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     for i in 0..n {
         unsafe { *dest.add(i) = *src.add(i) };
@@ -457,6 +458,7 @@ pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
 }
 
 #[unsafe(no_mangle)]
+#[allow(suspicious_runtime_symbol_definitions)]
 pub extern "C" fn memset(dest: *mut u8, c: core::ffi::c_int, n: usize) -> *mut u8 {
     for i in 0..n {
         unsafe { *dest.add(i) = c as u8 };
