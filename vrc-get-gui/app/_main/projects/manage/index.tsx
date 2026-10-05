@@ -22,6 +22,7 @@ import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { HNavBar, VStack } from "@/components/layout";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
@@ -508,7 +509,8 @@ function ProjectViewHeader({
 	) => void;
 }) {
 	const { projectPath } = Route.useSearch();
-	const projectName = nameFromPath(projectPath);
+	const projectName =
+		detailsResult?.data?.display_name || nameFromPath(projectPath);
 
 	return (
 		<HNavBar
@@ -683,6 +685,32 @@ function DropdownMenuContentBody({
 		}
 	};
 
+	const onSetProjectDisplayName = async () => {
+		const details = queryOptions({
+			queryFn: () => commands.projectDetails(projectPath),
+			queryKey: ["projectDetails", projectPath],
+			refetchOnWindowFocus: false,
+		});
+		await queryClient.invalidateQueries(details);
+		const data = queryClient.getQueryData(details.queryKey);
+
+		try {
+			await openSingleDialog(SetProjectDisplayNameDialog, {
+				project: {
+					path: projectPath,
+					name: nameFromPath(projectPath),
+					display_name: data?.display_name || null,
+				},
+			});
+			await queryClient.invalidateQueries({
+				queryKey: ["projectDetails", projectPath],
+			});
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
+
 	const unityPath = unityPathQuery.data;
 
 	return (
@@ -700,6 +728,9 @@ function DropdownMenuContentBody({
 			</DropdownMenuItem>
 			<DropdownMenuItem onClick={onCopyProject}>
 				{tc("projects:menuitem:copy project")}
+			</DropdownMenuItem>
+			<DropdownMenuItem onClick={onSetProjectDisplayName}>
+				{tc("projects:set project display name")}
 			</DropdownMenuItem>
 			<DropdownMenuItem onClick={onBackup}>
 				{tc("projects:menuitem:backup")}

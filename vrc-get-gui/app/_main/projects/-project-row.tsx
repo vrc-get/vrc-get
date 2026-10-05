@@ -15,6 +15,7 @@ import {
 	OpenUnityButtonWidthSizer,
 } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -136,7 +137,9 @@ export function ProjectRow({
 									<TooltipTriggerIfValid
 										className={"text-left select-text cursor-auto w-full"}
 									>
-										<p className="font-normal whitespace-pre">{project.name}</p>
+										<p className="font-normal whitespace-pre">
+											{project.display_name || project.name}
+										</p>
 										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
 											{project.path}
 										</p>
@@ -259,6 +262,14 @@ export function ProjectRow({
 									disabled={removed || !(is_valid ?? true)}
 								>
 									{tc("projects:menuitem:copy project")}
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() =>
+										openSingleDialog(SetProjectDisplayNameDialog, { project })
+									}
+									disabled={removed || !(is_valid ?? true)}
+								>
+									{tc("projects:set project display name")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() =>

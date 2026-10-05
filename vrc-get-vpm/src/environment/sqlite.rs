@@ -82,6 +82,15 @@ impl SQLiteConnection {
             )?;
         }
 
+        if check_migration.query([2])?.next()?.is_none() {
+            // Note: unity_version_with_revision is in format of 2022.3.22f1 (012abcdef) or 2022.3.22f1
+            tx.execute("ALTER TABLE projects ADD COLUMN display_name TEXT", ())?;
+            tx.execute(
+                "INSERT INTO migrations (id, name) VALUES (?, ?)",
+                (2, "display_name for projects"),
+            )?;
+        }
+
         Ok(())
     }
 }
