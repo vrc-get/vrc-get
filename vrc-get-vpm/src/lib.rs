@@ -27,6 +27,7 @@ pub mod repositories_file;
 
 #[cfg(feature = "unity")]
 pub mod unity;
+pub mod unity_cli;
 #[cfg(feature = "unity-hub")]
 pub mod unity_hub;
 

@@ -246,6 +246,7 @@ export type TauriEnvironmentSettings = {
 	default_project_path: string,
 	project_backup_path: string,
 	unity_hub: string,
+	unity_cli: string | null,
 	unity_paths: ([string, string, boolean])[],
 	show_prerelease_packages: boolean,
 	backup_format: string,
@@ -440,7 +441,9 @@ export type UnityHubAccessMethod =
 // Reads config files of Unity Hub
 "ReadConfig" | 
 // Launches headless Unity Hub in background
-"CallHub";
+"CallHub" | 
+// Calls the standalone Unity CLI
+"CallCli";
 
 export type UpdaterStatus = 
 /**
