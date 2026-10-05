@@ -503,6 +503,9 @@
     "settings:show prerelease": "Show Prerelease Packages",
     "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list, and they will be used when resolving dependencies.<br>Prerelease packages may have more bugs than stable packages.",
 
+    "settings:use vrchat repositories": "Use built-in VRChat repositories",
+    "settings:use vrchat repositories description": "When disabled, ALCOM will stop using the VRChat Official and Curated repositories and remove their cached files. User-added repositories are not affected.",
+
     "settings:dialog:show prerelease packages": "Show Prerelease Packages",
     "settings:dialog:show prerelease packages description": "Prerelease packages may have more bugs than stable packages.<br>Are you sure you want to show prerelease packages?",
     "settings:dialog:enable show prerelease packages": "Show",

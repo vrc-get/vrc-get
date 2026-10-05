@@ -634,6 +634,10 @@ function PackagesCard() {
 			showPrereleasePackages: data.show_prerelease_packages,
 		}),
 	});
+	const { data: useVrchatRepositories } = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => data.use_vrchat_repositories,
+	});
 
 	const clearPackageCache = useMutation({
 		mutationFn: async () => await commands.environmentClearPackageCache(),
@@ -675,6 +679,22 @@ function PackagesCard() {
 		},
 	});
 
+	const setUseVrchatRepositories = useMutation({
+		mutationFn: async (value: boolean) =>
+			await commands.environmentSetUseVrchatRepositories(value),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries(environmentGetSettings),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({ queryKey: ["environmentRepositoriesInfo"] }),
+			]);
+		},
+	});
+
 	return (
 		<SettingsCard className={"flex flex-col gap-4"}>
 			<h2>{tc("settings:packages")}</h2>
@@ -693,6 +713,20 @@ function PackagesCard() {
 				</label>
 				<p className={"text-sm whitespace-normal"}>
 					{tc("settings:show prerelease description")}
+				</p>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={useVrchatRepositories}
+						onCheckedChange={(value) =>
+							setUseVrchatRepositories.mutate(value === true)
+						}
+					/>
+					{tc("settings:use vrchat repositories")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>
+					{tc("settings:use vrchat repositories description")}
 				</p>
 			</div>
 		</SettingsCard>
