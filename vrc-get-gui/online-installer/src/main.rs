@@ -162,7 +162,7 @@ fn main() {
             windows_sys::Win32::System::Threading::PROCESS_INFORMATION::default();
         let startup_info = windows_sys::Win32::System::Threading::STARTUPINFOW::default();
 
-        eprintln!("starting instlaler with command line: '{path}'",);
+        eprintln!("starting instlaler with command line: '{}'", path.display());
 
         let ok = windows_sys::Win32::System::Threading::CreateProcessW(
             windows_sys::core::PCWSTR::default(),
