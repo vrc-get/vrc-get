@@ -277,6 +277,7 @@ pub(crate) fn export_ts() {
         ])
         .typ::<uri_custom_scheme::GlobalInfo>()
         .typ::<environment::projects::TauriUpdatedRealProjectInfo>()
+        .dangerously_cast_bigints_to_number()
         .export(specta_typescript::Typescript::default(), export_path)
         .unwrap();
 }
