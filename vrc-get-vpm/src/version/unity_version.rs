@@ -90,7 +90,7 @@ impl UnityVersion {
         let type_ = ReleaseType::try_from(rest.as_bytes()[revision_delimiter]).ok()?;
         let rest = &rest[revision_delimiter + 1..];
 
-        let (increment_part, _rest) = rest.split_once('-').unwrap_or((rest, ""));
+        let (increment_part, _rest) = rest.split_once(['-', '.']).unwrap_or((rest, ""));
         let (increment, china_increment);
         if increment_part.contains('c') {
             let (increment_str, increment_china_str) = increment_part.split_once('c')?;
@@ -395,6 +395,15 @@ mod tests {
         good!("2023.3.6x1", 2023, 3, 6, Experimental, 1);
 
         good!("2019.1.0a1-EXTRA", 2019, 1, 0, Alpha, 1);
+
+        good!(
+            "2021.3.45f2.git.2021.3/respin/2021.3.45f2-0da89fac8e.8976527",
+            2021,
+            3,
+            45,
+            Normal,
+            2
+        );
 
         good_cn!("2022.3.22f1c1", 2022, 3, 22, Normal, 1, 1);
 
