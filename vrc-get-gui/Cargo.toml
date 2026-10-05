@@ -22,12 +22,12 @@ tauri-build = { version = "2", features = [ "config-toml" ] }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 serde_with = { version = "3", features = ["base64"] }
-tauri = { version = "=2.11.5", features = [ "config-toml" ] } # = for sync version between npm and cargo
+tauri = { version = "=2.12.1", features = [ "config-toml" ] } # = for sync version between npm and cargo
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management"] }
 reqwest = { version = "0.13", features = ["gzip", "brotli", "json"] }
 specta = { version = "2.0.0-rc.24", features = [ "chrono", "url", "indexmap" ] }
 tauri-specta = { version = "2.0.0-rc.24", features = ["typescript"] }
-specta-typescript = "0.0.11"
+specta-typescript = "0.0.12"
 open = "5"
 arc-swap = "1"
 log = { version = "0.4", features = [ "std", "kv" ] }
@@ -42,13 +42,13 @@ tar = "0.4"
 flate2 = "1"
 uuid = { version = "1", features = ["v4"] }
 trash = "5"
-async_zip = { version = "0.0.18", features = ["tokio", "deflate"] }
+async_zip = { version = "0.0.19", features = ["tokio", "deflate"] }
 async-compression = { version = "0.4", features = ["gzip", "futures-io"] }
 async-stream = "0.3"
 tauri-plugin-single-instance = "2"
 tauri-plugin-dialog = "2"
-minisign-verify = "0.2"
-base64 = "0.22"
+minisign-verify = "0.3"
+base64 = "0.23"
 semver = "1"
 tempfile = "3"
 sha2 = "0.11"
