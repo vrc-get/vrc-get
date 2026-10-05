@@ -63,6 +63,7 @@ export const commands = {
 	environmentSetUseAlcomForVccProtocol: (useAlcomForVccProtocol: boolean) => __TAURI_INVOKE<null>("environment_set_use_alcom_for_vcc_protocol", { useAlcomForVccProtocol }),
 	environmentGetDefaultUnityArguments: () => __TAURI_INVOKE<string[]>("environment_get_default_unity_arguments"),
 	environmentSetDefaultUnityArguments: (defaultUnityArguments: string[] | null) => __TAURI_INVOKE<null>("environment_set_default_unity_arguments", { defaultUnityArguments }),
+	environmentSetProjectListSyncMode: (projectListSyncMode: TauriSyncWithLitedbMode) => __TAURI_INVOKE<null>("environment_set_project_list_sync_mode", { projectListSyncMode }),
 	environmentExportTemplate: (id: string) => __TAURI_INVOKE<null>("environment_export_template", { id }),
 	environmentGetAlcomTemplate: (id: string) => __TAURI_INVOKE<TauriAlcomTemplate>("environment_get_alcom_template", { id }),
 	environmentPickUnityPackages: () => __TAURI_INVOKE<string[]>("environment_pick_unity_packages"),
@@ -149,6 +150,7 @@ export type GlobalInfo = {
 	defaultUnityArguments: string[],
 	vpmHomeFolder: string,
 	checkForUpdates: boolean,
+	setupPages: ([SetupPages, string])[],
 	shouldInstallDeepLink: boolean,
 };
 
@@ -186,7 +188,7 @@ export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "Open
 
 export type RustError = { type: "Unrecoverable"; message: string } | { type: "Localizable" } & (LocalizableRustError) | { type: "Handleable"; message: string; body: HandleableRustError };
 
-export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting";
+export type SetupPages = "Appearance" | "UnityHub" | "Projects" | "Backups" | "SystemSetting" | "ProjectPath";
 
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful";
 
@@ -256,6 +258,7 @@ export type TauriEnvironmentSettings = {
 	gui_compact: boolean,
 	unity_hub_access_method: UnityHubAccessMethod,
 	exclude_vpm_packages_from_backup: boolean,
+	project_list_sync_mode: TauriSyncWithLitedbMode,
 };
 
 export type TauriImportDuplicated = TauriImportDuplicated_Serialize | TauriImportDuplicated_Deserialize;
@@ -333,7 +336,7 @@ export type TauriProject = {
 	created_at: number,
 	favorite: boolean,
 	is_exists: boolean,
-	is_valid: boolean | null,
+	is_valid: boolean,
 };
 
 export type TauriProjectCreationInformation = {
@@ -387,6 +390,8 @@ export type TauriRepositoryDescriptor = {
 	url: string,
 	headers: { [key in string]: string },
 };
+
+export type TauriSyncWithLitedbMode = "ProjectsUnion" | "TrustLitedb";
 
 export type TauriUnityProjectStatus = {
 	status: TauriUnityProjectStatusKind,
@@ -472,3 +477,4 @@ export type UpdaterStatus =
  *  `VRC_GET_GUI_UPDATER_UPDATE_SUGGESTION_MESSAGE` environment variable at build time.
  */
 "UpdaterDisabled";
+

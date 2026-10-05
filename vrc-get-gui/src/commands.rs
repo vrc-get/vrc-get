@@ -7,7 +7,7 @@ pub use start::startup;
 use tauri::generate_handler;
 use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
-use vrc_get_vpm::environment::VccDatabaseConnection;
+use vrc_get_vpm::environment::{ProjectManagement, ProjectManagementError};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
@@ -118,6 +118,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_set_use_alcom_for_vcc_protocol,
         environment::settings::environment_get_default_unity_arguments,
         environment::settings::environment_set_default_unity_arguments,
+        environment::settings::environment_set_project_list_sync_mode,
         environment::templates::environment_export_template,
         environment::templates::environment_get_alcom_template,
         environment::templates::environment_pick_unity_packages,
@@ -230,6 +231,7 @@ pub(crate) fn export_ts() {
             environment::settings::environment_set_use_alcom_for_vcc_protocol,
             environment::settings::environment_get_default_unity_arguments,
             environment::settings::environment_set_default_unity_arguments,
+            environment::settings::environment_set_project_list_sync_mode,
             environment::templates::environment_export_template,
             environment::templates::environment_get_alcom_template,
             environment::templates::environment_pick_unity_packages,
@@ -283,15 +285,19 @@ pub(crate) fn export_ts() {
 }
 
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
-    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), io::Error> {
-        let mut connection = VccDatabaseConnection::connect(io).await?;
-        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
-        connection.save(io).await?;
+    async fn inner(
+        io: &DefaultEnvironmentIo,
+        project_dir: &Path,
+    ) -> Result<(), ProjectManagementError> {
+        let mut projects = ProjectManagement::start_no_migration(io).await?;
+        projects
+            .update_project_last_modified(&project_dir.to_string_lossy())
+            .await?;
         Ok(())
     }
 
     if let Err(err) = inner(io, project_dir).await {
-        eprintln!("error updating project updated_at on vcc: {err}");
+        error!("error updating project updated_at on vcc: {err}");
     }
 }
 
@@ -396,6 +402,7 @@ impl_from_error!(
     async_zip::error::ZipError,
     vrc_get_vpm::environment::AddRepositoryErr,
     vrc_get_vpm::unity_project::RemovePackageErr,
+    ProjectManagementError,
     fs_extra::error::Error,
 );
 

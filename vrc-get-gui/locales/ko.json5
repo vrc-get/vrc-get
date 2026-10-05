@@ -77,8 +77,8 @@
     "setup:unity-hub:not found": "Unity Hub를 찾을 수 없습니다.",
 
     "setup:steps card:ProjectPath": "저장 경로",
-    "setup:project-path:heading": "프로젝트 저장 경로",
-    "setup:project-path:description": "ALCOM에서 생성한 프로젝트는 이 경로에 저장됩니다.",
+    "setup:projects:projects-path": "프로젝트 저장 경로",
+    "setup:projects:projects-path description": "ALCOM에서 생성한 프로젝트는 이 경로에 저장됩니다.",
 
     "setup:steps card:Backups": "백업 설정",
     "setup:backups:heading": "프로젝트 백업 설정",

@@ -71,8 +71,8 @@
     "setup:unity-hub:not found": "Unity Hubが見つかりませんでした。",
 
     "setup:steps card:ProjectPath": "保存先の設定",
-    "setup:project-path:heading": "プロジェクト作成時の保存先",
-    "setup:project-path:description": "ALCOMでプロジェクトを作成する場合、プロジェクトはこの場所に保存されます。",
+    "setup:projects:projects-path": "プロジェクト作成時の保存先",
+    "setup:projects:projects-path description": "ALCOMでプロジェクトを作成する場合、プロジェクトはこの場所に保存されます。",
 
     "setup:steps card:Backups": "バックアップ設定",
     "setup:backups:heading": "バックアップの設定",

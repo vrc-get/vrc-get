@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog].
 - Project launch buttons now show when Unity is opening or running and can bring open Unity Editor windows to the foreground on Windows and macOS. [`#3109`](https://github.com/vrc-get/vrc-get/pull/3109)
 
 ### Changed
+- Changed how the Project List is managed `#3184`
+  - Added a project list for ALCOM and logic to sync it with VCC's project list.
+  - Added a configuration option for the project list syncing mode.
 
 ### Deprecated
 

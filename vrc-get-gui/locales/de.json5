@@ -77,8 +77,8 @@
     "setup:unity-hub:not found": "Unity Hub nicht gefunden.",
 
     "setup:steps card:ProjectPath": "Speicherpfad",
-    "setup:project-path:heading": "Projekt Speicherpfad",
-    "setup:project-path:description": "Über ALCOM erstellte Projekte werden hier gespeichert.<br/>Dies kann später in den Einstellungen geändert werden.",
+    "setup:projects:projects-path": "Projekt Speicherpfad",
+    "setup:projects:projects-path description": "Über ALCOM erstellte Projekte werden hier gespeichert.<br/>Dies kann später in den Einstellungen geändert werden.",
 
     "setup:steps card:Backups": "Backups", //Needed truncation of "Settings" to fit properly
     "setup:backups:heading": "Backup Einstellungen",

@@ -76,8 +76,8 @@
     "setup:unity-hub:not found": "Unity Hub не найден.",
 
     "setup:steps card:ProjectPath": "Каталог сохранения",
-    "setup:project-path:heading": "Каталог сохранения проекта",
-    "setup:project-path:description": "Когда вы создаете проект через ALCOM, он будет сохранен в этом расположении.",
+    "setup:projects:projects-path": "Каталог сохранения проекта",
+    "setup:projects:projects-path description": "Когда вы создаете проект через ALCOM, он будет сохранен в этом расположении.",
 
     "setup:steps card:Backups": "Настройки резервного копирования",
     "setup:backups:heading": "Настройки резервного копирования проекта",
