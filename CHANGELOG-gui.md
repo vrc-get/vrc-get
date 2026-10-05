@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog].
 - Improved compatibility with better compatibility with tools resizes window on launch `#3157`
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
+- Unity respin builds (e.g. `2021.3.45f2`) could not be added because their version string was rejected as invalid [`#3204`](https://github.com/vrc-get/vrc-get/pull/3204)
 
 ### Security
 
