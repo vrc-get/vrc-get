@@ -15,6 +15,7 @@ import {
 	OpenUnityButtonWidthSizer,
 } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -43,7 +44,6 @@ import { router } from "@/lib/main";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString } from "@/lib/version";
-import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 
 export const ProjectDisplayType: Record<
 	TauriProjectType,
@@ -137,7 +137,9 @@ export function ProjectRow({
 									<TooltipTriggerIfValid
 										className={"text-left select-text cursor-auto w-full"}
 									>
-										<p className="font-normal whitespace-pre">{project.display_name || project.name}</p>
+										<p className="font-normal whitespace-pre">
+											{project.display_name || project.name}
+										</p>
 										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
 											{project.path}
 										</p>

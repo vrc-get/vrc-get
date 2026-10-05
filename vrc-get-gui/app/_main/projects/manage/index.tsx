@@ -22,6 +22,7 @@ import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { HNavBar, VStack } from "@/components/layout";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
@@ -62,7 +63,6 @@ import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
 import { unityVersionChange } from "./-unity-migration";
 import { applyChangesMutation } from "./-use-package-change";
-import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 
 interface SearchParams {
 	projectPath: string;
@@ -509,7 +509,8 @@ function ProjectViewHeader({
 	) => void;
 }) {
 	const { projectPath } = Route.useSearch();
-	const projectName = detailsResult?.data?.display_name || nameFromPath(projectPath);
+	const projectName =
+		detailsResult?.data?.display_name || nameFromPath(projectPath);
 
 	return (
 		<HNavBar
@@ -689,7 +690,7 @@ function DropdownMenuContentBody({
 			queryFn: () => commands.projectDetails(projectPath),
 			queryKey: ["projectDetails", projectPath],
 			refetchOnWindowFocus: false,
-		})
+		});
 		await queryClient.invalidateQueries(details);
 		const data = queryClient.getQueryData(details.queryKey);
 

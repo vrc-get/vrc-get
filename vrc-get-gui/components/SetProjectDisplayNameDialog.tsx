@@ -1,10 +1,10 @@
-﻿import {useMutation, useQueryClient} from "@tanstack/react-query";
+﻿import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {commands, TauriProject} from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import type { DialogContext } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
@@ -17,9 +17,9 @@ type Project = {
 };
 
 export function SetProjectDisplayNameDialog({
-																			project,
-																			dialog,
-																		}: {
+	project,
+	dialog,
+}: {
 	project: Project;
 	dialog: DialogContext<boolean>;
 }) {
@@ -28,20 +28,19 @@ export function SetProjectDisplayNameDialog({
 
 	const changeDisplayName = useMutation({
 		mutationFn: async ({
-												 project,
-												 newName,
-												 clear,
-											 }: {
+			project,
+			newName,
+			clear,
+		}: {
 			project: Project;
 			newName: string;
 			clear: boolean;
 		}) => {
 			newName = newName.trim();
 
-			if (clear || newName === '' || newName === project.name) {
+			if (clear || newName === "" || newName === project.name) {
 				commands.projectClearDisplayName(project.path);
-			}
-			else {
+			} else {
 				commands.projectSetDisplayName(project.path, newName);
 			}
 		},
@@ -100,7 +99,11 @@ export function SetProjectDisplayNameDialog({
 					onClick={() =>
 						changeDisplayName.mutate({ project, newName: name, clear: false })
 					}
-					disabled={(project.display_name || project.name) === name || changeDisplayName.isPending || !name.trim()}
+					disabled={
+						(project.display_name || project.name) === name ||
+						changeDisplayName.isPending ||
+						!name.trim()
+					}
 				>
 					{tc("general:button:save")}
 				</Button>
