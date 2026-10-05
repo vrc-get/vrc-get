@@ -168,11 +168,11 @@ function CommandShortcut({
 export {
 	Command,
 	CommandDialog,
-	CommandInput,
-	CommandList,
 	CommandEmpty,
 	CommandGroup,
+	CommandInput,
 	CommandItem,
-	CommandShortcut,
+	CommandList,
 	CommandSeparator,
+	CommandShortcut,
 };

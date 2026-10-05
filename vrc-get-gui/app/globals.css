@@ -188,7 +188,7 @@
 	}
 }
 
-:root {
+body {
 	--toastify-font-family: var(--font-sans);
 	--toastify-color-light: var(--background);
 	/*--toastify-color-info: #3498db;*/
@@ -295,11 +295,20 @@ html {
  * Add padding end for horizontal scroll bar of scrollable card if vertical scroll bar is invisible
  * This prevents the horizontal scroll bar hide corner of the card
  */
-.vrc-get-scrollable-card:not(
-		:has(> .vrc-get-scrollable-card-vertical-bar)
-	) > div[data-radix-scroll-area-viewport]
+.vrc-get-scrollable-card:not(:has(> .vrc-get-scrollable-card-vertical-bar))
+	> div[data-radix-scroll-area-viewport]
 	> div
 	> div.vrc-get-scrollable-card-horizontal-bar {
+	@apply pe-2.5;
+}
+
+/*
+ * Add padding end for the content area of scrollable card if vertical scroll bar is visible
+ * This prevents the table / items from being hidden behind the vertical scroll bar
+ */
+.vrc-get-scrollable-card:has(> .vrc-get-scrollable-card-vertical-bar)
+	> div[data-radix-scroll-area-viewport]
+	> div {
 	@apply pe-2.5;
 }
 

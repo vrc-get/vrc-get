@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "master" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -58,7 +57,7 @@ jobs:
             # Arm64 runner on macOS is not available for open source repositories with macos-14!
             # https://github.blog/changelog/2024-01-30-github-actions-introducing-the-new-m1-macos-runner-available-to-open-source/
           - triple: aarch64-apple-darwin
-            on: macos-14
+            on: macos-latest
         triple:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
@@ -74,7 +73,7 @@ jobs:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
@@ -100,26 +99,24 @@ jobs:
       - name: Build
         run: cargo build --verbose --target ${{ matrix.triple }}
       - name: Upload built binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.triple }}
           path: |
             target/${{ matrix.triple }}/debug/vrc-get*
             target/${{ matrix.triple }}/debug/libvrc-get*
       - name: Build tests
-        run: cargo build --tests --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm
+        run: cargo build --tests --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm --features experimental-project-management,experimental-unity-management
       - name: Run tests
         if: ${{ matrix.run-test }}
-        run: cargo test --verbose --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm
+        run: cargo test --verbose --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm --features experimental-project-management,experimental-unity-management
       - name: Check binary is statically linked
         shell: bash
         if: ${{ matrix.static-linked }}
         env:
           RUSTFLAGS: ''
         run: |
-          # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
-          unset CARGO_BUILD_TARGET
-          cargo run -p build-check-static-link target/${{ matrix.triple }}/debug/vrc-get*
+          cargo xtask check-static-link target/${{ matrix.triple }}/debug/vrc-get${WINDIR:+.exe}
 
   conclude:
     runs-on: ubuntu-latest

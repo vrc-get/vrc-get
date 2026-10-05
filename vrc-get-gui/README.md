@@ -5,23 +5,21 @@
 [![Scoop Version][shields-scoop-version]][scoop-alcom]
 [![AUR Version][shields-aur-version]][aur-alcom]
 [![WinGet Version][shields-winget-version]][winget-alcom]
-<!-- [![MacPorts Version][shields-macports-vrc-get]][macports-vrc-get] -->
+[![MacPorts Version][shields-macports-version]][macports-alcom]
 
 [shields-github-version]: https://img.shields.io/github/v/release/vrc-get/vrc-get?filter=gui-v*
 [shields-homebrew-version]: https://img.shields.io/homebrew/cask/v/alcom
 [shields-scoop-version]: https://img.shields.io/scoop/v/vrc-alcom?bucket=https%3A%2F%2Fgithub.com%2Fbabo4d%2Fscoop-xrtools
 [shields-aur-version]: https://img.shields.io/aur/version/alcom
 [shields-winget-version]: https://img.shields.io/winget/v/anatawa12.ALCOM
-<!-- [shields-macports-vrc-get]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fports.macports.org%2Fapi%2Fv1%2Fports%2Falcom%2F&query=%24.version&label=macports -->
-
-<!-- TODO: macports: https://github.com/badges/shields/issues/9588 -->
+[shields-macports-version]: https://img.shields.io/macports/v/alcom
 
 [release-alcom]: https://github.com/vrc-get/vrc-get/releases?q=gui-v1
 [homebrew-alcom]: https://formulae.brew.sh/cask/alcom
 [scoop-alcom]: https://github.com/babo4d/scoop-xrtools/blob/master/bucket/vrc-alcom.json
 [aur-alcom]: https://aur.archlinux.org/packages/alcom
 [winget-alcom]: https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/anatawa12/ALCOM
-<!-- [macports-vrc-get]: https://ports.macports.org/port/alcom -->
+[macports-alcom]: https://ports.macports.org/port/alcom
 
 [scoop-xrtools]: https://github.com/babo4d/scoop-xrtools/
 
@@ -75,9 +73,9 @@ To build ALCOM, you need to have the following installed:
 - [cargo] latest — to build the most part of the project
 - And other requirements for tauri, see [tauri requirements](https://v2.tauri.app/start/prerequisites/#system-dependencies)
 
-Please note that ALCOM requires the latest version of cargo at that time. 
+Please note that ALCOM requires the latest version of rust toolchain at that time. 
 We update the required version of cargo without notice.
-Therefore, you may need to update them before building the project.
+Therefore, It's recommended to update rust toolchain before building the project.
 
 [Node.js]: https://nodejs.org/en
 [npm]: https://www.npmjs.com
@@ -88,8 +86,26 @@ Therefore, you may need to update them before building the project.
 To build the project, run the following command:
 
 ```bash
-npm run tauri build
+cargo xtask build-alcom --release
 ```
+
+This command builds the main ALCOM executable for the current platform.
+For cross-compilation, add the `--target` command-line parameter.
+The executable will be created in the `target/release` directory.
+
+There are a few build options available when building ALCOM.
+Most notably, you can disable the self-updater with the `--no-self-updater` option.
+Note that this does not disable update checks.
+ALCOM will show a message when a newer release is available instead of offering a self-update.
+
+Directly distributing the executable may be suitable for some environments, but we also provide bundled distributions.
+To bundle ALCOM, run the following command after building it.
+
+```bash
+cargo xtask bundle-alcom --release --bundles <bundles>
+```
+
+Check `--help` for the list of supported bundle types.
 
 ## Development
 

@@ -136,11 +136,16 @@ fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
 
 #[cfg(feature = "experimental-vcc")]
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
-    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), std::io::Error> {
-        let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io).await?;
+    use vrc_get_vpm::environment::{ProjectManagement, ProjectManagementError};
+    async fn inner(
+        io: &DefaultEnvironmentIo,
+        project_dir: &Path,
+    ) -> Result<(), ProjectManagementError> {
+        let mut projects = ProjectManagement::start_no_migration(io).await?;
         let project_dir = absolute_path(project_dir);
-        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
-        connection.save(io).await?;
+        projects
+            .update_project_last_modified(&project_dir.to_string_lossy())
+            .await?;
         Ok(())
     }
 
@@ -293,8 +298,8 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
     {
         let mut unlocked_conflicts = changes
             .conflicts()
-            .iter()
-            .flat_map(|(_, c)| c.unlocked_names())
+            .values()
+            .flat_map(|c| c.unlocked_names())
             .peekable();
 
         if unlocked_conflicts.peek().is_some() {
@@ -743,10 +748,7 @@ impl Outdated {
         match self.json_format.map(|x| x.get()).unwrap_or(0) {
             0 => {
                 for (name, (found, installed)) in &outdated_packages {
-                    println!(
-                        "{name}: installed: {installed}, found: {}",
-                        &found.version()
-                    );
+                    println!("{name}: installed: {installed}, found: {}", found.version());
                 }
             }
             1 => {
@@ -847,8 +849,8 @@ impl Upgrade {
             prompt_install(self.yes)
         }
 
-        let updates = (changes.package_changes().iter())
-            .filter_map(|(_, x)| x.as_install())
+        let updates = (changes.package_changes().values())
+            .filter_map(|x| x.as_install())
             .filter_map(|x| x.install_package())
             .map(|x| (x.name().to_owned(), x.version().clone()))
             .collect::<Vec<_>>();
@@ -924,8 +926,8 @@ impl Downgrade {
             prompt_install(self.yes)
         }
 
-        let downgrades = (changes.package_changes().iter())
-            .filter_map(|(_, x)| x.as_install())
+        let downgrades = (changes.package_changes().values())
+            .filter_map(|x| x.as_install())
             .filter_map(|x| x.install_package())
             .map(|x| (x.name().to_owned(), x.version().clone()))
             .collect::<Vec<_>>();

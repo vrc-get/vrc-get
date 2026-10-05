@@ -9,3 +9,6 @@ release_changer = ["cargo:vrc-get-litedb"]
 
 [target.gui]
 release_changer = ["cargo:vrc-get-gui"]
+
+[target.online-installer]
+release_changer = ["cargo:online-installer"]

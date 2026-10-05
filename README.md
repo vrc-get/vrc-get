@@ -140,11 +140,9 @@ See [README of ALCOM][alcom] for more details.
 [shields-crates-io-version]: https://img.shields.io/crates/v/vrc-get
 [shields-aur-version]: https://img.shields.io/aur/version/vrc-get
 [shields-homebrew-version]: https://img.shields.io/homebrew/v/vrc-get
-[shields-macports-vrc-get]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fports.macports.org%2Fapi%2Fv1%2Fports%2Fvrc-get%2F&query=%24.version&label=macports
+[shields-macports-vrc-get]: https://img.shields.io/macports/v/vrc-get
 [shields-scoop-version]: https://img.shields.io/scoop/v/vrc-get?bucket=https%3A%2F%2Fgithub.com%2Fbabo4d%2Fscoop-xrtools
 [shields-winget-version]: https://img.shields.io/winget/v/anatawa12.vrc-get
-
-<!-- TODO: macports: https://github.com/badges/shields/issues/9588 -->
 
 [cargo]: https://github.com/rust-lang/cargo/
 [cargo-binstall]: https://github.com/cargo-bins/cargo-binstall#cargo-binaryinstall

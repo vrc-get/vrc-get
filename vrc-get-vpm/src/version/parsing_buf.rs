@@ -63,8 +63,8 @@ impl Display for ParseVersionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self.inner {
             Inner::VersionSegmentTooBig => f.write_str("version segment too big"),
-            Inner::UnexpectedEnd => f.write_str("unexpected end"),
-            Inner::Invalid => write!(f, "invalid"),
+            Inner::UnexpectedEnd => f.write_str("unexpected end of version segment"),
+            Inner::Invalid => write!(f, "invalid version or version range"),
         }
     }
 }

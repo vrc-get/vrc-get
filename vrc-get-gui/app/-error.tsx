@@ -6,15 +6,24 @@ import globalInfo from "@/lib/global-info";
 export default function ErrorPage({
 	error,
 }: {
-	error: Error;
+	error: unknown;
 	reset?: () => void;
 }) {
 	useEffect(() => {
 		console.error(error);
 	}, [error]);
 
-	const errorMessage = `${error}`;
-	const errorStack = `${error.stack}`;
+	// When there is overridden toString, use it. if not, use stringify
+	const errorMessage =
+		typeof error !== "object" || error === null
+			? `${error}`
+			: error.toString === Object.prototype.toString
+				? JSON.stringify(error)
+				: error.toString();
+	const errorStack =
+		error != null && typeof error === "object" && "stack" in error
+			? `${error.stack}`
+			: "No stacktrace provided";
 
 	const openIssue = () => {
 		try {

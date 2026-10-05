@@ -10,7 +10,10 @@ import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
-import { OpenUnityButton } from "@/components/OpenUnityButton";
+import {
+	OpenUnityButton,
+	OpenUnityButtonWidthSizer,
+} from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
@@ -29,7 +32,11 @@ import {
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
-import { dateToString, formatDateOffset } from "@/lib/dateToString";
+import {
+	dateToString,
+	dayToString,
+	formatDateOffset,
+} from "@/lib/dateToString";
 import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
@@ -79,7 +86,7 @@ export function ProjectRow({
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
 
-	const { projectTypeKind, displayType, isLegacy, lastModified } =
+	const { projectTypeKind, displayType, isLegacy, createdAt, lastModified } =
 		getProjectDisplayInfo(project);
 
 	const openProjectFolder = () =>
@@ -106,7 +113,7 @@ export function ProjectRow({
 			<tr
 				className={`group even:bg-secondary/30 ${removed || loading || !(project.is_valid ?? true) ? "opacity-50" : ""}`}
 			>
-				<td className={`${cellClass} w-3`}>
+				<td className={noGrowCellClass}>
 					<div className={"relative flex"}>
 						<FavoriteStarToggleButton
 							favorite={project.favorite}
@@ -148,7 +155,7 @@ export function ProjectRow({
 						</TooltipPortal>
 					</Tooltip>
 				</td>
-				<td className={`${cellClass} w-[8em] min-w-[8em]`}>
+				<td className={noGrowCellClass}>
 					<div className="flex flex-row gap-2">
 						<div className="flex items-center">
 							{projectTypeKind === "avatars" ? (
@@ -175,6 +182,22 @@ export function ProjectRow({
 				<td className={noGrowCellClass}>
 					<Tooltip>
 						<TooltipTrigger>
+							<time dateTime={createdAt.toISOString()}>
+								<time className="font-normal">
+									{dayToString(project.created_at)}
+								</time>
+							</time>
+						</TooltipTrigger>
+						<TooltipPortal>
+							<TooltipContent>
+								{dateToString(project.created_at)}
+							</TooltipContent>
+						</TooltipPortal>
+					</Tooltip>
+				</td>
+				<td className={noGrowCellClass}>
+					<Tooltip>
+						<TooltipTrigger>
 							<time dateTime={lastModified.toISOString()}>
 								<time className="font-normal">
 									{formatDateOffset(project.last_modified)}
@@ -189,8 +212,8 @@ export function ProjectRow({
 					</Tooltip>
 				</td>
 				<td className={noGrowCellClass}>
-					<div className="flex flex-row gap-2 max-w-min items-center">
-						<ButtonDisabledIfInvalid asChild>
+					<div className="flex flex-row gap-2 items-center">
+						<ButtonDisabledIfInvalid asChild className="flex-1">
 							<OpenUnityButton
 								projectPath={project.path}
 								unityVersion={project.unity}
@@ -261,6 +284,35 @@ export function ProjectRow({
 				</td>
 			</tr>
 		</ProjectContext.Provider>
+	);
+}
+
+// A row that takes no vertical space but still feeds the table's column width
+// calculation, which is exactly what `visibility: collapse` is specified to do.
+// It carries the widest possible button group, so the button column no longer
+// resizes when OpenUnityButton switches between "Open Unity", "Opening Unity",
+// "Bring Unity to Front" and "Unity Is Open".
+// Keep in sync with the button cell of ProjectRow above.
+export function ProjectRowWidthSizer() {
+	return (
+		<tr className="collapse" inert>
+			<td />
+			<td />
+			<td />
+			<td />
+			<td />
+			<td />
+			<td className="p-2.5 compact:py-1 w-1">
+				<div className="flex flex-row gap-2 items-center">
+					<OpenUnityButtonWidthSizer className="flex-1" />
+					<Button variant="info">{tc("projects:button:manage")}</Button>
+					<Button variant="success">{tc("projects:backup")}</Button>
+					<Button variant="ghost" size="icon">
+						<Ellipsis className="size-5" />
+					</Button>
+				</div>
+			</td>
+		</tr>
 	);
 }
 
@@ -510,12 +562,14 @@ export function getProjectDisplayInfo(project: TauriProject) {
 	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
 	const displayType = tc(`projects:type:${projectTypeKind}`);
 	const isLegacy = LegacyProjectTypes.includes(project.project_type);
+	const createdAt = new Date(project.created_at);
 	const lastModified = new Date(project.last_modified);
 
 	return {
 		projectTypeKind,
 		displayType,
 		isLegacy,
+		createdAt,
 		lastModified,
 	};
 }

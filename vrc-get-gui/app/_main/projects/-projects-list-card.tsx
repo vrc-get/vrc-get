@@ -9,9 +9,15 @@ import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString } from "@/lib/version";
-import { ProjectRow } from "./-project-row";
+import { ProjectRow, ProjectRowWidthSizer } from "./-project-row";
 
-export const sortings = ["lastModified", "name", "unity", "type"] as const;
+export const sortings = [
+	"createdAt",
+	"lastModified",
+	"name",
+	"unity",
+	"type",
+] as const;
 
 type SimpleSorting = (typeof sortings)[number];
 type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
@@ -158,6 +164,18 @@ export function ProjectsTableCard({
 							</small>
 						</button>
 					</th>
+					<th className={`${thClass} ${headerBg("createdAt")}`}>
+						<button
+							type="button"
+							className={"flex w-full project-table-button"}
+							onClick={() => setSorting("createdAt")}
+						>
+							{icon("createdAt")}
+							<small className="font-normal leading-none">
+								{tc("general:created at")}
+							</small>
+						</button>
+					</th>
 					<th className={`${thClass} ${headerBg("lastModified")}`}>
 						<button
 							type="button"
@@ -174,6 +192,7 @@ export function ProjectsTableCard({
 				</tr>
 			</thead>
 			<tbody>
+				<ProjectRowWidthSizer />
 				{projectsShown.map((project) => (
 					<ProjectRow key={project.path} project={project} loading={loading} />
 				))}
@@ -195,6 +214,12 @@ export function sortSearchProjects(
 	searched.sort((a, b) => b.last_modified - a.last_modified);
 
 	switch (sorting) {
+		case "createdAt":
+			searched.sort((a, b) => b.created_at - a.created_at);
+			break;
+		case "createdAtReversed":
+			searched.sort((a, b) => a.created_at - b.created_at);
+			break;
 		case "lastModified":
 			searched.sort((a, b) => b.last_modified - a.last_modified);
 			break;

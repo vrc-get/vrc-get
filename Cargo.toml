@@ -2,10 +2,11 @@
 resolver = "2"
 
 members = [
-    "build-check-static-link",
-    "build-updater-json",
+    "xtask",
     "vrc-get",
     "vrc-get-gui",
+    "vrc-get-gui/windows-installer-wrapper",
+    "vrc-get-gui/online-installer",
     "vrc-get-vpm",
 ]
 
@@ -24,3 +25,17 @@ authors = ["anatawa12 <anatawa12@icloud.com>"]
 homepage = "https://github.com/anatawa12/vrc-get#readme"
 repository = "https://github.com/anatawa12/vrc-get"
 readme = "README.md"
+
+[profile.xtask]
+inherits = "dev"
+incremental = false
+debug = 1
+opt-level = 0
+lto = "off"
+
+[profile.online-installer]
+inherits = "release"
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true

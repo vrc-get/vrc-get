@@ -206,6 +206,7 @@ impl Display for ProjectType {
 }
 
 fn unity_compatible(package: &PackageManifest, unity: UnityVersion) -> bool {
+    // Keep in sync with js logic
     fn is_vrcsdk_for_2019(version: &Version) -> bool {
         version.major == 3 && version.minor <= 4
     }
@@ -224,6 +225,13 @@ fn unity_compatible(package: &PackageManifest, unity: UnityVersion) -> bool {
         "com.vrchat.core.vpm-resolver" if is_resolver_for_2019(package.version()) => {
             // this version of Resolver is only for unity 2019 so for other version(s) of unity, it's not satisfied.
             unity.major() == 2019
+        }
+        "com.vrchat.avatars" | "com.vrchat.worlds" | "com.vrchat.base"
+            if let Some(target_unity) = package.unity() =>
+        {
+            // For VRCSDK, we enforce matching unity minor version.
+            // This is NOT part of VPM specification, but prevents incorrectly installing VRCSDK for 2022 in Unity 6000 series
+            target_unity.major() == unity.major() && target_unity.minor() == unity.minor()
         }
         _ => {
             // otherwice, check based on package info

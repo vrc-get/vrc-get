@@ -1,13 +1,23 @@
 version: 2
+multi-ecosystem-groups:
+  tauri:
+    schedule:
+      interval: "weekly"
 updates:
+  - package-ecosystem: "cargo"
+    directory: "/"
+    patterns: [ 'tauri', 'tauri-build' ]
+    multi-ecosystem-group: tauri
+  - package-ecosystem: "npm"
+    directory: "/vrc-get-gui"
+    patterns: [ '@tauri-apps/*' ]
+    multi-ecosystem-group: tauri
   - package-ecosystem: "cargo"
     directory: "/"
     open-pull-requests-limit: 20
     schedule:
       interval: "weekly"
     groups:
-      tauri:
-        patterns: [ 'tauri', 'tauri-build' ]
       clap:
         patterns: [ 'clap', 'clap_complete' ]
   - package-ecosystem: github-actions

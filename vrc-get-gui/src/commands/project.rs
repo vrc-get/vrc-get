@@ -1,7 +1,10 @@
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
+use crate::compressor::TauriCreateBackupProgress;
+use crate::compressor::parallel_compress_zip;
 use crate::utils::{collect_notable_project_files_tree, project_backup_path};
+use async_zip::{Compression, DeflateOption};
 use log::{error, info, warn};
 use serde::Serialize;
 use std::ffi::OsStr;
@@ -9,10 +12,10 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::str::FromStr;
 use tauri::{AppHandle, State, Window};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
-use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
+use vrc_get_vpm::environment::{PackageInstaller, ProjectManagement};
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
@@ -184,7 +187,7 @@ pub async fn project_install_packages(
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
     let Some(packages) = packages.get() else {
-        return Err(RustError::unrecoverable(
+        return Err(RustError::unrecoverable_str(
             "Internal Error: environment version mismatch",
         ));
     };
@@ -193,7 +196,7 @@ pub async fn project_install_packages(
         .map(|(id, v)| Some((id, Version::from_str(&v).ok()?)))
         .collect::<Option<Vec<_>>>()
     else {
-        return Err(RustError::unrecoverable("bad version file"));
+        return Err(RustError::unrecoverable_str("bad version file"));
     };
 
     changes!(packages, changes, |collection, packages| {
@@ -209,7 +212,7 @@ pub async fn project_install_packages(
             })
             .collect::<Option<Vec<_>>>()
         else {
-            return Err(RustError::unrecoverable("some packages not found"));
+            return Err(RustError::unrecoverable_str("some packages not found"));
         };
 
         let unity_project = load_project(project_path).await?;
@@ -300,7 +303,7 @@ pub async fn project_apply_pending_changes(
     changes_version: u32,
 ) -> Result<(), RustError> {
     let Some(mut changes) = changes.get_versioned(changes_version) else {
-        return Err(RustError::unrecoverable("changes version mismatch"));
+        return Err(RustError::unrecoverable_str("changes version mismatch"));
     };
 
     let changes = changes.take_changes();
@@ -466,11 +469,33 @@ fn is_unity_running(project_path: impl AsRef<Path>) -> bool {
     crate::os::is_locked(&project_path.as_ref().join("Temp/UnityLockFile")).unwrap_or(false)
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, specta::Type)]
+pub enum TauriUnityProjectStatusKind {
+    Closed,
+    Opening,
+    Open,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, specta::Type)]
+pub struct TauriUnityProjectStatus {
+    status: TauriUnityProjectStatusKind,
+    can_bring_to_front: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, specta::Type)]
+pub enum TauriUnityWindowActionResult {
+    BroughtToFront,
+    FailedToBringToFront,
+    WindowNotFound,
+    Unsupported,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn project_open_unity(
     config: State<'_, GuiConfigState>,
     io: State<'_, DefaultEnvironmentIo>,
+    unity_state: State<'_, UnityProjectState>,
     project_path: String,
     unity_path: String,
 ) -> Result<bool, RustError> {
@@ -479,20 +504,41 @@ pub async fn project_open_unity(
         return Ok(false);
     }
 
+    // Check if the project is on a noexec filesystem (Linux/macOS only)
+    // This causes shader compilation failures, resulting in non-stereoscopic rendering
+    let project_path_ref = Path::new(&project_path);
+    for subdir in &["Assets", "Packages", "Library"] {
+        let dir = project_path_ref.join(subdir);
+        if crate::os::is_noexec(&dir) {
+            return Err(localizable_error!("projects:error:noexec filesystem"));
+        }
+    }
+
     let mut custom_args: Option<Vec<String>> = None;
 
     {
-        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-        if let Some(project) = connection.find_project(project_path.as_ref())? {
+        let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+        if let Some(project) = projects.find_project(project_path.as_ref())? {
             custom_args = project
                 .custom_unity_args()
                 .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
         }
-        connection.update_project_last_modified(project_path.as_ref())?;
-        connection.save(io.inner()).await?;
+        projects
+            .update_project_last_modified(project_path.as_ref())
+            .await?;
+    }
+
+    let project_path_key = PathBuf::from(&project_path);
+    if !unity_state.try_mark_opening(project_path_key.clone()) {
+        return Ok(false);
+    }
+    if is_unity_running(&project_path_key) {
+        unity_state.clear_opening(&project_path_key);
+        return Ok(false);
     }
 
     let unity_args = custom_args.or_else(|| config.get().default_unity_arguments.clone());
+    let unity_state = unity_state.inner().clone();
     tokio::spawn(async move {
         let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
 
@@ -504,6 +550,7 @@ pub async fn project_open_unity(
 
         if let Err(e) = crate::os::start_command("Unity".as_ref(), unity_path.as_ref(), &args).await
         {
+            unity_state.clear_opening(&project_path_key);
             log::error!("Launching Unity: {e}");
         }
     });
@@ -513,21 +560,87 @@ pub async fn project_open_unity(
 
 #[tauri::command]
 #[specta::specta]
-pub fn project_is_unity_launching(project_path: String) -> bool {
-    is_unity_running(project_path)
+pub fn project_is_unity_launching(
+    unity_state: State<'_, UnityProjectState>,
+    project_path: String,
+) -> bool {
+    let project_path = Path::new(&project_path);
+    is_unity_running(project_path) || unity_state.is_opening(project_path)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn project_unity_status(
+    unity_state: State<'_, UnityProjectState>,
+    project_path: String,
+) -> TauriUnityProjectStatus {
+    let project_path = Path::new(&project_path);
+    let is_running = is_unity_running(project_path);
+    if is_running {
+        unity_state.clear_opening(project_path);
+    }
+    let editor_ready = if !is_running {
+        false
+    } else if !crate::os::CAN_DETECT_UNITY_EDITOR_READY {
+        true
+    } else {
+        unity_state.is_editor_ready(project_path)
+    };
+    let launch_opening = !is_running && unity_state.is_opening(project_path);
+    let status = if editor_ready {
+        TauriUnityProjectStatusKind::Open
+    } else if launch_opening || is_running {
+        TauriUnityProjectStatusKind::Opening
+    } else {
+        TauriUnityProjectStatusKind::Closed
+    };
+
+    TauriUnityProjectStatus {
+        status,
+        can_bring_to_front: status == TauriUnityProjectStatusKind::Open
+            && crate::os::CAN_BRING_UNITY_TO_FRONT,
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn project_bring_unity_to_front(
+    unity_state: State<'_, UnityProjectState>,
+    project_path: String,
+) -> Result<TauriUnityWindowActionResult, RustError> {
+    let unity_state = unity_state.inner().clone();
+    let result = tokio::task::spawn_blocking(move || {
+        unity_state.bring_unity_to_front(Path::new(&project_path))
+    })
+    .await
+    .map_err(|error| {
+        RustError::unrecoverable_str(format!("checking Unity windows task failed: {error}"))
+    })??;
+
+    Ok(match result {
+        crate::os::BringUnityToFrontResult::BroughtToFront => {
+            TauriUnityWindowActionResult::BroughtToFront
+        }
+        crate::os::BringUnityToFrontResult::FailedToBringToFront => {
+            TauriUnityWindowActionResult::FailedToBringToFront
+        }
+        crate::os::BringUnityToFrontResult::WindowNotFound => {
+            TauriUnityWindowActionResult::WindowNotFound
+        }
+        crate::os::BringUnityToFrontResult::Unsupported => {
+            TauriUnityWindowActionResult::Unsupported
+        }
+    })
 }
 
 async fn create_backup_zip(
     backup_path: &Path,
     project_path: &Path,
-    compression: async_zip::Compression,
-    deflate_option: async_zip::DeflateOption,
+    compression: Compression,
+    deflate_option: DeflateOption,
     exclude_vpm: bool,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
 ) -> Result<(), RustError> {
-    let mut file = tokio::fs::File::create_new(&backup_path).await?;
-    let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
-
     info!("Collecting files to backup {}...", project_path.display());
 
     let start = std::time::Instant::now();
@@ -541,45 +654,14 @@ async fn create_backup_zip(
         start.elapsed().as_secs_f64()
     );
 
-    let _ = ctx.emit(TauriCreateBackupProgress {
-        total: total_files,
-        proceed: 0,
-        last_proceed: "Collecting files".to_string(),
-    });
-
-    for (proceed, entry) in file_tree.recursive().enumerate() {
-        if entry.is_dir() {
-            writer
-                .write_entry_whole(
-                    async_zip::ZipEntryBuilder::new(
-                        entry.relative_path().into(),
-                        async_zip::Compression::Stored,
-                    ),
-                    b"",
-                )
-                .await?;
-        } else {
-            let file = tokio::fs::read(entry.absolute_path()).await?;
-            writer
-                .write_entry_whole(
-                    async_zip::ZipEntryBuilder::new(entry.relative_path().into(), compression)
-                        .deflate_option(deflate_option),
-                    file.as_ref(),
-                )
-                .await?;
-        }
-
-        let _ = ctx.emit(TauriCreateBackupProgress {
-            total: total_files,
-            proceed: proceed + 1,
-            last_proceed: entry.relative_path().to_string(),
-        });
-    }
-
-    writer.close().await?;
-    file.flush().await?;
-    file.sync_data().await?;
-    drop(file);
+    parallel_compress_zip(
+        file_tree,
+        backup_path.to_path_buf(),
+        compression,
+        deflate_option,
+        ctx,
+    )
+    .await?;
 
     info!(
         "Creating backup archive for {} finished!",
@@ -605,13 +687,6 @@ impl Drop for RemoveOnDrop<'_> {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(self.0);
     }
-}
-
-#[derive(Serialize, specta::Type, Clone)]
-pub struct TauriCreateBackupProgress {
-    total: usize,
-    proceed: usize,
-    last_proceed: String,
 }
 
 #[tauri::command]
@@ -650,10 +725,10 @@ pub async fn project_create_backup(
             log::info!("backup project: {project_name} with {backup_format}");
             let timer = std::time::Instant::now();
 
-            let backup_path;
+            let backup_path: PathBuf;
             let remove_on_drop: RemoveOnDrop;
             match backup_format.as_str() {
-                "default" | "zip-store" => {
+                "zip-store" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");
@@ -661,14 +736,14 @@ pub async fn project_create_backup(
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        async_zip::Compression::Stored,
-                        async_zip::DeflateOption::Normal,
+                        Compression::Stored,
+                        DeflateOption::Fast, // unused
                         exclude_vpm,
                         ctx,
                     )
                     .await?;
                 }
-                "zip-fast" => {
+                "default" | "zip-fast" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");
@@ -676,8 +751,8 @@ pub async fn project_create_backup(
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(1),
+                        Compression::Deflate,
+                        DeflateOption::Fast,
                         exclude_vpm,
                         ctx,
                     )
@@ -691,32 +766,32 @@ pub async fn project_create_backup(
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(9),
+                        Compression::Deflate,
+                        DeflateOption::Maximum,
                         exclude_vpm,
                         ctx,
                     )
                     .await?;
                 }
-                backup_format => {
+                _ => {
                     warn!("unknown backup format: {backup_format}, using zip-fast");
 
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");
-
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(1),
+                        Compression::Deflate,
+                        DeflateOption::Fast,
                         exclude_vpm,
                         ctx,
                     )
                     .await?;
                 }
-            }
+            };
+
             remove_on_drop.forget();
 
             log::info!("backup finished in {:?}", timer.elapsed());
@@ -732,8 +807,8 @@ pub async fn project_get_custom_unity_args(
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
-    let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref())? {
+    let projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    if let Some(project) = projects.find_project(project_path.as_ref())? {
         Ok(project
             .custom_unity_args()
             .map(|x| x.iter().map(ToOwned::to_owned).collect()))
@@ -749,19 +824,10 @@ pub async fn project_set_custom_unity_args(
     project_path: String,
     args: Option<Vec<String>>,
 ) -> Result<bool, RustError> {
-    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
-        if let Some(args) = args {
-            project.set_custom_unity_args(args);
-        } else {
-            project.clear_custom_unity_args();
-        }
-        connection.update_project(&project);
-        connection.save(io.inner()).await?;
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+    let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    Ok(projects
+        .set_custom_unity_args(&project_path, args.as_deref())
+        .await?)
 }
 
 #[tauri::command]
@@ -770,8 +836,8 @@ pub async fn project_get_unity_path(
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<String>, RustError> {
-    let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref())? {
+    let projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    if let Some(project) = projects.find_project(project_path.as_ref())? {
         Ok(project.unity_path().map(ToOwned::to_owned))
     } else {
         Ok(None)
@@ -785,19 +851,10 @@ pub async fn project_set_unity_path(
     project_path: String,
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
-    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
-        if let Some(unity_path) = unity_path {
-            project.set_unity_path(unity_path);
-        } else {
-            project.clear_unity_path();
-        }
-        connection.update_project(&project);
-        connection.save(io.inner()).await?;
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+    let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    Ok(projects
+        .set_unity_path(&project_path, unity_path.as_deref())
+        .await?)
 }
 
 #[tauri::command]
@@ -808,8 +865,8 @@ pub async fn project_clear_display_name(
 ) -> Result<bool, RustError> {
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     if let Some(mut project) = connection.find_project(project_path.as_ref())? {
-        let project_name_file = Path::new(project_path.as_str())
-            .join("UserSettings/ProjectName.txt");
+        let project_name_file =
+            Path::new(project_path.as_str()).join("UserSettings/ProjectName.txt");
         io.remove_file(&project_name_file).await?;
 
         project.clear_display_name();
@@ -830,13 +887,14 @@ pub async fn project_set_display_name(
 ) -> Result<bool, RustError> {
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     if let Some(mut project) = connection.find_project(project_path.as_ref())? {
-        let project_name_file = Path::new(project_path.as_str())
-            .join("UserSettings/ProjectName.txt");
+        let project_name_file =
+            Path::new(project_path.as_str()).join("UserSettings/ProjectName.txt");
 
         if let Some(parent) = project_name_file.parent() {
             io.create_dir_all(parent).await?;
         }
-        io.write(&project_name_file, display_name.as_bytes()).await?;
+        io.write(&project_name_file, display_name.as_bytes())
+            .await?;
 
         project.set_display_name(display_name);
         connection.update_project(&project);

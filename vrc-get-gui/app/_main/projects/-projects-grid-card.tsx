@@ -30,6 +30,7 @@ const sortingOptions: { key: SimpleSorting; label: string }[] = [
 	{ key: "name", label: "general:name" },
 	{ key: "type", label: "projects:type" },
 	{ key: "unity", label: "projects:unity" },
+	{ key: "createdAt", label: "general:created at" },
 	{ key: "lastModified", label: "general:last modified" },
 ];
 

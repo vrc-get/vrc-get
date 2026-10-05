@@ -1,7 +1,6 @@
 import type { EventCallback } from "@tauri-apps/api/event";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect } from "react";
-import { useEffectEvent } from "@/lib/use-effect-event";
+import { useEffect, useEffectEvent } from "react";
 
 export function useTauriListen<T>(event: string, handler: EventCallback<T>) {
 	const handlerFn = useEffectEvent(handler);

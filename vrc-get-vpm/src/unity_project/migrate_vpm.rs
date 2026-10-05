@@ -141,7 +141,7 @@ async fn migrate_vpm(
             }
         }
 
-        adding_packages.extend(curated_packages.into_iter());
+        adding_packages.extend(curated_packages);
     }
 
     // install packages. this also removes legacy VRCSDK and curated packages

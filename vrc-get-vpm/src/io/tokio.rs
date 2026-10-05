@@ -2,7 +2,9 @@ use crate::io;
 use crate::io::{FileStream, FileType, IoTrait, Metadata};
 use futures::{Stream, TryFutureExt};
 use log::debug;
-use std::ffi::{OsStr, OsString};
+#[cfg(feature = "vrc-get-litedb")]
+use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::mem::forget;
 use std::path::Path;
 use std::path::PathBuf;

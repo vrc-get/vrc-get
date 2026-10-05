@@ -37,8 +37,8 @@ const TooltipPortal = TooltipPrimitive.Portal;
 
 export {
 	Tooltip,
-	TooltipTrigger,
 	TooltipContent,
 	TooltipPortal,
 	TooltipProvider,
+	TooltipTrigger,
 };

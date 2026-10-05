@@ -1,6 +1,6 @@
-use std::path::Path;
 use crate::io::IoTrait;
 use crate::{ProjectType, UnityProject};
+use std::path::Path;
 
 impl UnityProject {
     pub async fn detect_project_type(&self) -> ProjectType {

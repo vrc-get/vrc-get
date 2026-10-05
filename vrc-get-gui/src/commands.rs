@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -8,7 +7,7 @@ pub use start::startup;
 use tauri::generate_handler;
 use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
-use vrc_get_vpm::environment::VccDatabaseConnection;
+use vrc_get_vpm::environment::{ProjectManagement, ProjectManagementError};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
@@ -37,6 +36,7 @@ macro_rules! localizable_error {
 }
 
 mod async_command;
+pub(crate) use async_command::AsyncCommandContext;
 mod environment;
 mod project;
 mod start;
@@ -96,6 +96,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::packages::environment_download_repository,
         environment::packages::environment_add_repository,
         environment::packages::environment_remove_repository,
+        environment::packages::environment_reorder_repositories,
         environment::packages::environment_import_repository_pick,
         environment::packages::environment_import_download_repositories,
         environment::packages::environment_import_add_repositories,
@@ -117,8 +118,10 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_set_use_alcom_for_vcc_protocol,
         environment::settings::environment_get_default_unity_arguments,
         environment::settings::environment_set_default_unity_arguments,
+        environment::settings::environment_set_project_list_sync_mode,
         environment::templates::environment_export_template,
         environment::templates::environment_get_alcom_template,
+        environment::templates::environment_pick_unity_packages,
         environment::templates::environment_pick_unity_package,
         environment::templates::environment_save_template,
         environment::templates::environment_remove_template,
@@ -139,6 +142,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         project::project_migrate_project_to_vpm,
         project::project_open_unity,
         project::project_is_unity_launching,
+        project::project_unity_status,
+        project::project_bring_unity_to_front,
         project::project_create_backup,
         project::project_get_custom_unity_args,
         project::project_set_custom_unity_args,
@@ -148,6 +153,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         project::project_clear_display_name,
         util::util_open,
         util::util_open_url,
+        util::util_open_url_nocheck,
         util::util_get_log_entries,
         util::util_get_version,
         util::util_check_for_update,
@@ -205,6 +211,7 @@ pub(crate) fn export_ts() {
             environment::packages::environment_download_repository,
             environment::packages::environment_add_repository,
             environment::packages::environment_remove_repository,
+            environment::packages::environment_reorder_repositories,
             environment::packages::environment_import_repository_pick,
             environment::packages::environment_import_download_repositories,
             environment::packages::environment_import_add_repositories,
@@ -226,8 +233,10 @@ pub(crate) fn export_ts() {
             environment::settings::environment_set_use_alcom_for_vcc_protocol,
             environment::settings::environment_get_default_unity_arguments,
             environment::settings::environment_set_default_unity_arguments,
+            environment::settings::environment_set_project_list_sync_mode,
             environment::templates::environment_export_template,
             environment::templates::environment_get_alcom_template,
+            environment::templates::environment_pick_unity_packages,
             environment::templates::environment_pick_unity_package,
             environment::templates::environment_save_template,
             environment::templates::environment_remove_template,
@@ -248,6 +257,8 @@ pub(crate) fn export_ts() {
             project::project_migrate_project_to_vpm,
             project::project_open_unity,
             project::project_is_unity_launching,
+            project::project_unity_status,
+            project::project_bring_unity_to_front,
             project::project_create_backup,
             project::project_get_custom_unity_args,
             project::project_set_custom_unity_args,
@@ -257,6 +268,7 @@ pub(crate) fn export_ts() {
             project::project_clear_display_name,
             util::util_open,
             util::util_open_url,
+            util::util_open_url_nocheck,
             util::util_get_log_entries,
             util::util_get_version,
             util::util_check_for_update,
@@ -269,37 +281,39 @@ pub(crate) fn export_ts() {
             crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
             crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
         ])
-        //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
+        .typ::<uri_custom_scheme::GlobalInfo>()
         .typ::<environment::projects::TauriUpdatedRealProjectInfo>()
-        .export(
-            specta_typescript::Typescript::default()
-                .bigint(specta_typescript::BigIntExportBehavior::Number),
-            export_path,
-        )
+        .dangerously_cast_bigints_to_number()
+        .export(specta_typescript::Typescript::default(), export_path)
         .unwrap();
 }
 
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
-    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), io::Error> {
-        let mut connection = VccDatabaseConnection::connect(io).await?;
-        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
-        connection.save(io).await?;
+    async fn inner(
+        io: &DefaultEnvironmentIo,
+        project_dir: &Path,
+    ) -> Result<(), ProjectManagementError> {
+        let mut projects = ProjectManagement::start_no_migration(io).await?;
+        projects
+            .update_project_last_modified(&project_dir.to_string_lossy())
+            .await?;
         Ok(())
     }
 
     if let Err(err) = inner(io, project_dir).await {
-        eprintln!("error updating project updated_at on vcc: {err}");
+        error!("error updating project updated_at on vcc: {err}");
     }
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
-#[specta(export)]
+#[specta(collect)]
 #[serde(tag = "type")]
 enum RustError {
     Unrecoverable {
         message: String,
     },
     #[allow(dead_code)]
+    #[specta(type = LocalizableRustError)]
     Localizable(Box<LocalizableRustError>),
     Handleable {
         message: String,
@@ -323,16 +337,40 @@ enum HandleableRustError {
 }
 
 impl RustError {
-    fn unrecoverable<T: Display>(value: T) -> Self {
-        error!("{value}");
-        Self::Unrecoverable {
-            message: value.to_string(),
-        }
+    fn unrecoverable<T: std::error::Error>(value: T) -> Self {
+        let message = Self::display_error(&value);
+        error!("{message}");
+        Self::Unrecoverable { message }
+    }
+
+    fn unrecoverable_str<T: Into<String>>(value: T) -> Self {
+        let message = value.into();
+        error!("{message}");
+        Self::Unrecoverable { message }
     }
 
     fn handleable(message: String, body: HandleableRustError) -> Self {
         error!(gui_toast = false; "{message}");
         Self::Handleable { message, body }
+    }
+
+    // formats the error but with inner error message included
+    fn display_error<T: std::error::Error>(e: T) -> String {
+        let mut message = format!("{e}");
+
+        let mut cur = e.source();
+        while let Some(src) = cur {
+            let src_msg = format!("{src}");
+
+            if !message.contains(&src_msg) {
+                message.push_str(": ");
+                message.push_str(src_msg.as_str());
+            }
+
+            cur = src.source();
+        }
+
+        message
     }
 
     fn handleable_missing_dependencies(
@@ -365,17 +403,34 @@ macro_rules! impl_from_error {
 
 impl_from_error!(
     io::Error,
-    String,
     async_zip::error::ZipError,
     vrc_get_vpm::environment::AddRepositoryErr,
     vrc_get_vpm::unity_project::RemovePackageErr,
+    ProjectManagementError,
     fs_extra::error::Error,
 );
 
-impl From<tauri_plugin_updater::Error> for RustError {
-    fn from(value: tauri_plugin_updater::Error) -> Self {
-        log::error!(gui_toast = false; "failed to load latest release: {value}");
-        Self::unrecoverable("failed to load the latest release")
+impl From<String> for RustError {
+    fn from(value: String) -> Self {
+        RustError::unrecoverable_str(value)
+    }
+}
+
+impl From<crate::compressor::CompressError> for RustError {
+    fn from(value: crate::compressor::CompressError) -> Self {
+        match value {
+            crate::compressor::CompressError::Io(e) => e.into(),
+            crate::compressor::CompressError::Zip(e) => e.into(),
+            crate::compressor::CompressError::TaskJoin(e) => RustError::unrecoverable(e),
+            crate::compressor::CompressError::Semaphore(e) => RustError::unrecoverable(e),
+        }
+    }
+}
+
+impl From<crate::updater::Error> for RustError {
+    fn from(value: crate::updater::Error) -> Self {
+        log::error!(gui_toast = false; "updater error: {value}");
+        Self::unrecoverable_str("failed to load the latest release")
     }
 }
 
@@ -404,7 +459,7 @@ impl From<ReinstalPackagesError> for RustError {
             ReinstalPackagesError::DependenciesNotFound { dependencies } => {
                 RustError::handleable_missing_dependencies(message, dependencies)
             }
-            _ => RustError::unrecoverable(message),
+            _ => RustError::unrecoverable(value),
         }
     }
 }
@@ -416,7 +471,7 @@ impl From<AddPackageErr> for RustError {
             AddPackageErr::DependenciesNotFound { dependencies } => {
                 RustError::handleable_missing_dependencies(message, dependencies)
             }
-            _ => RustError::unrecoverable(message),
+            _ => RustError::unrecoverable(value),
         }
     }
 }
@@ -428,7 +483,7 @@ impl From<ResolvePackageErr> for RustError {
             ResolvePackageErr::DependenciesNotFound { dependencies } => {
                 RustError::handleable_missing_dependencies(message, dependencies)
             }
-            _ => RustError::unrecoverable(message),
+            _ => RustError::unrecoverable(value),
         }
     }
 }
@@ -469,6 +524,10 @@ struct TauriBasePackageInfo {
     is_yanked: bool,
 }
 
+fn safe_url(url: &url::Url) -> bool {
+    matches!(url.scheme(), "http" | "https")
+}
+
 impl TauriBasePackageInfo {
     fn new(package: &PackageManifest) -> Self {
         Self {
@@ -480,8 +539,14 @@ impl TauriBasePackageInfo {
                 .collect(),
             version: package.version().into(),
             unity: package.unity().map(|v| (v.major(), v.minor())),
-            changelog_url: package.changelog_url().map(|v| v.to_string()),
-            documentation_url: package.documentation_url().map(|v| v.to_string()),
+            changelog_url: package
+                .changelog_url()
+                .take_if(|x| safe_url(x))
+                .map(|v| v.to_string()),
+            documentation_url: package
+                .documentation_url()
+                .take_if(|x| safe_url(x))
+                .map(|v| v.to_string()),
             vpm_dependencies: package
                 .vpm_dependencies()
                 .keys()
@@ -543,7 +608,7 @@ impl IntoPathBuf for tauri_plugin_dialog::FilePath {
         match self {
             Self::Url(url) => url
                 .to_file_path()
-                .map_err(|_| RustError::unrecoverable("internal error: bad file url")),
+                .map_err(|_| RustError::unrecoverable_str("internal error: bad file url")),
             Self::Path(p) => Ok(p),
         }
     }

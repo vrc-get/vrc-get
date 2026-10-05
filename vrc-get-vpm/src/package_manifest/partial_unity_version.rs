@@ -1,4 +1,4 @@
-use serde::de::Error;
+use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
 
 #[derive(Debug, Clone)]
@@ -19,14 +19,38 @@ impl<'de> Deserialize<'de> for PartialUnityVersion {
     where
         D: Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        if let Some((maj, min)) = s.split_once('.') {
-            let major = maj.trim().parse::<u16>().map_err(Error::custom)?;
-            let minor = min.trim().parse::<u8>().map_err(Error::custom)?;
-            Ok(Self(major, minor))
-        } else {
-            let major = s.trim().parse::<u16>().map_err(Error::custom)?;
-            Ok(Self(major, 0))
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = PartialUnityVersion;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("unity version (major or major.minor)")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                if let Some((maj, min)) = v.split_once('.') {
+                    let major = maj
+                        .trim()
+                        .parse::<u16>()
+                        .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
+                    let minor = min
+                        .trim()
+                        .parse::<u8>()
+                        .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
+                    Ok(PartialUnityVersion(major, minor))
+                } else {
+                    let major = v
+                        .trim()
+                        .parse::<u16>()
+                        .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
+                    Ok(PartialUnityVersion(major, 0))
+                }
+            }
         }
+
+        deserializer.deserialize_str(Visitor)
     }
 }

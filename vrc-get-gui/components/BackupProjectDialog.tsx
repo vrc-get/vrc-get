@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +9,6 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import type { DialogContext } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { toastNormal, toastSuccess } from "@/lib/toast";
-import { useEffectEvent } from "@/lib/use-effect-event";
 
 export function BackupProjectDialog({
 	projectPath,

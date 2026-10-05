@@ -18,7 +18,13 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { tc } from "@/lib/i18n";
-import { toastError, toastInfo, toastNormal, toastSuccess } from "@/lib/toast";
+import {
+	toastError,
+	toastInfo,
+	toastNormal,
+	toastSuccess,
+	toastWarning,
+} from "@/lib/toast";
 
 export const Route = createFileRoute("/_main/dev-palette/")({
 	component: Page,
@@ -112,6 +118,12 @@ function Page() {
 								onClick={() => toastError("Error Toast Body")}
 							>
 								Error
+							</Button>
+							<Button
+								variant={"warning"}
+								onClick={() => toastWarning("Warning Toast Body")}
+							>
+								Warning
 							</Button>
 							<Button
 								variant={"success"}

@@ -8,7 +8,7 @@ import {
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
 import type React from "react";
-import { Suspense, useEffect, useTransition } from "react";
+import { Suspense, useEffect, useEffectEvent, useTransition } from "react";
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import {
@@ -50,7 +50,6 @@ import {
 	toastSuccess,
 	toastThrownError,
 } from "@/lib/toast";
-import { useEffectEvent } from "@/lib/use-effect-event";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_main/settings/")({
@@ -397,6 +396,7 @@ function UnityLaunchArgumentsCard() {
 			</p>
 			<ol className={"flex flex-col"}>
 				{realUnityArgs.map((v, i) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: unity args are ordered list
 					<Input disabled key={i + v} value={v} className={"w-full"} />
 				))}
 			</ol>

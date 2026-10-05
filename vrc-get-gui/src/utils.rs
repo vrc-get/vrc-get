@@ -63,10 +63,7 @@ pub(crate) fn find_existing_parent_dir(path: &Path) -> Option<&Path> {
             return Some(parent);
         }
 
-        match parent.parent() {
-            Some(p) => parent = p,
-            None => return None,
-        }
+        parent = parent.parent()?
     }
 }
 
@@ -250,9 +247,6 @@ pub async fn collect_notable_project_files_tree(
             };
             log::trace!("process: {relative}{file_name}");
 
-            let new_relative;
-            let is_dir;
-
             let file_type = entry.file_type().await?;
 
             if file_type.is_symlink() {
@@ -262,7 +256,7 @@ pub async fn collect_notable_project_files_tree(
                 continue;
             }
 
-            if entry.file_type().await?.is_dir() {
+            let (new_relative, is_dir) = if entry.file_type().await?.is_dir() {
                 let lower_name = file_name.to_ascii_lowercase();
                 if relative.is_empty() {
                     match lower_name.as_str() {
@@ -297,8 +291,7 @@ pub async fn collect_notable_project_files_tree(
                     continue;
                 }
 
-                new_relative = format!("{relative}{file_name}/");
-                is_dir = true;
+                (format!("{relative}{file_name}/"), true)
             } else {
                 if backup {
                     // for backups, we exclude the library directory
@@ -323,9 +316,8 @@ pub async fn collect_notable_project_files_tree(
                         }
                     }
                 }
-                new_relative = format!("{relative}{file_name}");
-                is_dir = false;
-            }
+                (format!("{relative}{file_name}"), false)
+            };
 
             entries.push((new_relative, entry, is_dir));
         }

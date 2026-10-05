@@ -42,6 +42,7 @@ macro_rules! package_json_struct {
         $(#[$meta:meta])*
         $vis:vis struct $name: ident {
             $optional_vis:vis optional$(: #[$optional: meta])?;
+            optional_url$(: #[$optional_url: meta])?;
             $required_vis:vis required$(: #[$required: meta])?;
         }
         $(#[$vr_get_meta:meta])*
@@ -84,9 +85,9 @@ macro_rules! package_json_struct {
             $(#[$optional])?
             $optional_vis headers: indexmap::IndexMap<Box<str>, Box<str>>,
 
-            $(#[$optional])?
+            $(#[$optional_url])?
             $optional_vis changelog_url: Option<Url>,
-            $(#[$optional])?
+            $(#[$optional_url])?
             $optional_vis documentation_url: Option<Url>,
 
             $(#[$optional])?
@@ -111,10 +112,30 @@ macro_rules! package_json_struct {
     };
 }
 
+fn default_if_none<'de, D, T>(de: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
+{
+    <Option<T>>::deserialize(de).map(|x| x.unwrap_or_default())
+}
+
+fn none_if_none_or_empty<'de, D>(de: D) -> Result<Option<Url>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let str = <Option<String>>::deserialize(de)?;
+    let Some(url) = str.filter(|s| !s.trim().is_empty()) else {
+        return Ok(None);
+    };
+    Ok(Some(Url::parse(&url).map_err(serde::de::Error::custom)?))
+}
+
 package_json_struct! {
     #[derive(Debug, Clone)]
     pub struct PackageManifest {
-        optional: #[serde(default)];
+        optional: #[serde(default, deserialize_with = "default_if_none")];
+        optional_url: #[serde(default, deserialize_with = "none_if_none_or_empty")];
         required;
     }
     #[derive(Debug, Clone, Default)]
@@ -250,6 +271,7 @@ impl<'de> Deserialize<'de> for LooseManifest {
         package_json_struct! {
             pub(super) struct LooseManifest {
                 pub(super) optional: #[serde(default, deserialize_with = "default_if_err")];
+                optional_url: #[serde(default, deserialize_with = "default_if_err")];
                 pub(super) required;
             }
             #[derive(Default)]
@@ -298,5 +320,59 @@ fn deserialize_partially_bad() {
     assert_eq!(package_json.legacy_packages(), &["vrc-get".into()]);
     assert!(!package_json.is_yanked());
     assert_eq!(package_json.aliases(), &["vpm".into()]);
+    assert_eq!(package_json.changelog_url(), None);
+}
+
+#[test]
+fn deserialize_null_on_dependencies() {
+    let json = r##"{
+      "name": "com.kibalab.materialmerger",
+      "displayName": "Material Merger",
+      "description": "Unity Editor tool that merges multiple materials/textures into an atlas-based workflow. specifically designed for VRChat world/avatar optimization.",
+      "version": "0.1.0",
+      "unity": "2022.3",
+      "url": "https://github.com/kibalab/material-merger/releases/download/0.1.0/com.kibalab.materialmerger-0.1.0.zip",
+      "author": {
+        "name": "KIBA",
+        "email": "root@kiba.red",
+        "url": "https://vpm.kiba.red"
+      },
+      "dependencies": null,
+      "vpmDependencies": null,
+      "samples": null,
+      "zipSHA256": "0e201b9a1ed9f0e3a9c16b8f765605e8aa0c9aebf9a315c04bc67f6ebe2485f8"
+    }"##;
+    let package_json: PackageManifest = serde_json::from_str(json).unwrap();
+    assert_eq!(package_json.name(), "com.kibalab.materialmerger");
+    assert_eq!(package_json.version(), &Version::new(0, 1, 0));
+    //assert!(package_json.dependencies().is_empty());
+    assert!(package_json.vpm_dependencies().is_empty());
+}
+
+#[test]
+fn deserialize_empty_documentation() {
+    let json = r##"{
+      "name": "net.yarukizero.vrchat.shizuku",
+      "displayName": "Shizuku",
+      "version": "0.0.0",
+      "unity": "2022.3",
+      "description": "スクリプトでいい感じに定義したい",
+      "vpmDependencies": {
+        "nadena.dev.modular-avatar": ">=1.9.10"
+      },
+      "changelogUrl": " ",
+      "author": {
+        "name": "azumyar",
+        "url": "https://github.com/azumyar"
+      },
+      "documentationUrl": "",
+      "license": "MIT",
+      "zipSHA256": "22a143ed75c429a471ffd784102d2fb577c56b010b49439b5930cbb2df820f8b",
+      "url": "https://github.com/azumyar/vrchat-shizuku/releases/download/0.0.0/net.yarukizero.vrchat.shizuku-0.0.0.zip"
+    }"##;
+    let package_json: PackageManifest = serde_json::from_str(json).unwrap();
+    assert_eq!(package_json.name(), "net.yarukizero.vrchat.shizuku");
+    assert_eq!(package_json.version(), &Version::new(0, 0, 0));
+    assert_eq!(package_json.documentation_url(), None);
     assert_eq!(package_json.changelog_url(), None);
 }

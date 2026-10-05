@@ -4,6 +4,7 @@ use crate::templates::{RESERVED_TEMPLATE_PREFIX, UNNAMED_TEMPLATE_PREFIX, VCC_TE
 use indexmap::IndexMap;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt::Formatter;
 use std::path::PathBuf;
 use vrc_get_vpm::version::VersionRange;
 
@@ -38,18 +39,51 @@ impl<'de> Deserialize<'de> for TemplateId {
     where
         D: Deserializer<'de>,
     {
-        let id = String::deserialize(deserializer)?;
-        if id.is_empty()
-            || id
-                .chars()
-                .any(|c| !matches!(c, '0'..='9' | 'A'..='Z' | 'a'..='z' | '.' | '_' | '-'))
-        {
-            return Err(D::Error::invalid_value(
-                Unexpected::Str(&id),
-                &"a valid alcom template id",
-            ));
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = TemplateId;
+
+            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+                formatter.write_str("a valid alcom template id")
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.is_empty()
+                    || v.chars()
+                        .any(|c| !matches!(c, '0'..='9' | 'A'..='Z' | 'a'..='z' | '.' | '_' | '-'))
+                {
+                    return Err(E::invalid_value(
+                        Unexpected::Str(&v),
+                        &"a valid alcom template id",
+                    ));
+                }
+
+                Ok(TemplateId(v))
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.is_empty()
+                    || v.chars()
+                        .any(|c| !matches!(c, '0'..='9' | 'A'..='Z' | 'a'..='z' | '.' | '_' | '-'))
+                {
+                    return Err(E::invalid_value(
+                        Unexpected::Str(v),
+                        &"a valid alcom template id",
+                    ));
+                }
+
+                Ok(TemplateId(v.to_string()))
+            }
         }
-        Ok(Self(id))
+
+        deserializer.deserialize_str(Visitor)
     }
 }
 

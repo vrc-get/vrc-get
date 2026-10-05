@@ -19,6 +19,7 @@ import type React from "react";
 import {
 	GuiAnimationSwitch,
 	GuiCompactSwitch,
+	LanguageSelector,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,7 @@ function SideBarItem({
 	text,
 	icon,
 }: {
-	href: keyof RegisteredRouter["routesByPath"];
+	href: keyof RegisteredRouter["routeTree"]["types"]["fileRouteTypes"]["fileRoutesByTo"];
 	text: React.ReactNode;
 	icon: React.ComponentType<{ className?: string }>;
 }) {
@@ -220,7 +221,8 @@ export function StyleQuickAccess() {
 					Style Settings (dev only)
 				</SideBarButton>
 			</PopoverTrigger>
-			<PopoverContent>
+			<PopoverContent className="w-96 flex flex-col gap-3 [&>label]:flex-col [&>label]:items-start [&>div]:space-y-1">
+				<LanguageSelector />
 				<ThemeSelector />
 				<GuiAnimationSwitch />
 				<GuiCompactSwitch />

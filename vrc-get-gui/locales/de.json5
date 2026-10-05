@@ -24,17 +24,20 @@
     // Used in place of date part but not known
     "general:unknown date": "Unbekanntes Datum",
 
-    "general:dialog:select file or directory header": "Datei oder Ordner auswählen",
-    "general:dialog:select file or directory": "Bitte Datei oder Ordner auswählen",
-    "general:toast:invalid directory": "Ungültiger Ordner wurde ausgewählt",
+    "general:dialog:select file or directory header": "Datei oder Verzeichnis auswählen",
+    "general:dialog:select file or directory": "Bitte Datei oder Verzeichnis auswählen.",
+    "general:toast:invalid directory": "Ungültiges Verzeichnis wurde ausgewählt.",
+    "general:toast:invalid file": "Ungültige Datei wurde ausgewählt.",
 
-    "general:toast:not supported": "{{name}} wird noch nicht unterstützt",
+    "general:toast:not supported": "{{name}} wird noch nicht unterstützt.",
     "general:not implemented": "Nicht implementiert",
 
     "search:placeholder": "Suchen...",
 
     "general:error:failed to create dir": "Verzeichnis konnte nicht angelegt werden (fehlende Berechtigung?): {{err}}",
     "general:error:failed to create dir missing drive": "Verzeichnis konnte nicht angelegt werden. Möglicherweise wurde das Laufwerk nicht verbunden.",
+
+    "general:created at": "Hinzugefügt",
 
     "general:last modified": "Letzte Änderung",
     "general:last modified:moments": "Kürzlich",
@@ -74,8 +77,8 @@
     "setup:unity-hub:not found": "Unity Hub nicht gefunden.",
 
     "setup:steps card:ProjectPath": "Speicherpfad",
-    "setup:project-path:heading": "Projekt Speicherpfad",
-    "setup:project-path:description": "Über ALCOM erstellte Projekte werden hier gespeichert.<br/>Dies kann später in den Einstellungen geändert werden.",
+    "setup:projects:projects-path": "Projekt Speicherpfad",
+    "setup:projects:projects-path description": "Über ALCOM erstellte Projekte werden hier gespeichert.<br/>Dies kann später in den Einstellungen geändert werden.",
 
     "setup:steps card:Backups": "Backups", //Needed truncation of "Settings" to fit properly
     "setup:backups:heading": "Backup Einstellungen",
@@ -113,6 +116,7 @@
     "projects:grid view": "Gitteransicht",
     "projects:sort by": "Sortierreihenfolge:",
     "projects:error:load error": "Fehler beim Laden der Projekte: {{msg}}",
+    "projects:error:noexec filesystem": "Das Projekt befindet sich auf einem Dateisystem dass das 'noexec' flag gesetzt hat. Dies hindert Unity daran native Plugins zu laden, und führt zu einem korrupten Zustand. Bitte verschiebe das Projekt auf ein Dateisystem ohne 'noexec' flag.",
     "projects:toast:project added": "Projekt erfolgreich hinzugefügt",
     "projects:toast:project already exists": "Das Projekt wurde bereits hinzugefügt.",
 
@@ -216,6 +220,7 @@
     "projects:manage:button:unity migrate": "Migriere Projekt",
 
     "projects:manage:manage packages": "Pakete verwalten",
+    "projects:manage:hidden packages": "Versteckte Pakete",
     "projects:manage:tooltip:refresh packages": "Pakete aktualisieren",
     "projects:manage:button:upgrade all": "Alle Aktualisieren",
     "projects:manage:button:upgrade all stable": "Alle Aktualisieren (Stabil)",
@@ -232,6 +237,7 @@
     "projects:manage:source not selected": "Inaktive Quelle",
     "projects:manage:multiple sources": "Mehrere Quellen",
     "projects:manage:tooltip:add package": "Paket hinzufügen",
+    "projects:manage:tooltip:select repository to install": "Paketquelle für Installation auswählen",
     "projects:manage:tooltip:upgrade package": "Paket upgraden",
     "projects:manage:tooltip:remove packages": "Paket entfernen",
     "projects:manage:tooltip:incompatible with unity": "Nicht unterstützt",
@@ -312,7 +318,7 @@
     "projects:manage:dialog:unity version conflicts_other": "Es gibt mehrere Unity Versionskonflikte",
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> unterstützt deine Unity Version nicht.",
     // TODO: plurals
-    "projects:manage:dialog:files and directories are removed as legacy": "Die folgenden veralteten Daten und Ordner werden entfernt",
+    "projects:manage:dialog:files and directories are removed as legacy": "Die folgenden veralteten Daten und Verzeichnisse werden entfernt",
     "projects:manage:dialog:packages installed in the following directories will be removed": "Pakete die in diesem Verzeichnis installiert sind werden entfernt.",
     "projects:manage:button:see changelog": "Changelog anzeigen",
     "projects:manage:button:apply changes": "Änderungen anwenden",
@@ -406,6 +412,7 @@
     "templates:tooltip:remove builtin template": "Integrierte Vorlagen können nicht entfernt werden.",
     "templates:tooltip:remove vcc template": "VCC Vorlagen können hier nicht entfernt werden. Entferne sie stattdessen im Vorlagen-Verzeichnis von VCC.",
     "templates:menuitem:edit template": "Vorlage Bearbeiten",
+    "templates:menuitem:duplicate template": "Vorlage Duplizieren",
     "templates:menuitem:export template": "Vorlage Exportieren",
     "templates:tooltip:export template with unitypackage": "Vorlagen mit Unity Packages können nicht exportiert werden.",
     "templates:menuitem:open vcc template": "Öffne Vorlagen-Verzeichnis",
@@ -440,7 +447,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "Gewählter Pfad ist im LocalAppData Verzeichnis, welcher über \"Diesen PC zurücksetzen\" mit \"Eigene Dateien behalten\" gelöscht wird.\nBitte wähle einen anderen Pfad.",
+    "settings:warning:in-app-data": "Gewählter Pfad ist im LocalAppData Verzeichnis, welcher über \"Diesen PC zurücksetzen\" mit \"Eigene Dateien behalten\" gelöscht wird.\nBitte wähle einen anderen Pfad.",
     "settings:warning:whitespace": "Der Pfad enthält Leerzeichen. Dies kann zu Problemen mit Unity und anderen Tools führen. Bitte wähle einen anderen Pfad.",
     "settings:warning:non-ascii": "Der Pfad enthält nicht-ASCII Zeichen. Dies kann zu Problemen mit Unity und anderen Tools führen. Bitte wähle einen anderen Pfad.",
 
@@ -476,7 +483,7 @@
 
     "settings:backup:format": "Backup-Format",
     "settings:backup:format description": "Backups werden als Archiv komprimiert, das Format kann hier angepasst werden.<br/>Wir empfehlen dies bei der Standard Einstellung zu belassen.<br/>Kompression sorgt für eine längere Backupdauer, reduziert dafür allerdings die Größe des Backups.",
-    "settings:backup:format:default": "Standard (Unkomprimierte zip)",
+    "settings:backup:format:default": "Standard (Leicht komprimierte zip)",
     "settings:backup:format:zip-store": "Unkomprimierte zip (Schnell)",
     "settings:backup:format:zip-fast": "Leicht komprimierte zip (Moderat)",
     "settings:backup:format:zip-best": "Stark komprimierte zip (Langsam)",
@@ -489,6 +496,10 @@
 
     "settings:show prerelease": "Vorschau-Pakete anzeigen",
     "settings:show prerelease description": "Aktiviere Vorschau-Pakete, um diese in der Paketliste anzuzeigen. Sie werden auch bei der Auflösung von Abhängigkeiten verwendet.",
+
+    "settings:dialog:show prerelease packages": "Zeige Vorschau-Pakete",
+    "settings:dialog:show prerelease packages description": "Vorschau-Pakete sind unfertige und ungetestete Versionen.<br>Die Wahrscheinlichkeit auf Fehler zu stoßen ist höher.<br>Möchtest du Vorschau-Pakete anzeigen?",
+    "settings:dialog:enable show prerelease packages": "Anzeigen",
 
     "settings:gui animation": "Aktiviere Animationen",
     "settings:gui animation description": "Ist diese Option aktiviert, werden einige Seitenwechsel animiert. Dies funktioniert auf Systemen mit älteren Webview Versionen evtl. nicht richtig.",
@@ -507,7 +518,7 @@
     "settings:files and directories:description": "Schneller Zugriff auf relevante Dateien und Verzeichnisse von ALCOM.",
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
-    "settings:button:open logs": "Log Ordner",
+    "settings:button:open logs": "Log Verzeichnis",
     "settings:button:open vcc templates": "VCC Templates Directory",
 
     "settings:check update": "Suche nach Updates",
@@ -518,10 +529,16 @@
 
     "check update:dialog:title": "ALCOM Updates",
     "check update:dialog:new version description": "Eine neue ALCOM Version ist verfügbar.",
+    // note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "Eine neue Version von ALCOM ist verfügbar, wird von deinem Systemarchitektur aber nicht mehr unterstützt.<br>\nSollte dein System eine andere Architektur unterstützen, lade diese herunter.",
+    "check update:dialog:new version not updatable description": "Eine neue Version von ALCOM ist verfügbar, kann aber nicht automatisch installiert werden.<br>Bitte installiere das Update manuell.",
+    "check update:dialog:new version updater disabled base description": "Eine neue Version von ALCOM ist verfügbar.",
+    "check update:dialog:new version updater how to upgrade fallback": "Automatische Updates sind deaktiviert. Bitte verwende deinen Paketmanager.",
     "check update:dialog:current version": "Aktuelle Version:",
     "check update:dialog:latest version": "Neueste Version:",
     "check update:dialog:changelog": "Changelog",
     "check update:dialog:dismiss": "Abbrechen",
+    "check update:dialog:open download page": "Downloadseite öffnen",
     "check update:dialog:update": "Download & Update!",
     "check update:dialog:downloading...": "Update wird heruntergeladen...",
     "check update:dialog:relaunching...": "Starte ALCOM neu...",

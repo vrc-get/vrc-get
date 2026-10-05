@@ -1,0 +1,10 @@
+# You must remove unused comment lines for the released package.
+# Compulsory line, this is a version 4 file
+version=4
+opts=\
+filenamemangle=s%.*/@ANY_VERSION@%@PACKAGE@-$1.tar.gz%,\
+downloadurlmangle=s%(api.github.com/repos/[^/]+/[^/]+)/git/refs/%$1/tarball/refs/%g,\
+uversionmangle=s/(\d)[-]?((RC|rc|pre|dev|beta|alpha)\.\d*)$/$1~$2/,\
+searchmode=plain \
+ https://api.github.com/repos/vrc-get/vrc-get/git/matching-refs/tags/gui- \
+ https://api.github.com/repos/[^/]+/[^/]+/git/refs/tags/gui-@ANY_VERSION@

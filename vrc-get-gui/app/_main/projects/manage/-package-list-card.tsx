@@ -3,9 +3,12 @@
 import {
 	queryOptions,
 	useMutation,
+	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
 import {
+	ChevronDown,
+	ChevronRight,
 	CircleArrowUp,
 	CircleMinus,
 	CirclePlus,
@@ -13,14 +16,7 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import type React from "react";
-import {
-	memo,
-	useCallback,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { applyChangesMutation } from "@/app/_main/projects/manage/-use-package-change";
 import { Route } from "@/app/_main/projects/manage/index";
 import { ExternalLink } from "@/components/ExternalLink";
@@ -28,6 +24,7 @@ import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -55,10 +52,12 @@ import {
 import { assertNever } from "@/lib/assert-never";
 import type { TauriPackage, TauriRepositoriesInfo } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { usePackageUpdateInProgress } from "@/lib/global-events";
 import { tc, tt } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import { toVersionString } from "@/lib/version";
 import type {
 	PackageLatestInfo,
@@ -85,10 +84,18 @@ export const PackageListCard = memo(function PackageListCard({
 	repositoriesInfo: TauriRepositoriesInfo | undefined;
 	onRefresh: () => void;
 }) {
+	const guiAnimation = useQuery({
+		queryKey: ["environmentGuiAnimation"],
+		queryFn: commands.environmentGuiAnimation,
+		initialData: true,
+	}).data;
+
 	const [search, setSearch] = useState("");
 	const [bulkUpdatePackageIdsRaw, setBulkUpdatePackageIds] = useState<string[]>(
 		[],
 	);
+	const [showHiddenPackages, setShowHiddenPackages] = useState(false);
+	const lastSelectedPackageIdRef = useRef<string | null>(null);
 
 	const bulkUpdatePackageIds = useMemo(() => {
 		const packageIds = new Set(packageRowsData.map((p) => p.id));
@@ -96,11 +103,16 @@ export const PackageListCard = memo(function PackageListCard({
 		return bulkUpdatePackageIdsRaw.filter((pkgId) => packageIds.has(pkgId));
 	}, [packageRowsData, bulkUpdatePackageIdsRaw]);
 
-	useDocumentEvent(
-		"post-package-changes",
-		() => setBulkUpdatePackageIds([]),
-		[],
-	);
+	useDocumentEvent("post-package-changes", () => {
+		setBulkUpdatePackageIds([]);
+		lastSelectedPackageIdRef.current = null;
+	}, []);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies(search): watched to trigger the reset, not read in the body
+	// biome-ignore lint/correctness/useExhaustiveDependencies(packageRowsData): watched to trigger the reset, not read in the body
+	useEffect(() => {
+		lastSelectedPackageIdRef.current = null;
+	}, [search, packageRowsData]);
 
 	const bulkUpdateMode = useMemo(() => {
 		const packageRowByPackageId = new Map(
@@ -132,40 +144,127 @@ export const PackageListCard = memo(function PackageListCard({
 		);
 	}, [packageRowsData, search]);
 
+	const hiddenPackages = useMemo(() => {
+		return packageRowsData.filter(
+			(pkg) =>
+				pkg.visibleSources.size === 0 && pkg.isThereSource && !pkg.installed,
+		);
+	}, [packageRowsData]);
+
+	const visibleHiddenPackagesCount = useMemo(() => {
+		return hiddenPackages.filter((pkg) => filteredPackageIds.has(pkg.id))
+			.length;
+	}, [hiddenPackages, filteredPackageIds]);
+
+	const toggleShowHiddenPackages = useCallback(() => {
+		setShowHiddenPackages((prev) => !prev);
+	}, []);
+
 	const hiddenUserRepositories = useMemo(
 		() => new Set(repositoriesInfo?.hidden_user_repositories ?? []),
 		[repositoriesInfo],
 	);
 
-	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
-		setBulkUpdatePackageIds((prev) => {
-			return prev.some((id) => id === row.id) ? prev : [...prev, row.id];
-		});
-	}, []);
+	const onBulkUpdateCheckboxClick = useCallback(
+		(row: PackageRowInfo, shiftKey: boolean) => {
+			const anchorId = lastSelectedPackageIdRef.current;
 
-	const removeBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
-		setBulkUpdatePackageIds((prev) => prev.filter((id) => id !== row.id));
-	}, []);
+			setBulkUpdatePackageIds((prev) => {
+				const nextChecked = !prev.includes(row.id);
 
-	// Fix scroll position when bulk update card visibility is changed
+				if (shiftKey && anchorId != null) {
+					const hiddenIds = new Set(hiddenPackages.map((r) => r.id));
+					const visibleOrderedPackageRows = packageRowsData.filter(
+						(r) => !hiddenIds.has(r.id) && filteredPackageIds.has(r.id),
+					);
+					if (showHiddenPackages) {
+						visibleOrderedPackageRows.push(
+							...hiddenPackages.filter((r) => filteredPackageIds.has(r.id)),
+						);
+					}
+
+					const ids = visibleOrderedPackageRows.map((r) => r.id);
+					const anchorIndex = ids.indexOf(anchorId);
+					const targetIndex = ids.indexOf(row.id);
+
+					if (anchorIndex !== -1 && targetIndex !== -1) {
+						const packageRowByPackageId = new Map(
+							packageRowsData.map((r) => [r.id, r]),
+						);
+						const currentBulkUpdateMode = updateModeFromPackageModes(
+							prev.flatMap((id) => {
+								const data = packageRowByPackageId.get(id);
+								return data ? [bulkUpdateModeForPackage(data)] : [];
+							}),
+						);
+
+						const [start, end] =
+							anchorIndex < targetIndex
+								? [anchorIndex, targetIndex]
+								: [targetIndex, anchorIndex];
+						const rangeRows = visibleOrderedPackageRows
+							.slice(start, end + 1)
+							.filter((r) =>
+								canBulkUpdate(
+									currentBulkUpdateMode,
+									bulkUpdateModeForPackage(r),
+								),
+							);
+
+						const next = new Set(prev);
+						for (const rangeRow of rangeRows) {
+							if (nextChecked) {
+								next.add(rangeRow.id);
+							} else {
+								next.delete(rangeRow.id);
+							}
+						}
+						return [...next];
+					}
+				}
+
+				if (nextChecked) {
+					return prev.some((id) => id === row.id) ? prev : [...prev, row.id];
+				}
+				return prev.filter((id) => id !== row.id);
+			});
+
+			lastSelectedPackageIdRef.current = row.id;
+		},
+		[hiddenPackages, packageRowsData, filteredPackageIds, showHiddenPackages],
+	);
+
 	const scrollTableOuterRef = useRef<HTMLDivElement>(null);
 	const scrollTableScrollAreaRef = useRef<HTMLDivElement>(null);
-	// TODO: Is this a good way to get BoundingClientRect before dom update?
-	const preRenderOuterTop =
-		scrollTableOuterRef.current?.getBoundingClientRect()?.top;
-	useLayoutEffect(() => {
-		if (preRenderOuterTop == null) return;
-		if (scrollTableOuterRef.current == null) return;
-		if (scrollTableScrollAreaRef.current == null) return;
-		const postRenderOuterTop =
-			scrollTableOuterRef.current.getBoundingClientRect()?.top;
-		const heightDiff = postRenderOuterTop - preRenderOuterTop;
-		if (heightDiff === 0) return;
-		scrollTableScrollAreaRef.current.scrollBy({
-			top: heightDiff,
-			behavior: "instant",
+	const bulkUpdateCardRef = useRef<HTMLDivElement>(null);
+	const prevTableTopRef = useRef(0);
+
+	// Compensate scroll position as BulkUpdateCard animates in/out so
+	// visible rows don't shift under the cursor. Sub-pixel remainder is
+	// carried across frames to prevent rounding drift in integer scrollBy.
+	useEffect(() => {
+		const cardEl = bulkUpdateCardRef.current;
+		const tableOuter = scrollTableOuterRef.current;
+		if (!cardEl || !tableOuter) return;
+		prevTableTopRef.current = tableOuter.getBoundingClientRect().top;
+		let remainder = 0;
+		const observer = new ResizeObserver(() => {
+			const top = tableOuter.getBoundingClientRect().top;
+			const delta = top - prevTableTopRef.current;
+			prevTableTopRef.current = top;
+			if (delta === 0) return;
+			const viewport = scrollTableScrollAreaRef.current;
+			if (!viewport) return;
+			const raw = delta + remainder;
+			const px = Math.round(raw);
+			remainder = raw - px;
+			if (px !== 0) {
+				viewport.scrollBy({ top: px, behavior: "instant" });
+			}
 		});
-	});
+		observer.observe(cardEl);
+		return () => observer.disconnect();
+	}, []);
 
 	const dialogForState: React.ReactNode = null;
 
@@ -178,7 +277,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	return (
 		<Card className="grow shrink flex shadow-none w-full">
-			<CardContent className="w-full p-2 flex flex-col gap-2 compact:p-1 compact:gap-1.5">
+			<CardContent className="w-full p-2 flex flex-col compact:p-1">
 				<ManagePackagesHeading
 					packageRowsData={packageRowsData}
 					hiddenUserRepositories={hiddenUserRepositories}
@@ -192,9 +291,11 @@ export const PackageListCard = memo(function PackageListCard({
 					bulkUpdatePackageIds={bulkUpdatePackageIds}
 					packageRowsData={packageRowsData}
 					cancel={() => setBulkUpdatePackageIds([])}
+					guiAnimation={guiAnimation}
+					containerRef={bulkUpdateCardRef}
 				/>
 				<ScrollableCardTable
-					className={"h-full rounded-md"}
+					className={"mt-2 compact:mt-1.5 h-full rounded-md"}
 					ref={scrollTableOuterRef}
 					viewportRef={scrollTableScrollAreaRef}
 				>
@@ -224,26 +325,77 @@ export const PackageListCard = memo(function PackageListCard({
 						</tr>
 					</thead>
 					<tbody>
-						{packageRowsData.map((row) => (
-							<tr
-								className="even:bg-secondary/30 anchor-none"
-								hidden={!filteredPackageIds.has(row.id)}
-								key={row.id}
-							>
-								<PackageRow
-									pkg={row}
-									bulkUpdateSelected={bulkUpdatePackageIds.some(
-										(id) => id === row.id,
-									)}
-									bulkUpdateAvailable={canBulkUpdate(
-										bulkUpdateMode,
-										bulkUpdateModeForPackage(row),
-									)}
-									addBulkUpdatePackage={addBulkUpdatePackage}
-									removeBulkUpdatePackage={removeBulkUpdatePackage}
-								/>
-							</tr>
-						))}
+						{packageRowsData.map((row) => {
+							if (
+								row.visibleSources.size === 0 &&
+								row.isThereSource &&
+								!row.installed
+							)
+								return null;
+							return (
+								<tr
+									className="[&:nth-child(even_of_:not([hidden]))]:bg-secondary/30 anchor-none"
+									hidden={!filteredPackageIds.has(row.id)}
+									key={row.id}
+								>
+									<PackageRow
+										pkg={row}
+										bulkUpdateSelected={bulkUpdatePackageIds.some(
+											(id) => id === row.id,
+										)}
+										bulkUpdateAvailable={canBulkUpdate(
+											bulkUpdateMode,
+											bulkUpdateModeForPackage(row),
+										)}
+										onBulkUpdateCheckboxClick={onBulkUpdateCheckboxClick}
+									/>
+								</tr>
+							);
+						})}
+						{/* Hidden packages section */}
+						{hiddenPackages.length > 0 && (
+							<>
+								<tr
+									className="bg-secondary/50 hover:bg-secondary/70 cursor-pointer"
+									onClick={toggleShowHiddenPackages}
+								>
+									<td className="p-3.5 compact:py-1 w-1">
+										{showHiddenPackages ? (
+											<ChevronDown className="w-5 h-5" />
+										) : (
+											<ChevronRight className="w-5 h-5" />
+										)}
+									</td>
+									<td
+										colSpan={TABLE_HEAD.length + 1}
+										className="p-3.5 compact:py-1 font-medium text-sm text-muted-foreground"
+									>
+										{tc("projects:manage:hidden packages")} (
+										{visibleHiddenPackagesCount})
+									</td>
+								</tr>
+								{showHiddenPackages &&
+									hiddenPackages.map((row) => (
+										<tr
+											className="[&:nth-child(even_of_:not([hidden]))]:bg-secondary/30 anchor-none"
+											hidden={!filteredPackageIds.has(row.id)}
+											key={row.id}
+										>
+											<PackageRow
+												pkg={row}
+												bulkUpdateSelected={bulkUpdatePackageIds.some(
+													(id) => id === row.id,
+												)}
+												bulkUpdateAvailable={canBulkUpdate(
+													bulkUpdateMode,
+													bulkUpdateModeForPackage(row),
+												)}
+												onBulkUpdateCheckboxClick={onBulkUpdateCheckboxClick}
+											/>
+										</tr>
+									))}
+							</>
+						)}
 					</tbody>
 				</ScrollableCardTable>
 			</CardContent>
@@ -251,6 +403,29 @@ export const PackageListCard = memo(function PackageListCard({
 		</Card>
 	);
 });
+
+function ShowPrereleaseConfirmDialog({
+	dialog,
+}: {
+	dialog: DialogContext<boolean>;
+}) {
+	return (
+		<>
+			<DialogTitle>
+				{tc("settings:dialog:show prerelease packages")}
+			</DialogTitle>
+			<div>{tc("settings:dialog:show prerelease packages description")}</div>
+			<DialogFooter>
+				<Button onClick={() => dialog.close(false)}>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button variant="warning" onClick={() => dialog.close(true)}>
+					{tc("settings:dialog:enable show prerelease packages")}
+				</Button>
+			</DialogFooter>
+		</>
+	);
+}
 
 function ManagePackagesHeading({
 	packageRowsData,
@@ -467,9 +642,21 @@ function ManagePackagesHeading({
 						checked={repositoriesInfo?.show_prerelease_packages}
 						onClick={(e) => {
 							e.preventDefault();
-							setShowPrereleasePackages.mutate(
-								!repositoriesInfo?.show_prerelease_packages,
-							);
+							const newValue = !repositoriesInfo?.show_prerelease_packages;
+							if (newValue) {
+								void openSingleDialog(ShowPrereleaseConfirmDialog, {})
+									.then((confirmed) => {
+										if (confirmed) {
+											setShowPrereleasePackages.mutate(true);
+										}
+									})
+									.catch((e) => {
+										console.error(e);
+										toastThrownError(e);
+									});
+							} else {
+								setShowPrereleasePackages.mutate(false);
+							}
 						}}
 					>
 						{tc("settings:show prerelease")}
@@ -558,13 +745,28 @@ function BulkUpdateCard({
 	bulkUpdatePackageIds,
 	packageRowsData,
 	cancel,
+	guiAnimation,
+	containerRef,
 }: {
 	bulkUpdateMode: BulkUpdateMode;
 	bulkUpdatePackageIds: string[];
 	packageRowsData: PackageRowInfo[];
 	cancel?: () => void;
+	guiAnimation: boolean;
+	containerRef: React.RefObject<HTMLDivElement | null>;
 }) {
+	const visible = bulkUpdateMode.hasPackages;
 	const count = bulkUpdatePackageIds.length;
+
+	const [displayMode, setDisplayMode] = useState(bulkUpdateMode);
+	const [displayCount, setDisplayCount] = useState(count);
+	if (visible && displayMode !== bulkUpdateMode) {
+		setDisplayMode(bulkUpdateMode);
+	}
+	if (visible && displayCount !== count) {
+		setDisplayCount(count);
+	}
+
 	const { projectPath } = Route.useSearch();
 	const packageChange = useMutation(applyChangesMutation(projectPath));
 
@@ -620,47 +822,59 @@ function BulkUpdateCard({
 		});
 	};
 
-	if (!bulkUpdateMode.hasPackages) return null;
 	return (
-		<Card
-			className={
-				"shrink-0 p-2 flex flex-row gap-2 bg-secondary text-secondary-foreground flex-wrap"
-			}
+		<div
+			ref={containerRef}
+			className={cn(
+				"grid",
+				guiAnimation && "transition-[grid-template-rows] duration-200 ease-out",
+			)}
+			style={{ gridTemplateRows: visible ? "1fr" : "0fr" }}
 		>
-			{bulkUpdateMode.canInstallOrUpgrade && (
-				<ButtonDisabledIfLoading
-					onClick={() => bulkInstallOrUpgradeAll?.(false)}
+			<div className="overflow-hidden min-h-0">
+				<Card
+					className={
+						"mt-2 compact:mt-1.5 shrink-0 p-2 compact:p-1 flex flex-row gap-2 compact:gap-1 bg-secondary text-secondary-foreground flex-wrap"
+					}
 				>
-					{tc("projects:manage:button:install selected latest")}
-				</ButtonDisabledIfLoading>
-			)}
-			{bulkUpdateMode.canInstallOrUpgradeStable && (
-				<ButtonDisabledIfLoading
-					onClick={() => bulkInstallOrUpgradeAll?.(true)}
-				>
-					{tc("projects:manage:button:install selected stable latest")}
-				</ButtonDisabledIfLoading>
-			)}
-			{bulkUpdateMode.canReinstallOrRemove && (
-				<ButtonDisabledIfLoading onClick={bulkReinstallAll}>
-					{tc("projects:manage:button:reinstall selected")}
-				</ButtonDisabledIfLoading>
-			)}
-			{bulkUpdateMode.canReinstallOrRemove && (
-				<ButtonDisabledIfLoading
-					onClick={bulkRemoveAll}
-					variant={"destructive"}
-				>
-					{tc("projects:manage:button:uninstall selected")}
-				</ButtonDisabledIfLoading>
-			)}
-			<ButtonDisabledIfLoading onClick={cancel}>
-				{tc("projects:manage:button:clear selection")}
-				{" ("}
-				{tc("projects:manage:n packages selected", { count })}
-				{")"}
-			</ButtonDisabledIfLoading>
-		</Card>
+					{displayMode.canInstallOrUpgrade && (
+						<ButtonDisabledIfLoading
+							onClick={() => bulkInstallOrUpgradeAll(false)}
+						>
+							{tc("projects:manage:button:install selected latest")}
+						</ButtonDisabledIfLoading>
+					)}
+					{displayMode.canInstallOrUpgradeStable && (
+						<ButtonDisabledIfLoading
+							onClick={() => bulkInstallOrUpgradeAll(true)}
+						>
+							{tc("projects:manage:button:install selected stable latest")}
+						</ButtonDisabledIfLoading>
+					)}
+					{displayMode.canReinstallOrRemove && (
+						<ButtonDisabledIfLoading onClick={bulkReinstallAll}>
+							{tc("projects:manage:button:reinstall selected")}
+						</ButtonDisabledIfLoading>
+					)}
+					{displayMode.canReinstallOrRemove && (
+						<ButtonDisabledIfLoading
+							onClick={bulkRemoveAll}
+							variant={"destructive"}
+						>
+							{tc("projects:manage:button:uninstall selected")}
+						</ButtonDisabledIfLoading>
+					)}
+					<ButtonDisabledIfLoading onClick={cancel} variant={"warning"}>
+						{tc("projects:manage:button:clear selection")}
+						{" ("}
+						{tc("projects:manage:n packages selected", {
+							count: displayCount,
+						})}
+						{")"}
+					</ButtonDisabledIfLoading>
+				</Card>
+			</div>
+		</div>
 	);
 }
 
@@ -787,14 +1001,12 @@ const PackageRow = memo(function PackageRow({
 	pkg,
 	bulkUpdateSelected,
 	bulkUpdateAvailable,
-	addBulkUpdatePackage,
-	removeBulkUpdatePackage,
+	onBulkUpdateCheckboxClick,
 }: {
 	pkg: PackageRowInfo;
 	bulkUpdateSelected: boolean;
 	bulkUpdateAvailable: boolean;
-	addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
-	removeBulkUpdatePackage: (pkg: PackageRowInfo) => void;
+	onBulkUpdateCheckboxClick: (pkg: PackageRowInfo, shiftKey: boolean) => void;
 }) {
 	const cellClass = "p-3.5 compact:py-1";
 	const noGrowCellClass = `${cellClass} w-1`;
@@ -830,12 +1042,8 @@ const PackageRow = memo(function PackageRow({
 		});
 	};
 
-	const onClickBulkUpdate = () => {
-		if (bulkUpdateSelected) {
-			removeBulkUpdatePackage(pkg);
-		} else {
-			addBulkUpdatePackage(pkg);
-		}
+	const onClickBulkUpdateCheckbox = (e: React.MouseEvent) => {
+		onBulkUpdateCheckboxClick(pkg, e.shiftKey);
 	};
 
 	const documentationUrl = pkg.documentationUrl
@@ -846,10 +1054,10 @@ const PackageRow = memo(function PackageRow({
 	return (
 		<>
 			<td className={`${cellClass} w-1 compact:px-2`}>
-				<div className={"flex content-center aspect-square"}>
+				<div className={"flex items-center justify-center aspect-square"}>
 					<CheckboxDisabledIfLoading
 						checked={bulkUpdateSelected}
-						onCheckedChange={onClickBulkUpdate}
+						onClick={onClickBulkUpdateCheckbox}
 						disabled={!bulkUpdateAvailable}
 						className="hover:before:content-none"
 					/>
@@ -884,27 +1092,29 @@ const PackageRow = memo(function PackageRow({
 				<LatestPackageInfo info={pkg.latest} />
 			</td>
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
-				{pkg.sources.size === 0 ? (
+				{pkg.visibleSources.size === 0 ? (
 					pkg.isThereSource ? (
 						<p>{tc("projects:manage:source not selected")}</p>
 					) : (
 						<p>{tc("projects:manage:none")}</p>
 					)
-				) : pkg.sources.size === 1 ? (
+				) : pkg.visibleSources.size === 1 ? (
 					<Tooltip>
 						<TooltipTrigger>
 							<p className="overflow-hidden text-ellipsis">
-								{[...pkg.sources][0]}
+								{[...pkg.visibleSources][0]}
 							</p>
 						</TooltipTrigger>
-						<TooltipContent>{[...pkg.sources][0]}</TooltipContent>
+						<TooltipContent>{[...pkg.visibleSources][0]}</TooltipContent>
 					</Tooltip>
 				) : (
 					<Tooltip>
 						<TooltipTrigger>
 							<p>{tc("projects:manage:multiple sources")}</p>
 						</TooltipTrigger>
-						<TooltipContent>{[...pkg.sources].join(", ")}</TooltipContent>
+						<TooltipContent>
+							{[...pkg.visibleSources].join(", ")}
+						</TooltipContent>
 					</Tooltip>
 				)}
 			</td>
@@ -941,9 +1151,24 @@ const PackageRow = memo(function PackageRow({
 								</ButtonDisabledIfLoading>
 							</TooltipTrigger>
 							<TooltipContent>
-								{!latestVersion
-									? tc("projects:manage:tooltip:incompatible with unity")
-									: tc("projects:manage:tooltip:add package")}
+								{pkg.visibleSources.size === 0 && pkg.isThereSource ? (
+									<div className="flex flex-col gap-1">
+										<p>
+											{tc(
+												"projects:manage:tooltip:select repository to install",
+											)}
+										</p>
+										<p className="text-xs opacity-75">
+											{[...pkg.sources]
+												.filter((source) => !pkg.visibleSources.has(source))
+												.join(", ")}
+										</p>
+									</div>
+								) : !latestVersion ? (
+									tc("projects:manage:tooltip:incompatible with unity")
+								) : (
+									tc("projects:manage:tooltip:add package")
+								)}
 							</TooltipContent>
 						</Tooltip>
 					)}

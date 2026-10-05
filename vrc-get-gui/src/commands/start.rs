@@ -85,7 +85,7 @@ pub fn startup(app: &mut App) {
             .map(|x| x.path())
             .unwrap_or("/projects/");
 
-        let window = tauri::WebviewWindowBuilder::new(
+        let mut builder = tauri::WebviewWindowBuilder::new(
             &app,
             "main", /* the unique window label */
             tauri::WebviewUrl::App(start_page.into()),
@@ -103,16 +103,16 @@ pub fn startup(app: &mut App) {
             } else {
                 url.scheme() == "tauri" || url.scheme() == "vrc-get"
             }
-        })
-        .build()?;
+        });
 
-        // keep original size if it's too small
         if config.window_size.width > 100 && config.window_size.height > 100 {
-            window.set_size(LogicalSize {
-                width: config.window_size.width,
-                height: config.window_size.height,
-            })?;
+            builder = builder.inner_size(
+                config.window_size.width as f64,
+                config.window_size.height as f64,
+            );
         }
+
+        let window = builder.build()?;
 
         if config.fullscreen {
             window.make_fullscreen_ish()?;

@@ -27,6 +27,7 @@
     "general:dialog:select file or directory header": "Selecting file or directory",
     "general:dialog:select file or directory": "Please select a file or directory.",
     "general:toast:invalid directory": "Invalid directory was selected.",
+    "general:toast:invalid file": "Invalid file was selected.",
 
     "general:toast:not supported": "{{name}} is not supported yet.",
     "general:not implemented": "Not Implemented",
@@ -35,6 +36,8 @@
 
     "general:error:failed to create dir": "Failed to create directory (missing permission?): {{err}}",
     "general:error:failed to create dir missing drive": "Failed to create directory. You may forget to connect the drive.",
+
+    "general:created at": "Added",
 
     "general:last modified": "Last Modified",
     "general:last modified:moments": "Moments ago",
@@ -73,9 +76,16 @@
     "setup:unity-hub:detection failed description": "Please click the above \"Recheck Installation\" button to re-detect Unity Hub installation. If this doesn't work, ALCOM fails to detect your Unity Hub installation. Please set Unity Hub Manually below.",
     "setup:unity-hub:not found": "Unity Hub was not found.",
 
-    "setup:steps card:ProjectPath": "Save Location",
-    "setup:project-path:heading": "Project Save Location",
-    "setup:project-path:description": "When you create project with ALCOM, the project will be saved in this location.",
+    "setup:steps card:Projects": "Projects",
+    "setup:projects:heading": "Projects",
+    "setup:projects:projects-path": "Save Location",
+    "setup:projects:projects-path description": "When you create project with ALCOM, the project will be saved in this location.",
+    "setup:projects:new-setting-is-added": "New Setting is added!",
+    "setup:projects:sync-mode": "Project List",
+    "setup:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC (For users who primarily use ALCOM)",
+    "setup:projects:sync-mode:TrustLitedb": "Use VCC's project list (For users who primarily use VCC)",
+    "setup:projects:sync-mode:ProjectsUnion:description": "Preserves projects removed from VCC and keeps them in the ALCOM project list. Unlike VCC, ALCOM keeps projects it cannot access, such as those on unavailable external or network drives.",
+    "setup:projects:sync-mode:TrustLitedb:description": "Uses VCC's project list as the source of truth. Projects removed from VCC will also be removed from the ALCOM project list.",
 
     "setup:steps card:Backups": "Backup Settings",
     "setup:backups:heading": "Project Backup Settings",
@@ -113,6 +123,7 @@
     "projects:grid view": "Grid View",
     "projects:sort by": "Sort by:",
     "projects:error:load error": "Error loading projects: {{msg}}",
+    "projects:error:noexec filesystem": "The project is located on a filesystem mounted with the 'noexec' flag. This prevents Unity from loading native plugins, resulting in a broken state or corrupted assets. Please move the project to a filesystem without the 'noexec' flag.",
     "projects:toast:project added": "Project was addded successfully.",
     "projects:toast:project already exists": "The project was already added.",
 
@@ -122,6 +133,9 @@
     "projects:type:avatars": "Avatars",
     "projects:type:legacy": "Legacy",
     "projects:button:open unity": "Open Unity",
+    "projects:button:opening unity": "Opening...",
+    "projects:button:bring unity to front": "Bring To Front",
+    "projects:button:unity is open": "Already Open",
     "projects:button:manage": "Manage",
     "projects:backup": "Backup",
     "projects:menuitem:open directory": "Open Project Directory",
@@ -152,6 +166,9 @@
     "projects:toast:project created": "Project was created successfully.",
 
     "projects:toast:opening unity...": "Opening Unity...",
+    "projects:toast:bring unity to front failed": "ALCOM could not bring Unity to the foreground.",
+    "projects:toast:unity window not found": "No Unity window was found for this project.",
+    "projects:toast:bring unity to front unsupported": "Bringing Unity to the front is not supported on your platform.",
     "projects:dialog:unity not found": "Unity was not found",
     "projects:dialog:unity version of the project not found": "The project is using Unity {{unity}} but it was not found.<br>Please install Unity {{unity}} with Unity Hub and restart ALCOM.",
     "projects:dialog:open unity hub": "Open Unity Hub",
@@ -220,6 +237,7 @@
     "projects:manage:button:unity migrate": "Migrate Project",
 
     "projects:manage:manage packages": "Manage Packages",
+    "projects:manage:hidden packages": "Hidden Packages",
     "projects:manage:tooltip:refresh packages": "Refresh Packages",
     "projects:manage:button:upgrade all": "Upgrade All (Latest)",
     "projects:manage:button:upgrade all stable": "Upgrade All (Stable)",
@@ -236,6 +254,7 @@
     "projects:manage:source not selected": "Not selected",
     "projects:manage:multiple sources": "Multiple sources",
     "projects:manage:tooltip:add package": "Add Package",
+    "projects:manage:tooltip:select repository to install": "Select repository to install package",
     "projects:manage:tooltip:upgrade package": "Upgrade Package",
     "projects:manage:tooltip:remove packages": "Remove Package",
     "projects:manage:tooltip:incompatible with unity": "Incompatible with Unity",
@@ -299,13 +318,13 @@
     "projects:toast:unity migrated": "The project was migrated to Unity 2022",
 
     "projects:manage:dialog:confirm changes description": "You're applying the following changes to the project.",
-    "projects:manage:dialog:note breaking changes": "There are some breaking changes among packages. <br/>Your assets, configuration, tools in your project can be incompatible. <br/>Check for compatibility information and upgrade with care.",
+    "projects:manage:dialog:note breaking changes": "There are changes that may affect compatibility. <br/>Some assets, configurations, or tools might not work as expected. Check compatibility information and proceed with care.<br/>If you encounter any issues after the update, try reverting to the previous package version.",
     "projects:manage:dialog:note incompatibility": "There are some incompatibility with some other packages. <br/>Those tools may report error when loading project or while using. <br/>Check for compatibility information and upgrade related packages at once, or install with care.",
     "projects:manage:dialog:upgrade package": "Upgrade <b>{{name}}</b> version {{previousVersion}} to <b>{{version}}</b>",
     "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} to <b>{{version}}</b>",
     "projects:manage:dialog:install package": "Install <b>{{name}}</b> version <b>{{version}}</b>",
     "projects:manage:dialog:reinstall package": "Reinstall <b>{{name}}</b> version <b>{{version}}</b>",
-    "projects:manage:dialog:breaking changes": "Includes breaking changes",
+    "projects:manage:dialog:breaking changes": "May affect compatibility",
     "projects:manage:dialog:uninstall package as requested": "Remove <b>{{name}}</b> as you requested",
     "projects:manage:dialog:uninstall package as legacy": "Remove <b>{{name}}</b> since it's a legacy package",
     "projects:manage:dialog:uninstall package as unused": "Remove <b>{{name}}</b> which is unused",
@@ -410,6 +429,7 @@
     "templates:tooltip:remove builtin template": "You cannot remove Builtin Templates.",
     "templates:tooltip:remove vcc template": "You cannot remove VCC templates here. You should remove from Templates directory instead.",
     "templates:menuitem:edit template": "Edit Template",
+    "templates:menuitem:duplicate template": "Duplicate Template",
     "templates:menuitem:export template": "Export Template",
     "templates:tooltip:export template with unitypackage": "You cannot export templates with unity packages since it's not portable.",
     "templates:menuitem:open vcc template": "Open Template Directory",
@@ -424,7 +444,7 @@
     "templates:dialog:unitypackages": "UnityPackages",
     "templates:dialog:no unitypackages": "No UnityPackages",
     "templates:dialog:remove template": "Remove Template",
-    "templates:dialog:confirm remove template": "Are you sure remove template {{displayName}}?",
+    "templates:dialog:confirm remove template": "Are you sure you want to remove template {{displayName}}?",
     "templates:button:save template": "Save Template",
     "templates:button:import template": "Import Template",
     "templates:toast:imported n templates_one": "Imported {{count}} template",
@@ -444,7 +464,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "The location is in LocalAppData directory, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
+    "settings:warning:in-app-data": "The location is in AppData directory, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
     "settings:warning:whitespace": "The location contains whitespace. Whitespace in may cause problems with Unity and other tools. Please consider use another location.",
     "settings:warning:non-ascii": "The location contains non-ASCII characters. Non-ASCII characters in the location may cause problems with Unity. Please consider use another location.",
 
@@ -480,7 +500,7 @@
 
     "settings:backup:format": "Backup Archive Format",
     "settings:backup:format description": "Backups are saved as an archive file. <br/>You can select the format of the backup archive. <br/>Default setting is the best format ALCOM thinks at the moment and current default behavior is represented in braces.<br/>Compressing the archive will make backup took longer but will save disk space.",
-    "settings:backup:format:default": "Default (Uncompressed zip)",
+    "settings:backup:format:default": "Default (Low Compression zip)",
     "settings:backup:format:zip-store": "Uncompressed zip (Fast)",
     "settings:backup:format:zip-fast": "Low Compression zip (Slow)",
     "settings:backup:format:zip-best": "High Compression zip (Slowest)",
@@ -492,7 +512,11 @@
     "settings:toast:package cache cleared": "Downloaded package cache was cleared.",
 
     "settings:show prerelease": "Show Prerelease Packages",
-    "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list. In addition, prerelease packages will be used when resolving dependencies.",
+    "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list, and they will be used when resolving dependencies.<br>Prerelease packages may have more bugs than stable packages.",
+
+    "settings:dialog:show prerelease packages": "Show Prerelease Packages",
+    "settings:dialog:show prerelease packages description": "Prerelease packages may have more bugs than stable packages.<br>Are you sure you want to show prerelease packages?",
+    "settings:dialog:enable show prerelease packages": "Show",
 
     "settings:gui animation": "Enable GUI Animation",
     "settings:gui animation description": "Page transitions are animated when GUI animation is enabled. But it may not work on lower webview versions.",
@@ -522,10 +546,16 @@
 
     "check update:dialog:title": "ALCOM Updates",
     "check update:dialog:new version description": "A new version of ALCOM is available.",
+    // note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "A new version of ALCOM is available, but your platform is no longer supported.<br>If your system supports another platform build, please download it instead.",
+    "check update:dialog:new version not updatable description": "A new version of ALCOM is available.<br>However, this installation cannot be updated automatically.<br>Please install the new version manually.",
+    "check update:dialog:new version updater disabled base description": "A new version of ALCOM is available.",
+    "check update:dialog:new version updater how to upgrade fallback": "Automatic updates are disabled. Please upgrade using your package manager.",
     "check update:dialog:current version": "Current Version:",
     "check update:dialog:latest version": "Latest Version:",
     "check update:dialog:changelog": "Changelog",
     "check update:dialog:dismiss": "Dismiss",
+    "check update:dialog:open download page": "Open Download Page",
     "check update:dialog:update": "Download & Update!",
     "check update:dialog:downloading...": "Downloading the update...",
     "check update:dialog:relaunching...": "Relaunching ALCOM...",

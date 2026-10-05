@@ -3,21 +3,27 @@ import React from "react";
 import { initReactI18next, Trans, useTranslation } from "react-i18next";
 import type { TransProps } from "react-i18next/TransWithoutContext";
 import { ExternalLink } from "@/components/ExternalLink";
+import { commands } from "@/lib/bindings";
 import globalInfo from "@/lib/global-info";
+import { queryClient } from "@/lib/query-client";
 import deJson from "@/locales/de.json5";
 import enJson from "@/locales/en.json5";
+import esJson from "@/locales/es.json5";
 import frJson from "@/locales/fr.json5";
 import jaJson from "@/locales/ja.json5";
 import koJson from "@/locales/ko.json5";
+import ruJson from "@/locales/ru.json5";
 import zh_hansJson from "@/locales/zh_hans.json5";
 import zh_hantJson from "@/locales/zh_hant.json5";
 
 const languageResources = {
 	en: enJson,
+	es: esJson,
 	de: deJson,
 	ja: jaJson,
 	ko: koJson,
 	fr: frJson,
+	ru: ruJson,
 	zh_hans: zh_hansJson,
 	zh_hant: zh_hantJson,
 };
@@ -41,6 +47,20 @@ i18next.changeLanguage(globalInfo.language);
 
 export default i18next;
 export const languages = Object.keys(languageResources);
+
+// dev-only language switcher helpers (see SideBar.tsx / providers.tsx)
+export function languageAt(delta: number): string {
+	const index =
+		(languages.indexOf(i18next.language) + delta) % languages.length;
+	return languages.at(index) ?? languages[0];
+}
+
+export async function cycleLanguage(delta: number) {
+	const next = languageAt(delta);
+	await i18next.changeLanguage(next);
+	await commands.environmentSetLanguage(next);
+	await queryClient.invalidateQueries({ queryKey: ["environmentLanguage"] });
+}
 
 function VGTrans(props: TransProps<string>) {
 	const components = {
@@ -68,3 +88,72 @@ export function tc(
 }
 
 export const tt = i18nextt;
+
+// Helper component, type, and function for externally provided localization
+
+// Key is name of locale, value is message in its locale.
+type ExternalLocalization = Record<string, string> | null;
+type Fallback = { plain: string } | { localized: string };
+
+function localizeExternalImpl(
+	i18n: typeof i18next,
+	localization: ExternalLocalization,
+): string | undefined {
+	if (localization == null) return undefined;
+	for (const language of i18n.languages) {
+		// biome-ignore lint/suspicious/noPrototypeBuiltins: we're targeting 2021
+		if (Object.prototype.hasOwnProperty.call(i18n, language)) {
+			const localized = localization[language];
+			if (localized) {
+				return localized;
+			}
+		}
+	}
+	return undefined;
+}
+
+export function localizeExternal(
+	localization: ExternalLocalization,
+	fallback: Fallback,
+) {
+	const localized = localizeExternalImpl(i18next, localization);
+	if (localized) {
+		return localized;
+	}
+	if ("plain" in fallback) {
+		return fallback.plain;
+	}
+	return i18next.t(fallback.localized);
+}
+
+function LocalizeExternalComponentImpl({
+	localization,
+	fallback,
+}: {
+	localization: ExternalLocalization;
+	fallback: Fallback;
+}) {
+	const { i18n } = useTranslation();
+
+	const localized = localizeExternalImpl(i18n, localization);
+	if (localized) {
+		return React.createElement(Trans, {
+			defaults: localized,
+			components: { ExternalLink: React.createElement(ExternalLink) },
+		});
+	}
+	if ("plain" in fallback) {
+		return fallback.plain;
+	}
+	return i18n.t(fallback.localized);
+}
+
+export function localizeExternalComponent(
+	localization: ExternalLocalization,
+	fallback: Fallback,
+) {
+	return React.createElement(LocalizeExternalComponentImpl, {
+		localization,
+		fallback,
+	});
+}

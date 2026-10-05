@@ -1,0 +1,50 @@
+name: 'Sign in place'
+description: 'Signs exe in-place'
+inputs:
+  signpath-api-token:
+    description: SignPath REST API access token.
+    required: true
+  signing-policy-slug:
+    description: SignPath signing policy slug
+  version:
+    required: true
+    description: Version number of artifact we're signing
+
+  path:
+    description: The path of artifact we'll sign
+    required: true
+  artifact-name:
+    description: The name of artifact on github
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: upload unsigned artifact
+      id: upload-unsigned-artifact
+      uses: actions/upload-artifact@v4
+      with:
+        path: ${{ inputs.path }}
+        name: ${{ inputs.artifact-name }}
+
+    - name: Sign on signpath
+      id: sign
+      uses: signpath/github-action-submit-signing-request@v2
+      with:
+        api-token: ${{ inputs.signpath-api-token }}
+        organization-id: 'c2d4dbf9-920f-4318-9017-7306e0fc7590'
+        project-slug: 'vrc-get'
+        signing-policy-slug: ${{ inputs.signing-policy-slug }}
+        github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
+        wait-for-completion: true
+        output-artifact-directory: .github/actions/sign-windows/signed/${{ inputs.artifact-name }}
+        parameters: |
+          version: ${{ toJSON(inputs.version) }}
+
+    - name: Copy artifact
+      env:
+        DOWNLOADED_PATH: .github/actions/sign-windows/signed/${{ inputs.artifact-name }}
+        REPLACE_TO: ${{ inputs.path }}
+      shell: bash
+      run:
+        cp -f "$DOWNLOADED_PATH/$(basename "$REPLACE_TO")" "$REPLACE_TO"

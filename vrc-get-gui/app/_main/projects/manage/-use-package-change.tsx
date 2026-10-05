@@ -616,7 +616,7 @@ function categorizeChange(
 	change: TauriPackageChange,
 	installedPackages: Map<string, TauriBasePackageInfo>,
 ): PackageChangeDisplayInformation {
-	if ("InstallNew" in change) {
+	if (change.InstallNew !== undefined) {
 		const name = change.InstallNew.display_name ?? change.InstallNew.name;
 
 		const installed = installedPackages.get(pkgId);

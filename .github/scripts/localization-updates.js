@@ -53,6 +53,16 @@ module.exports = async ({github, context}) => {
 			discussionNumber: 1823,
 			replyId: 'DC_kwDOIza9ks4AswKE'
 		},
+		{
+			id: 'es',
+			discussionNumber: 3122,
+			replyId: 'DC_kwDOIza9ks4BEqzH'
+		},
+		{
+			id: 'ru',
+			discussionNumber: 3123,
+			replyId: 'DC_kwDOIza9ks4BEqzG'
+		},
 	];
 
 	/** @type {{missingCount: number, extraCount: number, id: string, discussionNumber: number}[]}  */

@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# Get the absolute directory of the mounted AppImage
+appdir="$(readlink -f "$(dirname "$0")")"
+
+debian_tuple="@debian_tuple@"
+
+# GStreamer related. We only loads from our dir to prevent version mismatch and disable gstraamer registry
+export GST_PLUGIN_PATH="$appdir/usr/lib/gstreamer-1.0"
+export GST_PLUGIN_SYSTEM_PATH=""
+export GST_PLUGIN_SYSTEM_PATH_1_0=""
+export GST_REGISTRY_DISABLE=yes
+export GST_REGISTRY=""
+export GST_PLUGIN_SCANNER="$appdir/usr/libexec/gstreamer-1.0/gst-plugin-scanner"
+
+# LD path, perfer our libraries
+export LD_LIBRARY_PATH="$appdir/usr/lib/:$appdir/usr/lib/$debian_tuple/:$appdir/lib${LD_LIBRARY_PATH+:$LD_LIBRARY_PATH}"
+
+# XDG path
+export XDG_DATA_DIRS="$appdir/usr/shere:${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}";
+
+# run under /usr of appdir for webkit/enchant reloaction problem
+cd "$appdir/usr" || exit 1
+
+exec "$appdir/usr/bin/ALCOM" "$@"

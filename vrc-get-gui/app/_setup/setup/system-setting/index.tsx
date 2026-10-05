@@ -22,8 +22,6 @@ function Page() {
 		<SetupPageBase
 			heading={tc("setup:system-setting:heading")}
 			Body={Body}
-			nextPage={"/setup/finish"}
-			prevPage={"/setup/backups"}
 			pageId={"SystemSetting"}
 		/>
 	);

@@ -27,6 +27,7 @@
     "general:dialog:select file or directory header": "选择文件或目录",
     "general:dialog:select file or directory": "请选择文件或目录。",
     "general:toast:invalid directory": "选择的路径无效。",
+    "general:toast:invalid file": "选择的文件无效。",
 
     "general:toast:not supported": "{{name}} 尚未支持",
     "general:not implemented": "该功能未实现",
@@ -35,6 +36,8 @@
     
     "general:error:failed to create dir": "目录创建失败（缺少权限？）： {{err}}",
     "general:error:failed to create dir missing drive": "目录创建失败。硬盘不存在，您是不是忘记连接硬盘了？",
+
+    "general:created at": "添加于",
 
     "general:last modified": "最后修改",
     "general:last modified:moments": "刚才",
@@ -68,8 +71,8 @@
     "setup:unity-hub:not found": "没有找到 Unity Hub。",
 
     "setup:steps card:ProjectPath": "保存位置",
-    "setup:project-path:heading": "项目保存位置",
-    "setup:project-path:description": "使用 ALCOM 创建项目时，项目将保存在此位置。<br/>稍后您可以在设置界面更改这个设置。",
+    "setup:projects:projects-path": "项目保存位置",
+    "setup:projects:projects-path description": "使用 ALCOM 创建项目时，项目将保存在此位置。<br/>稍后您可以在设置界面更改这个设置。",
 
     "setup:steps card:Backups": "备份设置",
     "setup:backups:heading": "项目备份设置",
@@ -107,6 +110,7 @@
     "projects:grid view": "网格视图",
     "projects:sort by": "排序条件:",
     "projects:error:load error": "加载项目时出错: {{msg}}",
+    "projects:error:noexec filesystem": "该项目位于一个使用 'noexec' 标志挂载的文件系统。这会阻止 Unity 加载原生插件，导致资产无法正常加载或损坏。请将项目移动到没有 'noexec' 标志的文件系统。",
     "projects:toast:project added": "添加项目成功。",
     "projects:toast:project already exists": "该项目已经添加过了。",
 
@@ -116,6 +120,9 @@
     "projects:type:avatars": "虚拟形象",
     "projects:type:legacy": "旧版",
     "projects:button:open unity": "打开 Unity",
+    "projects:button:opening unity": "正在打开 Unity…",
+    "projects:button:bring unity to front": "将 Unity 置于前台",
+    "projects:button:unity is open": "Unity 已打开",
     "projects:button:manage": "管理",
     "projects:backup": "备份",
     "projects:menuitem:open directory": "打开项目路径",
@@ -146,6 +153,9 @@
     "projects:toast:project created": "项目创建成功",
 
     "projects:toast:opening unity...": "正在打开 Unity...",
+    "projects:toast:bring unity to front failed": "ALCOM 无法将 Unity 置于前台。",
+    "projects:toast:unity window not found": "未找到此项目对应的 Unity 窗口。",
+    "projects:toast:bring unity to front unsupported": "当前平台不支持将 Unity 置于前台。",
     "projects:dialog:unity not found": "Unity 不存在",
     "projects:dialog:unity version of the project not found": "无法找到该项目使用的 Unity {{unity}} 。<br>请使用 Unity Hub 安装 Unity {{unity}} 然后重启 ALCOM。",
     "projects:dialog:open unity hub": "打开 Unity Hub",
@@ -210,6 +220,7 @@
     "projects:manage:button:unity migrate": "迁移项目",
 
     "projects:manage:manage packages": "管理软件包",
+    "projects:manage:hidden packages": "隐藏的软件包",
     "projects:manage:tooltip:refresh packages": "刷新软件包",
     "projects:manage:button:upgrade all": "升级所有软件包（最新）",
     "projects:manage:button:upgrade all stable": "升级所有软件包（稳定）",
@@ -226,6 +237,7 @@
     "projects:manage:source not selected": "未选择",
     "projects:manage:multiple sources": "多个源",
     "projects:manage:tooltip:add package": "安装软件包",
+    "projects:manage:tooltip:select repository to install": "选择存储库以安装软件包",
     "projects:manage:tooltip:upgrade package": "升级软件包",
     "projects:manage:tooltip:remove packages": "删除软件包",
     "projects:manage:tooltip:incompatible with unity": "与 Unity 不兼容",
@@ -390,15 +402,16 @@
     "templates:category:builtin": "内置",
     "templates:tooltip:category:builtin": "内置模板是由 ALCOM 创建并与 ALCOM 一起发布的。",
     "templates:category:alcom": "自定义",
-    "templates:tooltip:category:alcom": "自定义模板是由你使用 ALCOM 创建和编辑的。",
+    "templates:tooltip:category:alcom": "自定义模板是由您使用 ALCOM 创建和编辑的。",
     "templates:category:vcc": "VCC",
-    "templates:tooltip:category:vcc": "VCC 模板是由你为 VCC 手动创建的。",
+    "templates:tooltip:category:vcc": "VCC 模板是由您为 VCC 手动创建的。",
     "templates:tooltip:remove template": "删除模板",
-    "templates:tooltip:remove builtin template": "你不能删除内置模板。",
-    "templates:tooltip:remove vcc template": "你不能在这里删除 VCC 模板。你应该直接删除该模板的目录。",
+    "templates:tooltip:remove builtin template": "您不能删除内置模板。",
+    "templates:tooltip:remove vcc template": "您不能在这里删除 VCC 模板。您应该直接删除该模板的目录。",
     "templates:menuitem:edit template": "编辑模板",
+    "templates:menuitem:duplicate template": "复制模板",
     "templates:menuitem:export template": "导出模板",
-    "templates:tooltip:export template with unitypackage": "该模板使用了不可移植的 Unity 资源包（.unitypackage），所以你不可以导出它。",
+    "templates:tooltip:export template with unitypackage": "该模板使用了不可移植的 Unity 资源包（.unitypackage），所以您不可以导出它。",
     "templates:menuitem:open vcc template": "打开模板目录",
     "templates:dialog:edit template": "编辑模板",
     "templates:dialog:create template": "创建模板",
@@ -411,7 +424,7 @@
     "templates:dialog:unitypackages": "Unity 资源包（.unitypackage）",
     "templates:dialog:no unitypackages": "没有 Unity 资源包",
     "templates:dialog:remove template": "删除模板",
-    "templates:dialog:confirm remove template": "你确定要删除模板 {{displayName}} 吗？",
+    "templates:dialog:confirm remove template": "您确定要删除模板 {{displayName}} 吗？",
     "templates:button:save template": "保存模板",
     "templates:button:import template": "导入模板",
     "templates:toast:imported n templates": "已导入 {{count}} 个模板",
@@ -430,7 +443,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "该位置位于 LocalAppData 文件夹中，使用\"保留我的文件\"选项的\"重置此电脑\"功能重置系统后，该文件夹将被删除。\n建议选择其他位置。",
+    "settings:warning:in-app-data": "该位置位于 AppData 文件夹中，使用\"保留我的文件\"选项的\"重置此电脑\"功能重置系统后，该文件夹将被删除。\n建议选择其他位置。",
     "settings:warning:whitespace": "该位置包含空格，可能导致 Unity 或其他工具出现问题。请考虑使用其他位置。",
     "settings:warning:non-ascii": "该位置包含非 ASCII 字符，可能导致 Unity 出现问题。请考虑使用其他位置。",
 
@@ -466,7 +479,7 @@
 
     "settings:backup:format": "备份文件的压缩格式",
     "settings:backup:format description": "备份以压缩文件的形式保存。 <br/>您可以选择压缩文件的压缩格式。<br/>默认设置是 ALCOM 目前认为最好的格式，当前的默认行为用括号表示。<br/>高压缩率会增加备份耗时，但会节省磁盘空间。",
-    "settings:backup:format:default": "默认 (未压缩的 zip)",
+    "settings:backup:format:default": "默认 (低压缩率的 zip)",
     "settings:backup:format:zip-store": "未压缩的 zip (快)",
     "settings:backup:format:zip-fast": "低压缩率的 zip (慢)",
     "settings:backup:format:zip-best": "高压缩率的 zip (最慢)",
@@ -479,6 +492,10 @@
 
     "settings:show prerelease": "显示预发布软件包",
     "settings:show prerelease description": "启用 \"显示预发布软件包\" 会在软件包列表中显示预发布软件包。此外，在解析依赖关系时也将使用预发布软件包。",
+
+    "settings:dialog:show prerelease packages": "显示预发布软件包",
+    "settings:dialog:show prerelease packages description": "预发布软件包可能不稳定。<br>您确定要显示预发布软件包吗？",
+    "settings:dialog:enable show prerelease packages": "显示",
 
     "settings:gui animation": "启用 GUI 动画",
     "settings:gui animation description": "当启用 GUI 动画时，切换页面将会带有动画效果。但系统 WebView 版本过低时可能不起作用。",
@@ -508,10 +525,16 @@
 
     "check update:dialog:title": "ALCOM 更新",
     "check update:dialog:new version description": "ALCOM 有更新可用。",
+// note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "ALCOM 有更新可用，但是您使用的平台已经不受支持。<br>\n如果您的系统支持其他平台的构建，请下载对应平台的构建作为替代。",
+    "check update:dialog:new version not updatable description": "ALCOM 有更新可用。<br>但是您目前使用的安装方式无法自动更新。<br>请手动安装新版本。",
+    "check update:dialog:new version updater disabled base description": "ALCOM 有更新可用。",
+    "check update:dialog:new version updater how to upgrade fallback": "自动更新已被禁用。请通过您的包管理器更新。",
     "check update:dialog:current version": "当前版本:",
     "check update:dialog:latest version": "最新版本:",
     "check update:dialog:changelog": "更新日志",
     "check update:dialog:dismiss": "忽略",
+    "check update:dialog:open download page": "在浏览器中打开下载页",
     "check update:dialog:update": "下载并更新！",
     "check update:dialog:downloading...": "正在下载更新...",
     "check update:dialog:relaunching...": "正在重启 ALCOM...",
