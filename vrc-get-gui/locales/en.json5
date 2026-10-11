@@ -84,8 +84,8 @@
     "setup:projects:sync-mode": "Project List",
     "setup:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC (For users who primarily use ALCOM)",
     "setup:projects:sync-mode:TrustLitedb": "Use VCC's project list (For users who primarily use VCC)",
-    "setup:projects:sync-mode:ProjectsUnion:description": "Preserves projects removed from VCC and keeps them in the ALCOM project list. Unlike VCC, ALCOM keeps projects it cannot access, such as those on unavailable external or network drives.",
-    "setup:projects:sync-mode:TrustLitedb:description": "Uses VCC's project list as the source of truth. Projects removed from VCC will also be removed from the ALCOM project list.",
+    "setup:projects:sync-mode:ProjectsUnion:description": "`Preserve projects removed in VCC`: ALCOM keeps projects removed in VCC.<br>While VCC automatically removes projects that cannot be accessed, such as those on unavailable external or network drives, ALCOM keeps them.",
+    "setup:projects:sync-mode:TrustLitedb:description": "`Use VCC's project list`: ALCOM uses VCC's project list as a reliable source.<br>When VCC automatically removes projects that cannot be accessed, such as those on unavailable external or network drives, ALCOM will also lose them.",
 
     "setup:steps card:Backups": "Backup Settings",
     "setup:backups:heading": "Project Backup Settings",
