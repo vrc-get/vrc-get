@@ -132,19 +132,6 @@ impl Settings {
     pub fn ignore_official_repository(&self) -> bool {
         self.vrc_get.ignore_official_repository()
     }
-
-    #[cfg(feature = "experimental-project-management")]
-    pub fn project_list_sync_mode(&self) -> super::project_management::SyncWithLitedbMode {
-        self.vrc_get.project_list_sync_mode()
-    }
-
-    #[cfg(feature = "experimental-project-management")]
-    pub fn set_project_list_sync_mode(
-        &mut self,
-        mode: super::project_management::SyncWithLitedbMode,
-    ) {
-        self.vrc_get.set_project_list_sync_mode(mode);
-    }
 }
 
 /// User Package Managements

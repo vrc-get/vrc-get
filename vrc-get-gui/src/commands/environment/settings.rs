@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
-use vrc_get_vpm::environment::{SyncWithLitedbMode, VccDatabaseConnection, find_unity_hub};
+use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_hub};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
@@ -72,24 +72,6 @@ pub enum TauriSyncWithLitedbMode {
     TrustLitedb,
 }
 
-impl From<SyncWithLitedbMode> for TauriSyncWithLitedbMode {
-    fn from(mode: SyncWithLitedbMode) -> Self {
-        match mode {
-            SyncWithLitedbMode::ProjectsUnion => TauriSyncWithLitedbMode::ProjectsUnion,
-            SyncWithLitedbMode::TrustLitedb => TauriSyncWithLitedbMode::TrustLitedb,
-        }
-    }
-}
-
-impl From<TauriSyncWithLitedbMode> for SyncWithLitedbMode {
-    fn from(mode: TauriSyncWithLitedbMode) -> Self {
-        match mode {
-            TauriSyncWithLitedbMode::ProjectsUnion => SyncWithLitedbMode::ProjectsUnion,
-            TauriSyncWithLitedbMode::TrustLitedb => SyncWithLitedbMode::TrustLitedb,
-        }
-    }
-}
-
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_get_settings(
@@ -148,7 +130,7 @@ pub async fn environment_get_settings(
         default_project_path = crate::utils::default_project_path(&mut settings).to_string();
         project_backup_path = crate::utils::project_backup_path(&mut settings).to_string();
         show_prerelease_packages = settings.show_prerelease_packages();
-        project_list_sync_mode = settings.project_list_sync_mode().into();
+        project_list_sync_mode = TauriSyncWithLitedbMode::ProjectsUnion;
 
         settings.save().await?;
     }
@@ -516,12 +498,8 @@ pub async fn environment_set_default_unity_arguments(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_project_list_sync_mode(
-    settings: State<'_, SettingsState>,
-    io: State<'_, DefaultEnvironmentIo>,
-    project_list_sync_mode: TauriSyncWithLitedbMode,
+    _project_list_sync_mode: TauriSyncWithLitedbMode,
 ) -> Result<(), RustError> {
-    let mut settings = settings.load_mut(io.inner()).await?;
-    settings.set_project_list_sync_mode(project_list_sync_mode.into());
-    settings.save().await?;
+    // Removed
     Ok(())
 }
