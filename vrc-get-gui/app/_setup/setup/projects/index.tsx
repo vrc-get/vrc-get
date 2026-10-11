@@ -23,7 +23,11 @@ import { assertNever } from "@/lib/assert-never";
 import { commands, type TauriSyncWithLitedbMode } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { type BodyProps, SetupPageBase } from "../-setup-page-base";
+import {
+	type BodyProps,
+	NesSettings,
+	SetupPageBase,
+} from "../-setup-page-base";
 
 export const Route = createFileRoute("/_setup/setup/projects/")({
 	component: Page,
@@ -118,19 +122,7 @@ function Body({ environment }: BodyProps) {
 				withOpen={false}
 			/>
 			<ProjectPathWarnings projectPath={environment.default_project_path} />
-			<div
-				className={`flex flex-col grow gap-3 compact:gap-2 ${existingUser ? "outline-2 outline-offset-[6px] rounded-sm outline-warning relative" : ""}`}
-			>
-				{existingUser && (
-					<div
-						className={
-							"absolute top-[30%] right-[calc(100%+2em)] transform-[translateY(-50%)] bg-background outline-warning outline-2 text-warning-foreground px-3 py-2 rounded-md " +
-							"before:content-[''] before:absolute before:left-full before:top-1/2 before:transform-[translateY(-50%)] before:border-t-[6px] before:border-b-[6px] before:border-l-[--spacing(6)] before:border-transparent before:border-l-warning"
-						}
-					>
-						{tc("setup:projects:new-setting-is-added")}
-					</div>
-				)}
+			<NesSettings isNewSettings={existingUser}>
 				<h3>{tc("setup:projects:sync-mode")}</h3>
 				<Select
 					value={environment.project_list_sync_mode}
@@ -156,7 +148,7 @@ function Body({ environment }: BodyProps) {
 				<CardDescription className={"whitespace-normal"}>
 					{tc("setup:projects:sync-mode:TrustLitedb:description")}
 				</CardDescription>
-			</div>
+			</NesSettings>
 		</>
 	);
 }
