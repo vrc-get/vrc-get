@@ -63,7 +63,7 @@ fn object_id(bytes: &[u8; 12]) -> vrc_get_litedb::bson::ObjectId {
 const VCC_LITEDB: &str = "vcc.liteDb";
 const VRC_GET_SQLITE: &str = "vrc-get/vrc-get.db";
 const SETTINGS_JSON: &str = "settings.json";
-const VRC_GET_SETTINGS: &str = "vrc-get/settings.json";
+//const VRC_GET_SETTINGS: &str = "vrc-get/settings.json";
 
 macro_rules! test_settings_json_with_projects {
     ($env_projects_str: expr$(,)?) => {
@@ -931,11 +931,6 @@ async fn sqlite_litedb_sync() {
     let env_projects = get_temp_path("env_projects");
     let env_projects_str = env_projects.to_str().unwrap();
     sqlite_migrations_with_projects_in_database_prepare(&env_dir, env_projects_str).await;
-    std::fs::write(
-        env_dir.join(VRC_GET_SETTINGS),
-        r#"{"projectListSyncMode":"TrustLitedb"}"#,
-    )
-    .unwrap();
     let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
 
     for iteration in 0..2 {
