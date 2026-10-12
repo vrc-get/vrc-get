@@ -215,6 +215,7 @@
     "projects:toast:project removed": "Project was removed successfully.",
 
     "projects:dialog:mismatch-found": "The project lists in VCC and ALCOM do not match.",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}} projects are in VCC but not in ALCOM, and {{only_in_vrc_get}} projects are in ALCOM but not in VCC.<br/>Select which projects to keep or remove.",
     "projects:dialog:mismatch-project-table:path": "Project Path",
     "projects:dialog:mismatch-project-table:source": "Source",
     "projects:dialog:mismatch-project-table:keep": "Keep",

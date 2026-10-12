@@ -71,10 +71,10 @@ export function MismatchDialogContent({
 		<DialogContent className={"max-h-[90vh]"}>
 			<DialogTitle>{tc("projects:dialog:mismatch-found")}</DialogTitle>
 			<DialogDescription>
-				{data.only_in_vcc.length} projects are in VCC but not in ALCOM and{" "}
-				{data.only_in_vrc_get.length} projects are in ALCOM but not in VCC.
-				<br />
-				Please select projects to keep and projects to remove.
+				{tc("projects:dialog:mismatch-found:description", {
+					only_in_vcc: data.only_in_vcc.length,
+					only_in_vrc_get: data.only_in_vrc_get.length,
+				})}
 			</DialogDescription>
 
 			<div className={"overflow-y-auto"}>
