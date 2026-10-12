@@ -20,6 +20,7 @@ import {
 	LanguageSelector,
 	ProjectPathWarnings,
 	ProjectSyncModeSelect,
+	ProjectSyncModeWarning,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { HNavBar, HNavBarText, VStack } from "@/components/layout";
@@ -528,6 +529,8 @@ function DefaultProjectPathCard() {
 				{tc("settings:projects:sync-mode:description")}
 			</p>
 			<ProjectSyncModeSelect projectListSyncMode={projectListSyncMode} />
+			<div className="mb-2" />
+			<ProjectSyncModeWarning projectListSyncMode={projectListSyncMode} />
 		</SettingsCard>
 	);
 }

@@ -438,3 +438,24 @@ export function ProjectSyncModeSelect({
 		</Select>
 	);
 }
+
+export function ProjectSyncModeWarning({
+	projectListSyncMode,
+}: {
+	projectListSyncMode: TauriSyncWithLitedbMode;
+}) {
+	return (
+		<div className="flex flex-col gap-1">
+			{projectListSyncMode === "ProjectsUnion" && (
+				<WarningMessage>
+					{tc("settings:projects:sync-mode:warning:ProjectsUnion")}
+				</WarningMessage>
+			)}
+			{projectListSyncMode === "TrustLitedb" && (
+				<WarningMessage>
+					{tc("settings:projects:sync-mode:warning:TrustLitedb")}
+				</WarningMessage>
+			)}
+		</div>
+	);
+}
