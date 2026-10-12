@@ -13,6 +13,7 @@ use log::{debug, error, trace, warn};
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE;
 use rusqlite::{OptionalExtension, TransactionBehavior};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::num::NonZeroI64;
 use std::path::Path;
@@ -59,6 +60,45 @@ pub struct ProjectManagement<'io> {
     json: Option<Settings>,
     litedb: VccDatabaseConnection,
     sqlite: SQLiteConnection,
+}
+
+/// This enum specifies the mode for synchronizing projects between SQLite and LiteDB.
+///
+/// For historical reasons, vrc-get has two sources of the project list: litedb, which is list
+/// of VCC, and SQLite, which is the vrc-get specific database.
+///
+/// Therefore, we need to synchronize the project list between SQLite and LiteDB as necessary.
+/// This enum specifies the mode for synchronizing projects between SQLite and LiteDB.
+///
+/// In both modes, projects that do not have `litedb_objectid` column will not be removed.
+/// `litedb_objectid` will be set when projects are live in LiteDB.
+#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum SyncWithLitedbMode {
+    /// Add projects from litedb to SQLite, and then add projects from SQLite to LiteDB.
+    /// In this mode, projects from either database will be live.
+    ///
+    /// The benefit of this mode is that we can work around the VCC's behavior that removes
+    /// projects that are not accessible to VCC, which can happen unintentionally with network
+    /// drives or removable drives, or permission errors.
+    ///
+    /// The downsides of this mode are that removing projects from VCC would not be reflected in SQLite
+    /// and rolled back to the previous state.
+    ///
+    /// This is the default mode since we think removing projects unintentionally is problematic
+    /// than restoring projects unintentionally.
+    ProjectsUnion,
+    /// Ask for the user when there are mismatches between the list.
+    #[default]
+    AskForUser,
+    /// Trust LiteDB for the project list and always reflect which are exists in LiteDB.
+    /// This mode also overwrites most metadata of projects in SQLite with LiteDB.
+    ///
+    /// The benefit of this mode is that removing projects from VCC would be preserved.
+    ///
+    /// The downsides of this mode are that VCC's unintentional removal of projects.
+    ///
+    /// Users may prefer this mode when VCC is the primary tool for project management.
+    TrustLitedb,
 }
 
 macro_rules! check_absolute {
@@ -120,6 +160,8 @@ impl<'io> ProjectManagement<'io> {
                 .collect::<HashSet<_>>(),
         );
 
+        let sync_mode = json.project_list_sync_mode();
+
         json.save(io).await.map_err(Error::SaveSettings)?;
         litedb.save(io).await.map_err(Error::SaveLitedb)?;
 
@@ -130,25 +172,54 @@ impl<'io> ProjectManagement<'io> {
             sqlite,
         };
 
+        macro_rules! extract_paths {
+            ($mismatch: expr, $variant: ident) => {
+                $mismatch
+                    .iter()
+                    .flat_map(|x| {
+                        let ProjectListMismatch::$variant { path, .. } = x else {
+                            return None;
+                        };
+                        Some(path.as_str())
+                    })
+                    .collect::<Vec<_>>()
+            };
+        }
+
         if !has_project_in_db {
             debug!("No project in database, coping from vcc");
             let mismatch = management.find_project_list_mismatch().await?;
             management
-                .fix_project_list_mismatch(
-                    &mismatch
-                        .iter()
-                        .map(|x| {
-                            let ProjectListMismatch::OnlyInVcc { path } = x else {
-                                unreachable!()
-                            };
-                            path.as_str()
-                        })
-                        .collect::<Vec<_>>(),
-                    &[],
-                    &[],
-                    &[],
-                )
+                .fix_project_list_mismatch(&extract_paths!(mismatch, OnlyInVcc), &[], &[], &[])
                 .await?;
+        }
+
+        match sync_mode {
+            SyncWithLitedbMode::ProjectsUnion => {
+                let mismatch = management.find_project_list_mismatch().await?;
+                management
+                    .fix_project_list_mismatch(
+                        &extract_paths!(mismatch, OnlyInVcc),
+                        &extract_paths!(mismatch, OnlyInVrcGet),
+                        &[],
+                        &[],
+                    )
+                    .await?;
+            }
+            SyncWithLitedbMode::AskForUser => {
+                // Asks
+            }
+            SyncWithLitedbMode::TrustLitedb => {
+                let mismatch = management.find_project_list_mismatch().await?;
+                management
+                    .fix_project_list_mismatch(
+                        &extract_paths!(mismatch, OnlyInVcc),
+                        &[],
+                        &[],
+                        &extract_paths!(mismatch, OnlyInVrcGet),
+                    )
+                    .await?;
+            }
         }
 
         Ok(management)

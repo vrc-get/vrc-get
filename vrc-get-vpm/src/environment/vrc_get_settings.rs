@@ -14,6 +14,9 @@ struct AsJson {
     ignore_official_repository: bool,
     #[serde(default)]
     ignore_curated_repository: bool,
+    #[cfg(feature = "experimental-project-management")]
+    #[serde(default)]
+    project_list_sync_mode: super::project_management::SyncWithLitedbMode,
 
     #[serde(flatten)]
     rest: JsonObject,
@@ -43,6 +46,20 @@ impl VrcGetSettings {
 
     pub fn ignore_curated_repository(&self) -> bool {
         self.parsed.ignore_curated_repository
+    }
+
+    #[cfg(feature = "experimental-project-management")]
+    pub fn project_list_sync_mode(&self) -> super::project_management::SyncWithLitedbMode {
+        self.parsed.project_list_sync_mode
+    }
+
+    #[cfg(feature = "experimental-project-management")]
+    pub fn set_project_list_sync_mode(
+        &mut self,
+        mode: super::project_management::SyncWithLitedbMode,
+    ) {
+        self.parsed.project_list_sync_mode = mode;
+        self.should_save = true;
     }
 
     pub async fn save(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
