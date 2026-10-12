@@ -495,9 +495,16 @@
     "settings:default unity arguments description": "Those command-line arguments will be used when opening Unity from ALCOM.",
     "settings:dialog:default launch arguments": "Default Unity Command-line Arguments",
 
+    "settings:project management": "Project Management",
+
     "settings:default project path": "Default Project Path",
     "settings:default project path description": "The default project path is the directory where new projects are created.",
     "settings:toast:default project path updated": "Updated the default project path successfully!",
+
+    "settings:projects:sync-mode": "Project List Sync Mode",
+    "settings:projects:sync-mode:description": "ALCOM and VCC will use different project list. This setting controls how do we sync the project list between ALCOM and VCC.",
+    "settings:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC (For users who primarily use ALCOM)",
+    "settings:projects:sync-mode:TrustLitedb": "Use VCC's project list (For users who primarily use VCC)",
 
     "settings:backup:path": "Backup Path",
     "settings:backup:path description": "The backup path is the directory where ALCOM will create backup zips of the projects.",
@@ -511,10 +518,6 @@
     "settings:backup:format:zip-best": "High Compression zip (Slowest)",
     "settings:backup:exclude vpm packages from backup": "Exclude VPM Packages from backup",
     "settings:backup:exclude vpm packages from backup description": "This reduces the size of the backup, but if the package creator violates the recommendation and removes a package from their repository, you'll be need to use another version of the package when restoring the backup.",
-
-    "settings:projects:sync-mode": "Project List Sync Mode",
-    "settings:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC (For users who primarily use ALCOM)",
-    "settings:projects:sync-mode:TrustLitedb": "Use VCC's project list (For users who primarily use VCC)",
 
     "settings:packages": "Packages",
     "settings:clear package cache": "Clear Downloaded Package Cache",

@@ -19,6 +19,7 @@ import {
 	GuiCompactSwitch,
 	LanguageSelector,
 	ProjectPathWarnings,
+	ProjectSyncModeSelect,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { HNavBar, HNavBarText, VStack } from "@/components/layout";
@@ -475,11 +476,12 @@ function DefaultProjectPathCard() {
 	const queryClient = useQueryClient();
 
 	const {
-		data: { defaultProjectPath },
+		data: { defaultProjectPath, projectListSyncMode },
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			defaultProjectPath: data.default_project_path,
+			projectListSyncMode: data.project_list_sync_mode,
 		}),
 	});
 
@@ -511,7 +513,8 @@ function DefaultProjectPathCard() {
 
 	return (
 		<SettingsCard>
-			<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
+			<h2 className={"mb-2"}>{tc("settings:project management")}</h2>
+			<h3>{tc("settings:default project path")}</h3>
 			<p className={"whitespace-normal"}>
 				{tc("settings:default project path description")}
 			</p>
@@ -520,6 +523,11 @@ function DefaultProjectPathCard() {
 				pick={pickProjectDefaultPath.mutate}
 			/>
 			<ProjectPathWarnings projectPath={defaultProjectPath} />
+			<h3 className="mt-2">{tc("settings:projects:sync-mode")}</h3>
+			<p className={"whitespace-normal"}>
+				{tc("settings:projects:sync-mode:description")}
+			</p>
+			<ProjectSyncModeSelect projectListSyncMode={projectListSyncMode} />
 		</SettingsCard>
 	);
 }
