@@ -86,7 +86,7 @@ fn test_settings_json_with_projects(
             format!("{env_projects_str}/HistoryOfAvatarOptimizer"),
             format!("{env_projects_str}/VPMPackageAutoInstaller"),
             format!("{env_projects_str}/CrashOnExitWithLogTypeFullName"),
-        ]).collect::<Vec<_>>()
+        ]).map(normalize_path).collect::<Vec<_>>()
     }))
     .unwrap()
 }
@@ -918,119 +918,13 @@ async fn sqlite_migrations_with_projects_in_database_prepare(
     .unwrap();
 }
 
-#[tokio::test]
-#[cfg(false)]
-async fn sqlite_migrations_with_projects_in_database_projects_union() {
-    // initialize environment
-    common::init_log();
-    let env_dir = get_temp_path("environment");
-    let env_projects = get_temp_path("env_projects");
-    let env_projects_str = env_projects.to_str().unwrap();
-    sqlite_migrations_with_projects_in_database_prepare(&env_dir, env_projects_str).await;
-    std::fs::write(
-        env_dir.join(VRC_GET_SETTINGS),
-        r#"{"projectListSyncMode":"ProjectsUnion"}"#,
-    )
-    .unwrap();
-
-    // run code
-    for iteration in 0..2 {
-        eprintln!("iteration: {iteration}");
-        let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
-        let manage = ProjectManagement::start(io).await.unwrap(); // does migration
-
-        // check data
-        assert_eq!(
-            load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
-            defined_projects_in_settings_json!(
-                env_projects_str,
-                additional_projects = [
-                    format!("{env_projects_str}/litedb-good"),
-                    format!("{env_projects_str}/sqlite-only-no-id"),
-                    format!("{env_projects_str}/sqlite-only-with-id"),
-                    format!("{env_projects_str}/id-mismatch"),
-                    format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
-                    format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
-                    format!("{env_projects_str}/both-conflict-0-path-conflicter"),
-                    format!("{env_projects_str}/both-conflict-0-id-conflicter"),
-                    format!("{env_projects_str}/both-conflict-1-path-conflicter"),
-                    format!("{env_projects_str}/both-conflict-1-id-conflicter"),
-                ],
-            ),
-        );
-
-        let get_project = |name: &str| {
-            manage
-                .find_project(&format!("{env_projects_str}/{name}"))
-                .unwrap()
-        };
-
-        let id_mismatch = get_project("id-mismatch").unwrap();
-        assert_eq!(
-            id_mismatch.litedb_objectid(),
-            Some(object_id(b"id-mismatch0"))
-        );
-
-        let sqlite_only_no_id = get_project("sqlite-only-no-id").unwrap();
-        assert!(sqlite_only_no_id.litedb_objectid().is_none());
-
-        let sqlite_only_with_id = get_project("sqlite-only-with-id").unwrap();
-        assert!(sqlite_only_with_id.litedb_objectid().is_some());
-
-        let litedb_good = get_project("litedb-good").unwrap();
-        assert_eq!(
-            litedb_good.litedb_objectid(),
-            Some(object_id(b"litedbgoodpr"))
-        );
-
-        let patch_mismatch_0 = get_project("path-mismatch-0-sqlite-is-newer-sqlite").unwrap();
-        assert_eq!(
-            patch_mismatch_0.litedb_objectid(),
-            Some(object_id(b"pathmismatc0"))
-        );
-        assert!(get_project("path-mismatch-0-sqlite-is-newer-litedb").is_none());
-
-        let path_mismatch_1 = get_project("path-mismatch-1-litedb-is-newer-litedb").unwrap();
-        assert_eq!(
-            path_mismatch_1.litedb_objectid(),
-            Some(object_id(b"pathmismatc1"))
-        );
-        assert!(get_project("path-mismatch-1-litedb-is-newer-sqlite").is_none());
-
-        let conflict_0_path_conflicter = get_project("both-conflict-0-path-conflicter").unwrap();
-        assert_eq!(
-            conflict_0_path_conflicter.litedb_objectid(),
-            Some(object_id(b"bothconflic0"))
-        );
-        assert_eq!(
-            conflict_0_path_conflicter.unity_revision(),
-            Some("887be4894c44")
-        );
-
-        let conflict_0_id_conflicter = get_project("both-conflict-0-id-conflicter").unwrap();
-        assert_ne!(
-            conflict_0_id_conflicter.litedb_objectid(),
-            Some(object_id(b"random014752"))
-        );
-        assert_ne!(
-            conflict_0_id_conflicter.litedb_objectid(),
-            Some(object_id(b"bothconflic0"))
-        );
-        assert_eq!(
-            conflict_0_id_conflicter.unity_revision(),
-            Some("bd5abf232a62")
-        );
-    }
-}
-
 fn sorted<T: Ord>(mut value: Vec<T>) -> Vec<T> {
     value.sort();
     value
 }
 
 #[tokio::test]
-//#[cfg(false)]
-async fn sqlite_migrations_with_projects_in_database_trust_litedb() {
+async fn sqlite_litedb_sync() {
     // initialize environment
     common::init_log();
     let env_dir = get_temp_path("environment");
