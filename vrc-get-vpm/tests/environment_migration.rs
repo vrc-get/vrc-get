@@ -150,7 +150,7 @@ fn test_litedb_file_with_projects(
                 // "Blank 2019 project" and "Blank 2022 project" are not exist in litedb
                 // those three are exist on both litedb and settings.json
                 vrc_get_litedb::document! {
-                    "Path" => format!("{env_projects_str}/HistoryOfAvatarOptimizer"),
+                    "Path" => normalize_path(format!("{env_projects_str}/HistoryOfAvatarOptimizer")),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => DateTime::now(),
                     "LastModified" => DateTime::now(),
@@ -158,7 +158,7 @@ fn test_litedb_file_with_projects(
                     "Favorite" => false,
                 },
                 vrc_get_litedb::document! {
-                    "Path" => format!("{env_projects_str}/VPMPackageAutoInstaller"),
+                    "Path" => normalize_path(format!("{env_projects_str}/VPMPackageAutoInstaller")),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => DateTime::now(),
                     "LastModified" => DateTime::now(),
@@ -166,7 +166,7 @@ fn test_litedb_file_with_projects(
                     "Favorite" => false,
                 },
                 vrc_get_litedb::document! {
-                    "Path" => format!("{env_projects_str}/CrashOnExitWithLogTypeFullName"),
+                    "Path" => normalize_path(format!("{env_projects_str}/CrashOnExitWithLogTypeFullName")),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => DateTime::now(),
                     "LastModified" => DateTime::now(),
@@ -175,7 +175,7 @@ fn test_litedb_file_with_projects(
                 },
                 // Those two projects are exist only on litedb
                 vrc_get_litedb::document! {
-                    "Path" => format!("{env_projects_str}/New Project 32"),
+                    "Path" => normalize_path(format!("{env_projects_str}/New Project 32")),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => DateTime::now(),
                     "LastModified" => DateTime::now(),
@@ -183,7 +183,7 @@ fn test_litedb_file_with_projects(
                     "Favorite" => false,
                 },
                 vrc_get_litedb::document! {
-                    "Path" => format!("{env_projects_str}/New Project 31"),
+                    "Path" => normalize_path(format!("{env_projects_str}/New Project 31")),
                     "UnityVersion" => "2022.3.22f1",
                     "CreatedAt" => DateTime::now(),
                     "LastModified" => DateTime::now(),
