@@ -10,12 +10,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, LayoutGrid, LayoutList, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 import { createProject } from "@/app/_main/projects/-create-project";
+import { MismatchDialogContent } from "@/app/_main/projects/-project-list-mismatch";
 import { ProjectsGridCard } from "@/app/_main/projects/-projects-grid-card";
 import Loading from "@/app/-loading";
 import { HNavBar, HNavBarText, VStack } from "@/components/layout";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -57,6 +59,19 @@ function Page() {
 	});
 
 	const queryClient = useQueryClient();
+
+	const [mismatchDialogOpen, setMismatchDialogOpen] = useState<boolean | null>(
+		null,
+	);
+
+	if (
+		result.fetchStatus === "idle" &&
+		((result.data?.only_in_vcc?.length ?? 0) !== 0 ||
+			(result.data?.only_in_vrc_get?.length ?? 0) !== 0) &&
+		mismatchDialogOpen == null
+	) {
+		setMismatchDialogOpen(true);
+	}
 
 	const setViewModeMutation = useMutation({
 		mutationFn: async (value: string) => {
@@ -103,24 +118,32 @@ function Page() {
 					</Card>
 				) : viewMode === "List" ? (
 					<ProjectsTableCard
-						projects={result.data}
+						projects={result.data.projects}
 						search={search}
 						loading={loading}
 					/>
 				) : viewMode === "Grid" ? (
 					<ProjectsGridCard
-						projects={result.data}
+						projects={result.data.projects}
 						search={search}
 						loading={loading}
 					/>
 				) : (
 					<ProjectsTableCard
-						projects={result.data}
+						projects={result.data.projects}
 						search={search}
 						loading={loading}
 					/>
 				)}
 			</main>
+			<Dialog open={mismatchDialogOpen ?? false}>
+				{result.data && (
+					<MismatchDialogContent
+						data={result.data}
+						setDialogOpen={setMismatchDialogOpen}
+					/>
+				)}
+			</Dialog>
 		</VStack>
 	);
 }
