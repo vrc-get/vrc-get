@@ -10,17 +10,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
 	FilePathRow,
 	ProjectPathWarnings,
+	ProjectSyncModeSelect,
 } from "@/components/common-setting-parts";
 import { CardDescription } from "@/components/ui/card";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { assertNever } from "@/lib/assert-never";
-import { commands, type TauriSyncWithLitedbMode } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import {
@@ -79,30 +73,6 @@ function Body({ environment }: BodyProps) {
 		},
 	});
 
-	const setProjectListSyncMode = useMutation({
-		mutationFn: async (mode: TauriSyncWithLitedbMode) =>
-			await commands.environmentSetProjectListSyncMode(mode),
-		onMutate: async (mode) => {
-			await queryClient.cancelQueries(environmentGetSettings);
-			const current = queryClient.getQueryData(environmentGetSettings.queryKey);
-			if (current != null) {
-				queryClient.setQueryData(environmentGetSettings.queryKey, {
-					...current,
-					project_list_sync_mode: mode,
-				});
-			}
-			return current;
-		},
-		onError: (e, _, prev) => {
-			console.error(e);
-			toastThrownError(e);
-			queryClient.setQueryData(environmentGetSettings.queryKey, prev);
-		},
-		onSettled: async () => {
-			await queryClient.invalidateQueries(environmentGetSettings);
-		},
-	});
-
 	const finishedPages = useQuery({
 		queryKey: ["environmentGetFinishedSetupPages"],
 		queryFn: async () => commands.environmentGetFinishedSetupPages(),
@@ -124,24 +94,9 @@ function Body({ environment }: BodyProps) {
 			<ProjectPathWarnings projectPath={environment.default_project_path} />
 			<NesSettings isNewSettings={existingUser}>
 				<h3>{tc("setup:projects:sync-mode")}</h3>
-				<Select
-					value={environment.project_list_sync_mode}
-					onValueChange={(value) =>
-						setProjectListSyncMode.mutate(value as never)
-					}
-				>
-					<SelectTrigger className={"min-w-0 whitespace-normal"}>
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value={"ProjectsUnion"}>
-							{tc("setup:projects:sync-mode:ProjectsUnion")}
-						</SelectItem>
-						<SelectItem value={"TrustLitedb"}>
-							{tc("setup:projects:sync-mode:TrustLitedb")}
-						</SelectItem>
-					</SelectContent>
-				</Select>
+				<ProjectSyncModeSelect
+					projectListSyncMode={environment.project_list_sync_mode}
+				/>
 				<CardDescription className={"whitespace-normal"}>
 					{tc("setup:projects:sync-mode:ProjectsUnion:description")}
 				</CardDescription>

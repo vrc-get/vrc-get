@@ -404,7 +404,7 @@ export type TauriRepositoryDescriptor = {
 	headers: { [key in string]: string },
 };
 
-export type TauriSyncWithLitedbMode = "ProjectsUnion" | "TrustLitedb";
+export type TauriSyncWithLitedbMode = "ProjectsUnion" | "AskForUser" | "TrustLitedb";
 
 export type TauriUnityProjectStatus = {
 	status: TauriUnityProjectStatusKind,
