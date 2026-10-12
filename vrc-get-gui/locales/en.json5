@@ -214,6 +214,16 @@
     "projects:dialog:removing...": "Removing the project...",
     "projects:toast:project removed": "Project was removed successfully.",
 
+    "projects:dialog:mismatch-found": "The project lists in VCC and ALCOM do not match.",
+    "projects:dialog:mismatch-project-table:path": "Project Path",
+    "projects:dialog:mismatch-project-table:source": "Source",
+    "projects:dialog:mismatch-project-table:keep": "Keep",
+    "projects:dialog:mismatch-project-table:remove": "Remove",
+    "projects:dialog:mismatch-project-table:only in vcc": "Only in VCC",
+    "projects:dialog:mismatch-project-table:only in alcom": "Only in ALCOM",
+    "projects:dialog:apply changes": "Apply Changes",
+    "projects:dialog:check later": "Check Later",
+
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Back to projects",
     "projects:menuitem:change launch options": "Change Launch Options",

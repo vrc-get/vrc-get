@@ -10,6 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { commands, type TauriPartialProject } from "@/lib/bindings";
+import { tc } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const environmentProjects = queryOptions({
@@ -68,9 +69,7 @@ export function MismatchDialogContent({
 
 	return (
 		<DialogContent className={"max-h-[90vh]"}>
-			<DialogTitle>
-				We have found project list mismatch between VCC and ALCOM
-			</DialogTitle>
+			<DialogTitle>{tc("projects:dialog:mismatch-found")}</DialogTitle>
 			<DialogDescription>
 				{data.only_in_vcc.length} projects are in VCC but not in ALCOM and{" "}
 				{data.only_in_vrc_get.length} projects are in ALCOM but not in VCC.
@@ -85,10 +84,12 @@ export function MismatchDialogContent({
 					}
 				>
 					<ProjectRow className={"row-start-1 row-end-2 *:p-1"}>
-						<div className={"col-span-2 flex justify-center"}>Project Path</div>
-						<div>Source</div>
-						<div>Keep</div>
-						<div>Remove</div>
+						<div className={"col-span-2 flex justify-center"}>
+							{tc("projects:dialog:mismatch-project-table:path")}
+						</div>
+						<div>{tc("projects:dialog:mismatch-project-table:source")}</div>
+						<div>{tc("projects:dialog:mismatch-project-table:keep")}</div>
+						<div>{tc("projects:dialog:mismatch-project-table:remove")}</div>
 					</ProjectRow>
 					<ProjectRow className={"row-start-1 row-end-2 invisible"}>
 						<div></div>
@@ -103,7 +104,11 @@ export function MismatchDialogContent({
 							<div className={"col-span-full border-t-2"} />
 							<ProjectToggleRow
 								indent={false}
-								title={<span className="font-bold">Projects only in VCC</span>}
+								title={
+									<span className="font-bold">
+										{tc("projects:dialog:mismatch-project-table:only in vcc")}
+									</span>
+								}
 								source={""}
 								keep={containsVcc}
 								setKeepProject={(keep) => setKeep(data.only_in_vcc, keep)}
@@ -125,7 +130,9 @@ export function MismatchDialogContent({
 							<ProjectToggleRow
 								indent={false}
 								title={
-									<span className="font-bold">Projects only in ALCOM</span>
+									<span className="font-bold">
+										{tc("projects:dialog:mismatch-project-table:only in alcom")}
+									</span>
 								}
 								source={""}
 								keep={containsVrcGet}
@@ -146,10 +153,10 @@ export function MismatchDialogContent({
 			</div>
 			<DialogFooter>
 				<Button size={"sm"} onClick={() => applyChanges.mutate()}>
-					Apply Changes
+					{tc("projects:dialog:apply changes")}
 				</Button>
 				<Button size={"sm"} onClick={() => setDialogOpen(false)}>
-					Check later
+					{tc("projects:dialog:check later")}
 				</Button>
 			</DialogFooter>
 		</DialogContent>
