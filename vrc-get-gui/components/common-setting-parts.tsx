@@ -428,6 +428,9 @@ export function ProjectSyncModeSelect({
 				<SelectItem value={"ProjectsUnion"}>
 					{tc("settings:projects:sync-mode:ProjectsUnion")}
 				</SelectItem>
+				<SelectItem value={"AskForUser"}>
+					{tc("settings:projects:sync-mode:AskForUser")}
+				</SelectItem>
 				<SelectItem value={"TrustLitedb"}>
 					{tc("settings:projects:sync-mode:TrustLitedb")}
 				</SelectItem>

@@ -502,9 +502,10 @@
     "settings:toast:default project path updated": "Updated the default project path successfully!",
 
     "settings:projects:sync-mode": "Project List Sync Mode",
-    "settings:projects:sync-mode:description": "ALCOM and VCC will use different project list. This setting controls how do we sync the project list between ALCOM and VCC.",
-    "settings:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC (For users who primarily use ALCOM)",
-    "settings:projects:sync-mode:TrustLitedb": "Use VCC's project list (For users who primarily use VCC)",
+    "settings:projects:sync-mode:description": "ALCOM and VCC maintain separate project lists. This setting controls how the lists are synchronized.",
+    "settings:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC",
+    "settings:projects:sync-mode:AskForUser": "Ask when a mismatch is detected (Default)",
+    "settings:projects:sync-mode:TrustLitedb": "Use VCC's project list",
 
     "settings:backup:path": "Backup Path",
     "settings:backup:path description": "The backup path is the directory where ALCOM will create backup zips of the projects.",
