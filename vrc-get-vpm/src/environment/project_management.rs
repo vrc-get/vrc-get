@@ -175,29 +175,38 @@ impl<'io> ProjectManagement<'io> {
                     trace!("migrate: keeping no valid id for {project}");
                 }
             } else {
-                async fn get_project_type(
+                async fn get_project_data(
                     io: &DefaultEnvironmentIo,
                     path: &Path,
-                ) -> io::Result<(ProjectType, Option<UnityVersion>, Option<String>)>
-                {
+                ) -> io::Result<(
+                    ProjectType,
+                    Option<UnityVersion>,
+                    Option<String>,
+                    Option<String>,
+                )> {
                     let project =
                         UnityProject::load(DefaultProjectIo::new(io.resolve(path).into())).await?;
                     let detected_type = project.detect_project_type().await;
+                    let detected_display_name = project.detect_display_name().await;
                     Ok((
                         detected_type,
                         Some(project.unity_version()),
                         project.unity_revision().map(|x| x.to_owned()),
+                        detected_display_name,
                     ))
                 }
-                let (project_type, unity_version, unity_revision) = get_project_type(
+                let (project_type, unity_version, unity_revision, display_name) = get_project_data(
                     io,
                     project.as_ref(),
                 )
                 .await
-                .unwrap_or((ProjectType::Unknown, None, None));
+                .unwrap_or((ProjectType::Unknown, None, None, None));
                 let mut project = UserProject::new(project.into(), unity_version, project_type);
                 if unity_version.is_some() {
                     project.unity_revision = unity_revision;
+                }
+                if display_name.is_some() {
+                    project.display_name = display_name;
                 }
 
                 // insert projects to both databases
@@ -285,7 +294,7 @@ impl GetProjectRunner {
         where_query: &str,
     ) -> rusqlite::Statement<'conn> {
         conn
-            .prepare(&format!("SELECT id, path, litedb_objectid, unity_version_with_revision, created_at, last_modified, type, favorite, custom_unity_args, unity_path, is_valid FROM projects {where_query}"))
+            .prepare(&format!("SELECT id, path, litedb_objectid, unity_version_with_revision, created_at, last_modified, type, favorite, custom_unity_args, unity_path, is_valid, display_name FROM projects {where_query}"))
             .expect("Failed to prepare SQL statement")
     }
 
@@ -301,6 +310,7 @@ impl GetProjectRunner {
         let custom_unity_args_col = 8;
         let unity_path_col = 9;
         let is_valid_col = 10;
+        let display_name_col = 11;
 
         let id = row.get(id_col).expect("id");
         let path = row.get(path_col).expect("path");
@@ -357,6 +367,7 @@ impl GetProjectRunner {
         };
         let unity_path = row.get(unity_path_col).expect("unity_path");
         let is_valid = row.get(is_valid_col).expect("is_valid");
+        let display_name = row.get(display_name_col).expect("display_name");
 
         UserProject {
             id,
@@ -371,6 +382,7 @@ impl GetProjectRunner {
             custom_unity_args,
             unity_path,
             is_valid,
+            display_name,
         }
     }
 }
@@ -719,6 +731,27 @@ impl<'io> ProjectManagement<'io> {
                 unity_path.map(|x| serde_json::to_string(x).unwrap()),
                 project_path,
             ))
+            .map_err(Error::SQLite)?;
+        tx.commit().map_err(Error::SQLite)?;
+        // No need to update litedb since this is a vrc-get-only attribute
+        Ok(changed != 0)
+    }
+
+    pub async fn set_display_name(
+        &mut self,
+        project_path: &str,
+        unity_path: Option<&str>,
+    ) -> Result<bool, Error> {
+        check_absolute!(project_path, set_custom_unity_args, Ok(false));
+        let project_path = normalize_path_str(project_path);
+
+        let tx = (self.sqlite.conn.lock_arc())
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(Error::SQLite)?;
+        let changed = tx
+            .prepare("UPDATE projects SET display_name = ? WHERE path = ?")
+            .map_err(Error::SQLite)?
+            .execute((unity_path, project_path))
             .map_err(Error::SQLite)?;
         tx.commit().map_err(Error::SQLite)?;
         // No need to update litedb since this is a vrc-get-only attribute
@@ -1096,6 +1129,7 @@ pub struct ValidRealProjectInformation {
     unity_version: UnityVersion,
     unity_revision: Option<String>,
     project_type: ProjectType,
+    display_name: Option<String>,
 }
 
 impl RealProjectInformation {
@@ -1134,12 +1168,14 @@ impl ValidRealProjectInformation {
         let unity_version = loaded_project.unity_version();
         let unity_revision = loaded_project.unity_revision().map(ToOwned::to_owned);
         let project_type = loaded_project.detect_project_type().await;
+        let display_name = loaded_project.detect_display_name().await;
 
         Ok(Some(ValidRealProjectInformation {
             path,
             unity_version,
             unity_revision,
             project_type,
+            display_name,
         }))
     }
 
@@ -1158,6 +1194,10 @@ impl ValidRealProjectInformation {
     pub fn project_type(&self) -> ProjectType {
         self.project_type
     }
+
+    pub fn display_name(&self) -> Option<&str> {
+        self.display_name.as_deref()
+    }
 }
 
 pub struct UserProject {
@@ -1173,6 +1213,7 @@ pub struct UserProject {
     custom_unity_args: Option<Vec<String>>,
     unity_path: Option<String>,
     is_valid: bool,
+    display_name: Option<String>,
 }
 
 impl UserProject {
@@ -1218,6 +1259,7 @@ impl UserProject {
             custom_unity_args: None,
             unity_path: None,
             is_valid: true,
+            display_name: None,
         }
     }
 
@@ -1254,6 +1296,10 @@ impl UserProject {
 
     pub fn project_type(&self) -> ProjectType {
         self.project_type
+    }
+
+    pub fn display_name(&self) -> Option<&str> {
+        self.display_name.as_deref()
     }
 
     pub fn favorite(&self) -> bool {

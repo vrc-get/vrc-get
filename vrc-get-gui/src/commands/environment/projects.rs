@@ -37,6 +37,7 @@ pub struct TauriProject {
     unity_revision: Option<String>,
     last_modified: i64,
     created_at: i64,
+    display_name: Option<String>,
     favorite: bool,
     is_exists: bool,
     is_valid: bool,
@@ -50,6 +51,7 @@ pub struct TauriUpdatedRealProjectInfo {
     project_type: TauriProjectType,
     unity: String,
     unity_revision: Option<String>,
+    display_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -99,6 +101,7 @@ impl TauriProject {
             unity_revision: project.unity_revision().map(|x| x.to_string()),
             last_modified: project.last_modified().as_unix_milliseconds(),
             created_at: project.crated_at().as_unix_milliseconds(),
+            display_name: project.display_name().map(|x| x.to_string()),
             favorite: project.favorite(),
             is_exists,
             is_valid: project.is_valid_project(),
@@ -114,6 +117,7 @@ impl TauriUpdatedRealProjectInfo {
             project_type: project.project_type().into(),
             unity: project.unity_version().to_string(),
             unity_revision: project.unity_revision().map(Into::into),
+            display_name: project.display_name().map(Into::into),
         }
     }
 
@@ -124,6 +128,7 @@ impl TauriUpdatedRealProjectInfo {
             project_type: TauriProjectType::Unknown,
             unity: String::new(),
             unity_revision: None,
+            display_name: None,
         }
     }
 }
