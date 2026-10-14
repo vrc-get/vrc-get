@@ -191,7 +191,7 @@ export type RustError = ({ type: "Unrecoverable"; message: string }) & { body?: 
 	type: "Localizable",
 } & LocalizableRustError | { type: "Handleable"; message: string; body: HandleableRustError };
 
-export type SetupPages = "Appearance" | "UnityHub" | "Projects" | "Backups" | "SystemSetting" | "ProjectPath";
+export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting";
 
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful";
 

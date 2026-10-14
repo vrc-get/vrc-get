@@ -1,46 +1,31 @@
 "use client";
 
-import {
-	queryOptions,
-	useMutation,
-	useQuery,
-	useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
 	FilePathRow,
 	ProjectPathWarnings,
-	ProjectSyncModeSelect,
 } from "@/components/common-setting-parts";
 import { CardDescription } from "@/components/ui/card";
 import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import {
-	type BodyProps,
-	NesSettings,
-	SetupPageBase,
-} from "../-setup-page-base";
+import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 
-export const Route = createFileRoute("/_setup/setup/projects/")({
+export const Route = createFileRoute("/_setup/setup/project-path/")({
 	component: Page,
 });
 
 function Page() {
 	return (
 		<SetupPageBase
-			heading={tc("setup:projects:heading")}
+			heading={tc("setup:project-path:heading")}
 			Body={Body}
-			pageId={"Projects"}
+			pageId={"ProjectPath"}
 		/>
 	);
 }
-
-const environmentGetSettings = queryOptions({
-	queryKey: ["environmentGetSettings"],
-	queryFn: commands.environmentGetSettings,
-});
 
 function Body({ environment }: BodyProps) {
 	const queryClient = useQueryClient();
@@ -68,23 +53,15 @@ function Body({ environment }: BodyProps) {
 		},
 		onSettled: async () => {
 			await queryClient.invalidateQueries({
-				queryKey: environmentGetSettings.queryKey,
+				queryKey: ["environmentGetSettings"],
 			});
 		},
 	});
 
-	const finishedPages = useQuery({
-		queryKey: ["environmentGetFinishedSetupPages"],
-		queryFn: async () => commands.environmentGetFinishedSetupPages(),
-		initialData: [],
-	}).data;
-	const existingUser = finishedPages.includes("ProjectPath");
-
 	return (
 		<>
-			<h3>{tc("setup:projects:projects-path")}</h3>
 			<CardDescription className={"whitespace-normal"}>
-				{tc("setup:projects:projects-path description")}
+				{tc("setup:project-path:description")}
 			</CardDescription>
 			<FilePathRow
 				path={environment.default_project_path}
@@ -92,18 +69,6 @@ function Body({ environment }: BodyProps) {
 				withOpen={false}
 			/>
 			<ProjectPathWarnings projectPath={environment.default_project_path} />
-			<NesSettings isNewSettings={existingUser}>
-				<h3>{tc("setup:projects:sync-mode")}</h3>
-				<ProjectSyncModeSelect
-					projectListSyncMode={environment.project_list_sync_mode}
-				/>
-				<CardDescription className={"whitespace-normal"}>
-					{tc("setup:projects:sync-mode:ProjectsUnion:description")}
-				</CardDescription>
-				<CardDescription className={"whitespace-normal"}>
-					{tc("setup:projects:sync-mode:TrustLitedb:description")}
-				</CardDescription>
-			</NesSettings>
 		</>
 	);
 }
