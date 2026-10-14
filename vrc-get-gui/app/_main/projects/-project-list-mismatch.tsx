@@ -115,7 +115,7 @@ export function MismatchDialogContent({
 							/>
 						</>
 					)}
-					{data.only_in_vcc.map((proj, i) => (
+					{data.only_in_vcc.map((proj) => (
 						<ProjectToggleRow
 							key={proj.path}
 							title={proj.path}
