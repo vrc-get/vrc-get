@@ -69,6 +69,7 @@ pub struct TauriEnvironmentSettings {
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, specta::Type)]
 pub enum TauriSyncWithLitedbMode {
     ProjectsUnion,
+    AskForUser,
     TrustLitedb,
 }
 
@@ -76,6 +77,7 @@ impl From<SyncWithLitedbMode> for TauriSyncWithLitedbMode {
     fn from(mode: SyncWithLitedbMode) -> Self {
         match mode {
             SyncWithLitedbMode::ProjectsUnion => TauriSyncWithLitedbMode::ProjectsUnion,
+            SyncWithLitedbMode::AskForUser => TauriSyncWithLitedbMode::AskForUser,
             SyncWithLitedbMode::TrustLitedb => TauriSyncWithLitedbMode::TrustLitedb,
         }
     }
@@ -85,6 +87,7 @@ impl From<TauriSyncWithLitedbMode> for SyncWithLitedbMode {
     fn from(mode: TauriSyncWithLitedbMode) -> Self {
         match mode {
             TauriSyncWithLitedbMode::ProjectsUnion => SyncWithLitedbMode::ProjectsUnion,
+            TauriSyncWithLitedbMode::AskForUser => SyncWithLitedbMode::AskForUser,
             TauriSyncWithLitedbMode::TrustLitedb => SyncWithLitedbMode::TrustLitedb,
         }
     }

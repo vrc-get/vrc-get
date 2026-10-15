@@ -65,11 +65,9 @@ pub async fn environment_set_project_sorting(
 pub enum SetupPages {
     Appearance,
     UnityHub,
-    Projects,
+    ProjectPath,
     Backups,
     SystemSetting,
-    // legacy
-    ProjectPath,
 }
 
 impl SetupPages {
@@ -77,11 +75,9 @@ impl SetupPages {
         match self {
             SetupPages::Appearance => 0x00000001,
             SetupPages::UnityHub => 0x00000002,
-            SetupPages::Projects => 0x00000020,
+            SetupPages::ProjectPath => 0x00000004,
             SetupPages::Backups => 0x00000008,
             SetupPages::SystemSetting => 0x00000010,
-            // legacy
-            SetupPages::ProjectPath => 0x00000004,
         }
     }
 
@@ -95,14 +91,14 @@ impl SetupPages {
             &[
                 SetupPages::Appearance,
                 SetupPages::UnityHub,
-                SetupPages::Projects,
+                SetupPages::ProjectPath,
                 SetupPages::Backups,
             ]
         } else {
             &[
                 SetupPages::Appearance,
                 SetupPages::UnityHub,
-                SetupPages::Projects,
+                SetupPages::ProjectPath,
                 SetupPages::Backups,
                 SetupPages::SystemSetting,
             ]
@@ -113,11 +109,9 @@ impl SetupPages {
         &[
             SetupPages::Appearance,
             SetupPages::UnityHub,
-            SetupPages::Projects,
+            SetupPages::ProjectPath,
             SetupPages::Backups,
             SetupPages::SystemSetting,
-            // legacy
-            SetupPages::ProjectPath,
         ]
     }
 
@@ -125,11 +119,9 @@ impl SetupPages {
         match self {
             SetupPages::Appearance => "/setup/appearance/",
             SetupPages::UnityHub => "/setup/unity-hub/",
-            SetupPages::Projects => "/setup/projects/",
+            SetupPages::ProjectPath => "/setup/project-path/",
             SetupPages::Backups => "/setup/backups/",
             SetupPages::SystemSetting => "/setup/system-setting/",
-            // legacy
-            SetupPages::ProjectPath => panic!("Removed Project Page"),
         }
     }
 }

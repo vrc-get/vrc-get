@@ -21,8 +21,8 @@ use tauri_plugin_dialog::DialogExt;
 use tokio::sync::Semaphore;
 use vrc_get_vpm::ProjectType;
 use vrc_get_vpm::environment::{
-    InvalidRealProjectInformation, PackageInstaller, ProjectManagement, RealProjectInformation,
-    UserProject, ValidRealProjectInformation, VccDatabaseConnection,
+    InvalidRealProjectInformation, PackageInstaller, ProjectListMismatch, ProjectManagement,
+    RealProjectInformation, UserProject, ValidRealProjectInformation, VccDatabaseConnection,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::UnityVersion;
@@ -220,26 +220,91 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
     }
 }
 
+#[derive(Serialize, specta::Type)]
+pub struct TauriProjects {
+    projects: Vec<TauriProject>,
+    only_in_vcc: Vec<TauriPartialProject>,
+    only_in_vrc_get: Vec<TauriPartialProject>,
+}
+
+#[derive(Serialize, specta::Type)]
+pub struct TauriPartialProject {
+    path: String,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_projects(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
     app: AppHandle,
-) -> Result<Vec<TauriProject>, RustError> {
+) -> Result<TauriProjects, RustError> {
     let settings_mut = settings.extern_mutation().await;
-    let projects = ProjectManagement::start(io.inner()).await?;
+    let management = ProjectManagement::start(io.inner()).await?;
     settings_mut.finish();
 
     info!("fetching projects");
 
-    let projects = projects.get_projects();
+    let projects = management.get_projects();
 
     sync_with_real_project_background(&projects, &app);
 
-    let vec = projects.iter().map(TauriProject::new).collect::<Vec<_>>();
+    let projects = projects.iter().map(TauriProject::new).collect::<Vec<_>>();
+    let mut only_in_vcc = vec![];
+    let mut only_in_vrc_get = vec![];
 
-    Ok(vec)
+    for mismatch in management.find_project_list_mismatch().await? {
+        match mismatch {
+            ProjectListMismatch::OnlyInVcc { path } => {
+                only_in_vcc.push(TauriPartialProject { path });
+            }
+            ProjectListMismatch::OnlyInVrcGet { path } => {
+                only_in_vrc_get.push(TauriPartialProject { path });
+            }
+        }
+    }
+
+    Ok(TauriProjects {
+        projects,
+        only_in_vcc,
+        only_in_vrc_get,
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_fix_project_list_mismatch(
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    paths_to_restore_projects_from_litedb: Vec<String>,
+    paths_to_restore_projects_from_sqlite: Vec<String>,
+    paths_to_remove_projects_from_litedb: Vec<String>,
+    paths_to_remove_projects_from_sqlite: Vec<String>,
+) -> Result<(), RustError> {
+    let settings_mut = settings.extern_mutation().await;
+    let mut management = ProjectManagement::start(io.inner()).await?;
+    management
+        .fix_project_list_mismatch(
+            &paths_to_restore_projects_from_litedb
+                .iter()
+                .map(|x| x.as_str())
+                .collect::<Vec<_>>(),
+            &paths_to_restore_projects_from_sqlite
+                .iter()
+                .map(|x| x.as_str())
+                .collect::<Vec<_>>(),
+            &paths_to_remove_projects_from_litedb
+                .iter()
+                .map(|x| x.as_str())
+                .collect::<Vec<_>>(),
+            &paths_to_remove_projects_from_sqlite
+                .iter()
+                .map(|x| x.as_str())
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+    settings_mut.finish();
+    Ok(())
 }
 
 #[derive(Serialize, specta::Type)]

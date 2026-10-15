@@ -77,15 +77,9 @@
     "setup:unity-hub:detection failed description": "Please click the above \"Recheck Installation\" button to re-detect Unity Hub installation. If this doesn't work, ALCOM fails to detect your Unity Hub installation. Please set Unity Hub Manually below.",
     "setup:unity-hub:not found": "Unity Hub was not found.",
 
-    "setup:steps card:Projects": "Projects",
-    "setup:projects:heading": "Projects",
-    "setup:projects:projects-path": "Save Location",
-    "setup:projects:projects-path description": "When you create project with ALCOM, the project will be saved in this location.",
-    "setup:projects:sync-mode": "Project List",
-    "setup:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC (For users who primarily use ALCOM)",
-    "setup:projects:sync-mode:TrustLitedb": "Use VCC's project list (For users who primarily use VCC)",
-    "setup:projects:sync-mode:ProjectsUnion:description": "`Preserve projects removed in VCC`: ALCOM keeps projects removed in VCC.<br>While VCC automatically removes projects that cannot be accessed, such as those on unavailable external or network drives, ALCOM keeps them.",
-    "setup:projects:sync-mode:TrustLitedb:description": "`Use VCC's project list`: ALCOM uses VCC's project list as a reliable source.<br>When VCC automatically removes projects that cannot be accessed, such as those on unavailable external or network drives, ALCOM will also lose them.",
+    "setup:steps card:ProjectPath": "Save Location",
+    "setup:project-path:heading": "Project Save Location",
+    "setup:project-path:description": "When you create project with ALCOM, the project will be saved in this location.",
 
     "setup:steps card:Backups": "Backup Settings",
     "setup:backups:heading": "Project Backup Settings",
@@ -213,6 +207,17 @@
     "projects:button:remove directory": "Remove the Directory",
     "projects:dialog:removing...": "Removing the project...",
     "projects:toast:project removed": "Project was removed successfully.",
+
+    "projects:dialog:mismatch-found": "The project lists in VCC and ALCOM do not match.",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}} projects are in VCC but not in ALCOM, and {{only_in_vrc_get}} projects are in ALCOM but not in VCC.<br/>Select which projects to keep or remove.",
+    "projects:dialog:mismatch-project-table:path": "Project Path",
+    "projects:dialog:mismatch-project-table:source": "Source",
+    "projects:dialog:mismatch-project-table:keep": "Keep",
+    "projects:dialog:mismatch-project-table:remove": "Remove",
+    "projects:dialog:mismatch-project-table:only in vcc": "Only in VCC",
+    "projects:dialog:mismatch-project-table:only in alcom": "Only in ALCOM",
+    "projects:dialog:apply changes": "Apply Changes",
+    "projects:dialog:check later": "Check Later",
 
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Back to projects",
@@ -486,9 +491,19 @@
     "settings:default unity arguments description": "Those command-line arguments will be used when opening Unity from ALCOM.",
     "settings:dialog:default launch arguments": "Default Unity Command-line Arguments",
 
+    "settings:project management": "Project Management",
+
     "settings:default project path": "Default Project Path",
     "settings:default project path description": "The default project path is the directory where new projects are created.",
     "settings:toast:default project path updated": "Updated the default project path successfully!",
+
+    "settings:projects:sync-mode": "Project List Sync Mode",
+    "settings:projects:sync-mode:description": "ALCOM and VCC maintain separate project lists. This setting controls how the lists are synchronized.",
+    "settings:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC",
+    "settings:projects:sync-mode:AskForUser": "Ask when a mismatch is detected (Default)",
+    "settings:projects:sync-mode:TrustLitedb": "Use VCC's project list",
+    "settings:projects:sync-mode:warning:TrustLitedb": "When VCC automatically removes projects that cannot be accessed, such as those on unavailable external or network drives, ALCOM will also lose them.",
+    "settings:projects:sync-mode:warning:ProjectsUnion": "Unlike VCC, which automatically removes projects that cannot be accessed, such as those on unavailable external or network drives, ALCOM keeps them.<br>However, projects manually removed in VCC will be restored.",
 
     "settings:backup:path": "Backup Path",
     "settings:backup:path description": "The backup path is the directory where ALCOM will create backup zips of the projects.",
