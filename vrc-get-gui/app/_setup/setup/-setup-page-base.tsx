@@ -156,12 +156,9 @@ function StepElement({
 	const active = current === pageId;
 	return (
 		<li
-			className={`${active ? "text-foreground" : finished ? "text-success" : "text-foreground/50"} flex gap-1`}
+			className={`${finished ? "text-success" : active ? "text-foreground" : "text-foreground/50"} flex gap-1`}
 		>
-			<Link
-				to={link}
-				className={`${!active && finished ? "" : "cursor-not-allowed"} flex gap-1`}
-			>
+			<Link to={link} disabled={!active && !finished} className={`flex gap-1`}>
 				{finished ? (
 					<CircleCheck />
 				) : active ? (
