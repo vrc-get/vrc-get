@@ -22,8 +22,6 @@ function Page() {
 		<SetupPageBase
 			heading={tc("setup:project-path:heading")}
 			Body={Body}
-			nextPage={"/setup/backups"}
-			prevPage={"/setup/unity-hub"}
 			pageId={"ProjectPath"}
 		/>
 	);

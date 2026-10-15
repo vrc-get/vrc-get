@@ -20,8 +20,6 @@ function Page() {
 		<SetupPageBase
 			heading={tc("setup:entry:welcome")}
 			Body={Body}
-			nextPage={"/setup/unity-hub"}
-			prevPage={null}
 			pageId={"Appearance"}
 			withoutSteps
 		/>
