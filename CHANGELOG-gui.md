@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- `vcc:` Deep Linking not working on macOS (backports `#3211`)
 
 ### Security
 
