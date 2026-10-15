@@ -63,6 +63,7 @@
     "setup:back": "Zurück",
 
     "setup:steps card:Appearance": "Darstellung",
+    "setup:appearance:heading": "Darstellung",
     "setup:appearance:description": "Bitte stelle zuerst die Darstellung ein.<br/>Du kannst dies später in den Einstellungen ändern.",
 
     "setup:steps card:UnityHub": "Unity Hub",

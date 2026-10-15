@@ -57,6 +57,7 @@
     "setup:back": "返回",
 
     "setup:steps card:Appearance": "外观",
+    "setup:appearance:heading": "外观",
     "setup:appearance:description": "设置您的外观偏好。<br/>稍后您可以在设置界面更改这些设置。",
 
     "setup:steps card:UnityHub": "Unity Hub",

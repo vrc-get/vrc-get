@@ -63,6 +63,7 @@
     "setup:back": "뒤로",
 
     "setup:steps card:Appearance": "UI 설정",
+    "setup:appearance:heading": "UI 설정",
     "setup:appearance:description": "시작하기 전에 UI 설정을 완료해 주세요.<br>여기서 설정한 내용은 이후 설정 페이지에서 언제든 변경할 수 있습니다.",
 
     "setup:steps card:UnityHub": "Unity Hub 설정",
