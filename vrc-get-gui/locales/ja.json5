@@ -57,6 +57,7 @@
     "setup:back": "戻る",
 
     "setup:steps card:Appearance": "UI設定",
+    "setup:appearance:heading": "UI設定",
     "setup:appearance:description": "はじめに、UIの設定を行いましょう。<br>ここで行う初期設定の内容は後からでも変えることができます。",
 
     "setup:steps card:UnityHub": "Unity Hubの設定",

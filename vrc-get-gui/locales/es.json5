@@ -63,6 +63,7 @@
     "setup:back": "Atrás",
 
     "setup:steps card:Appearance": "Apariencia",
+    "setup:appearance:heading": "Apariencia",
     "setup:appearance:description": "Por favor, configura tus preferencias de apariencia.<br/>Puedes cambiar todo lo configurado aquí más adelante en la página de ajustes.",
 
     "setup:steps card:UnityHub": "Unity Hub",
