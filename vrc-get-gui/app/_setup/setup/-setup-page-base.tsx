@@ -159,10 +159,10 @@ function StepElement({
 			className={`${finished ? "text-success" : active ? "text-foreground" : "text-foreground/50"} flex gap-1`}
 		>
 			<Link to={link} disabled={!active && !finished} className={`flex gap-1`}>
-				{finished ? (
-					<CircleCheck />
-				) : active ? (
+				{active ? (
 					<CircleChevronRight />
+				) : finished ? (
+					<CircleCheck />
 				) : (
 					<Circle />
 				)}
