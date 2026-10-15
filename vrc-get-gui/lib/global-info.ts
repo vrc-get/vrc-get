@@ -22,6 +22,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	vpmHomeFolder: "",
 	checkForUpdates: false,
 	shouldInstallDeepLink: false,
+	setupPages: [],
 };
 
 const globalInfo: Readonly<GlobalInfo> = load();

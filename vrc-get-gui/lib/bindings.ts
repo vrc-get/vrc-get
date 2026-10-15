@@ -149,10 +149,11 @@ export type GlobalInfo = {
 	defaultUnityArguments: string[],
 	vpmHomeFolder: string,
 	checkForUpdates: boolean,
+	setupPages: ([SetupPages, string])[],
 	shouldInstallDeepLink: boolean,
 };
 
-// Errors that is expected to be handled on the GUI side
+/**  Errors that is expected to be handled on the GUI side */
 export type HandleableRustError = { type: "MissingDependencies"; dependencies: ([string, string])[] };
 
 export type InstallUpgradeProgress = { type: "DownloadProgress"; received: number; total: number | null } | { type: "DownloadComplete" };
@@ -184,7 +185,9 @@ export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace";
 
 export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists";
 
-export type RustError = { type: "Unrecoverable"; message: string } | { type: "Localizable" } & (LocalizableRustError) | { type: "Handleable"; message: string; body: HandleableRustError };
+export type RustError = ({ type: "Unrecoverable"; message: string }) & { body?: never } | {
+	type: "Localizable",
+} & LocalizableRustError | { type: "Handleable"; message: string; body: HandleableRustError };
 
 export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting";
 
@@ -296,7 +299,7 @@ export type TauriImportTemplateResult_Serialize = {
 
 export type TauriPackage = {
 	source: TauriPackageSource,
-} & (TauriBasePackageInfo);
+} & TauriBasePackageInfo;
 
 export type TauriPackageChange = ({ InstallNew: TauriBasePackageInfo }) & { Remove?: never } | ({ Remove: TauriRemoveReason }) & { InstallNew?: never };
 
@@ -437,9 +440,9 @@ export type TauriVersion = {
 };
 
 export type UnityHubAccessMethod = 
-// Reads config files of Unity Hub
+/**  Reads config files of Unity Hub */
 "ReadConfig" | 
-// Launches headless Unity Hub in background
+/**  Launches headless Unity Hub in background */
 "CallHub";
 
 export type UpdaterStatus = 
@@ -472,3 +475,4 @@ export type UpdaterStatus =
  *  `VRC_GET_GUI_UPDATER_UPDATE_SUGGESTION_MESSAGE` environment variable at build time.
  */
 "UpdaterDisabled";
+

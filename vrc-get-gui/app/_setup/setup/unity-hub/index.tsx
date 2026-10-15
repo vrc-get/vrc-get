@@ -28,8 +28,6 @@ function Page() {
 			Body={Body}
 			// user should set unity hub path so we re-update unity paths
 			onFinish={() => commands.environmentUpdateUnityPathsFromUnityHub()}
-			nextPage={"/setup/project-path"}
-			prevPage={"/setup/appearance"}
 			pageId={"UnityHub"}
 		/>
 	);
