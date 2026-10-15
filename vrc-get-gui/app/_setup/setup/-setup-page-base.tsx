@@ -3,7 +3,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Circle, CircleCheck, CircleChevronRight } from "lucide-react";
 import type React from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+	Card,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+} from "@/components/ui/card";
 import type { SetupPages, TauriEnvironmentSettings } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
@@ -20,7 +25,6 @@ export function SetupPageBase({
 	backContent = tc("setup:back"),
 	nextContent = tc("setup:next"),
 	pageId,
-	withoutSteps = false,
 }: {
 	heading: React.ReactNode;
 	Body: React.ComponentType<BodyProps>;
@@ -28,7 +32,6 @@ export function SetupPageBase({
 	backContent?: React.ReactNode;
 	nextContent?: React.ReactNode;
 	pageId: SetupPages | null;
-	withoutSteps?: boolean;
 }) {
 	const navigate = useNavigate();
 
@@ -64,18 +67,32 @@ export function SetupPageBase({
 		onFinish?.();
 	};
 
+	const isInitialView = finishedPages.length === 0;
+
 	return (
 		<div className={"w-full flex items-center justify-center"}>
 			<div className={"flex gap-4"}>
-				{!withoutSteps && <StepCard current={pageId} />}
+				{!isInitialView && <StepCard current={pageId} />}
 				<Card
-					className={`${withoutSteps ? "w-[30rem]" : "w-96"} min-w-[50vw] min-h-[max(50dvh,20rem)] p-4 flex gap-3 compact:min-h-[max(40dvh,20rem)]`}
+					className={`${isInitialView ? "w-120" : "w-96"} min-w-[50vw] min-h-[max(50dvh,20rem)] p-4 flex gap-3 compact:min-h-[max(40dvh,20rem)]`}
 				>
 					<div className={"flex flex-col grow gap-3 compact:gap-2"}>
 						<CardHeader>
-							<h1 className={"text-center"}>{heading}</h1>
+							<h1 className={"text-center"}>
+								{isInitialView ? tc("setup:entry:welcome") : heading}
+							</h1>
 						</CardHeader>
 						<div className={"pb-4"} />
+						{isInitialView && (
+							<>
+								<CardDescription
+									className={"whitespace-normal text-lg text-center"}
+								>
+									{tc("setup:entry:welcome description")}
+								</CardDescription>
+								<div className={"pb-3"} />
+							</>
+						)}
 						{!result.data ? (
 							<p>{tc("setup:loading")}</p>
 						) : (
