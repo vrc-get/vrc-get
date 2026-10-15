@@ -64,6 +64,7 @@
     "setup:new-setting-is-added": "New Setting is added!",
 
     "setup:steps card:Appearance": "Appearance",
+    "setup:appearance:heading": "Appearance",
     "setup:appearance:description": "Please set up your appearance preferences at the beginning.<br/>You can change everything configured here later on settings page.",
 
     "setup:steps card:UnityHub": "Unity Hub",

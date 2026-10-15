@@ -63,6 +63,7 @@
     "setup:back": "Atrás",
 
     "setup:steps card:Appearance": "Apariencia",
+    "setup:appearance:heading": "Apariencia",
     "setup:appearance:description": "Por favor, configura tus preferencias de apariencia.<br/>Puedes cambiar todo lo configurado aquí más adelante en la página de ajustes.",
 
     "setup:steps card:UnityHub": "Unity Hub",
@@ -126,6 +127,9 @@
     "projects:type:avatars": "Avatares",
     "projects:type:legacy": "Antiguo",
     "projects:button:open unity": "Abrir Unity",
+    "projects:button:opening unity": "Abriendo...",
+    "projects:button:bring unity to front": "Mover al frente",
+    "projects:button:unity is open": "Ya está ejecutandose",
     "projects:button:manage": "Gestionar",
     "projects:backup": "Copia de seguridad",
     "projects:menuitem:open directory": "Abrir directorio del proyecto",
@@ -156,6 +160,9 @@
     "projects:toast:project created": "El proyecto se creó con éxito.",
 
     "projects:toast:opening unity...": "Abriendo Unity...",
+    "projects:toast:bring unity to front failed": "ALCOM no pudo mover la ventana de Unity al frente.",
+    "projects:toast:unity window not found": "No se encontró la ventana del proyecto.",
+    "projects:toast:bring unity to front unsupported": "No es posible mover la ventana de Unity al frente en tu plataforma.",
     "projects:dialog:unity not found": "No se encontró Unity.",
     "projects:dialog:unity version of the project not found": "El proyecto está usando Unity {{unity}} pero no se encontró.<br>Por favor, instale Unity {{unity}} con Unity Hub y reinicie ALCOM.",
     "projects:dialog:open unity hub": "Abrir Unity Hub",
