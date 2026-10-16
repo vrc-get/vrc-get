@@ -61,7 +61,7 @@
     "setup:entry:welcome description": "ALCOM is an Open-Source Creator Companion for VRChat and other Unity Projects.",
     "setup:next": "Next",
     "setup:back": "Back",
-    "setup:new-setting-is-added": "New Setting is added!",
+//    "setup:new-setting-is-added": "New Setting is added!", // unused
 
     "setup:steps card:Appearance": "Appearance",
     "setup:appearance:heading": "Appearance",
