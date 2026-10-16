@@ -1,27 +1,30 @@
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import { Check } from "lucide-react";
+import { CheckIcon } from "lucide-react";
+import { Checkbox as CheckboxPrimitive } from "radix-ui";
 import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Checkbox = ({
+function Checkbox({
 	className,
 	...props
-}: React.ComponentProps<typeof CheckboxPrimitive.Root>) => (
-	<CheckboxPrimitive.Root
-		className={cn(
-			"peer h-5 w-5 shrink-0 rounded border border-primary ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-			className,
-		)}
-		{...props}
-	>
-		<CheckboxPrimitive.Indicator
-			className={cn("flex items-center justify-center text-current")}
+}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
+	return (
+		<CheckboxPrimitive.Root
+			data-slot="checkbox"
+			className={cn(
+				"peer size-4 shrink-0 rounded-[4px] border border-primary shadow-xs transition-shadow outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:data-[state=checked]:bg-primary",
+				className,
+			)}
+			{...props}
 		>
-			<Check className="h-4 w-4" />
-		</CheckboxPrimitive.Indicator>
-	</CheckboxPrimitive.Root>
-);
-Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+			<CheckboxPrimitive.Indicator
+				data-slot="checkbox-indicator"
+				className="grid place-content-center text-current transition-none"
+			>
+				<CheckIcon className="size-3.5" />
+			</CheckboxPrimitive.Indicator>
+		</CheckboxPrimitive.Root>
+	);
+}
 
 export { Checkbox };
