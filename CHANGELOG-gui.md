@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog].
 - Project launch buttons now show when Unity is opening or running and can bring open Unity Editor windows to the foreground on Windows and macOS. [`#3109`](https://github.com/vrc-get/vrc-get/pull/3109)
 
 ### Changed
+- Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
 
 ### Deprecated
 
