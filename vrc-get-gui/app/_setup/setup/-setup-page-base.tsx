@@ -172,7 +172,7 @@ function StepElement({
 	);
 }
 
-export function NesSettings({
+export function NewSettings({
 	isNewSettings,
 	children,
 }: {
