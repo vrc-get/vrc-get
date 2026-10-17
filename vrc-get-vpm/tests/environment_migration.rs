@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 //! This module tests the settings.json => vcc.litedb migration behavior.
 //! We test migrating fron settings.json => vcc.litedb,
 //! The current case and both 1st and 2nd behavior described below will be tested
