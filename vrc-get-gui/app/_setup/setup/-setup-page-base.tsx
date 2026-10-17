@@ -171,3 +171,29 @@ function StepElement({
 		</li>
 	);
 }
+
+export function NewSettings({
+	isNewSettings,
+	children,
+}: {
+	isNewSettings: boolean;
+	children?: React.ReactNode;
+}) {
+	return (
+		<div
+			className={`flex flex-col grow gap-3 compact:gap-2 ${isNewSettings ? "outline-2 outline-offset-[6px] rounded-sm outline-warning relative" : ""}`}
+		>
+			{isNewSettings && (
+				<div
+					className={
+						"absolute top-[30%] right-[calc(100%+2em)] transform-[translateY(-50%)] bg-background outline-warning outline-2 text-warning-foreground px-3 py-2 rounded-md " +
+						"before:content-[''] before:absolute before:left-full before:top-1/2 before:transform-[translateY(-50%)] before:border-t-[6px] before:border-b-[6px] before:border-l-[--spacing(6)] before:border-transparent before:border-l-warning"
+					}
+				>
+					{tc("setup:new-setting-is-added")}
+				</div>
+			)}
+			{children}
+		</div>
+	);
+}

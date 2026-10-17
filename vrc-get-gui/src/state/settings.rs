@@ -94,6 +94,12 @@ impl SettingsState {
 
         Ok(SettingMutRef::new(loaded, &self.inner, io, guard))
     }
+
+    pub async fn extern_mutation(&self) -> ExternMutationScope<'_> {
+        let guard = self.load_lock.lock().await;
+        self.inner.store(None);
+        ExternMutationScope { guard }
+    }
 }
 
 pub struct SettingsRef<'a> {
@@ -187,6 +193,17 @@ impl DerefMut for SettingMutRef<'_> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut Settings {
         &mut self.owned.settings
+    }
+}
+
+pub struct ExternMutationScope<'s> {
+    guard: MutexGuard<'s, ()>,
+}
+
+impl ExternMutationScope<'_> {
+    pub fn finish(self) {
+        // We have cleared cache in extern_mutation so nothing to do here
+        drop(self.guard);
     }
 }
 

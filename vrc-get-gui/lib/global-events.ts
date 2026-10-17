@@ -16,18 +16,18 @@ void tauriListen<TauriUpdatedRealProjectInfo>("projects-updated", (e) => {
 	});
 	queryClient.setQueryData(options.queryKey, (old) => {
 		if (old === undefined) return undefined;
-		const index = old.findIndex((p) => p.path === e.payload.path);
+		const index = old.projects.findIndex((p) => p.path === e.payload.path);
 		if (index === -1) return old;
-		const project = { ...old[index] };
+		const project = { ...old.projects[index] };
 		project.is_valid = e.payload.is_valid;
 		if (e.payload.is_valid) {
 			project.unity = e.payload.unity;
 			project.project_type = e.payload.project_type;
 			project.unity_revision = e.payload.unity_revision;
 		}
-		const newList = [...old];
+		const newList = [...old.projects];
 		newList[index] = project;
-		return newList;
+		return { ...old, projects: newList };
 	});
 });
 
