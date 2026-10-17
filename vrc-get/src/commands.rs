@@ -7,7 +7,7 @@ use log::warn;
 use reqwest::Url;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::error::Error as StdError;
 use std::ffi::OsStr;
@@ -1419,6 +1419,11 @@ impl RepoImport {
 #[derive(Parser)]
 #[command(author, version)]
 pub struct RepoExport {
+    /// Export only the repositories required to resolve the given project's locked
+    /// packages. If no path is given, the project is searched from the current directory.
+    #[arg(short = 'p', long = "project", num_args = 0..=1)]
+    project: Option<Option<Box<Path>>>,
+
     #[command(flatten)]
     env_args: EnvArgs,
 }
@@ -1426,8 +1431,75 @@ pub struct RepoExport {
 impl RepoExport {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
+
+        let Some(project) = self.project else {
+            let settings = Settings::load(&io).await.exit_context("loading settings");
+            print!("{}", settings.export_repositories());
+            return;
+        };
+
+        let client = crate::create_client(self.env_args.offline);
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
         let settings = Settings::load(&io).await.exit_context("loading settings");
-        print!("{}", settings.export_repositories());
+        let unity = load_unity(project).await;
+
+        let user_repo_urls = settings
+            .get_user_repos()
+            .iter()
+            .filter_map(|setting| setting.url())
+            .collect::<HashSet<_>>();
+
+        let mut required = HashSet::new();
+        for dep in unity.locked_packages() {
+            let mut found_in_predefined = false;
+            let mut found_in_user_repos = Vec::new();
+
+            for repo in collection.get_remote() {
+                if repo
+                    .repo()
+                    .get_package_version(dep.name(), dep.version())
+                    .is_some()
+                {
+                    match repo.url() {
+                        Some(url) if user_repo_urls.contains(url) => {
+                            found_in_user_repos.push(url.clone())
+                        }
+                        _ => found_in_predefined = true,
+                    }
+                }
+            }
+
+            if found_in_predefined {
+                continue;
+            }
+
+            if !found_in_user_repos.is_empty() {
+                required.extend(found_in_user_repos);
+            } else if collection
+                .user_packages()
+                .iter()
+                .any(|(_, json)| json.name() == dep.name() && json.version() == dep.version())
+            {
+                warn!(
+                    "{} {} is installed from a local user package; not exportable as a repository",
+                    dep.name(),
+                    dep.version()
+                );
+            } else {
+                warn!(
+                    "no repository provides {} {}; you may need to add its repository manually",
+                    dep.name(),
+                    dep.version()
+                );
+            }
+        }
+
+        print!(
+            "{}",
+            settings.export_repositories_matching(|setting| setting
+                .url()
+                .is_some_and(|url| required.contains(url)))
+        );
     }
 }
 
