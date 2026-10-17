@@ -139,6 +139,18 @@ impl Settings {
     pub fn ignore_official_repository(&self) -> bool {
         self.vrc_get.ignore_official_repository()
     }
+
+    pub fn ignore_vrchat_repositories(&self) -> bool {
+        self.ignore_official_repository() || self.ignore_curated_repository()
+    }
+
+    pub fn set_ignore_vrchat_repositories(&mut self, value: bool) {
+        self.vrc_get.set_ignore_vrchat_repositories(value);
+    }
+
+    pub async fn save_vrc_get_settings(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
+        self.vrc_get.save(io).await
+    }
 }
 
 /// User Package Managements
