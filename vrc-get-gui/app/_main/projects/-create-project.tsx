@@ -29,38 +29,42 @@ import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 
 export async function createProject() {
-	const information = await commands.environmentProjectCreationInformation();
+	try {
+		const information = await commands.environmentProjectCreationInformation();
 
-	using dialog = showDialog();
-	const result = await dialog.ask(EnteringInformation, {
-		templates: information.templates,
-		favoriteTemplates: information.favorite_templates,
-		lastUsedTemplate: information.last_used_template,
-		projectLocation: information.default_path,
-		recentProjectLocations: information.recent_project_locations,
-	});
+		using dialog = showDialog();
+		const result = await dialog.ask(EnteringInformation, {
+			templates: information.templates,
+			favoriteTemplates: information.favorite_templates,
+			lastUsedTemplate: information.last_used_template,
+			projectLocation: information.default_path,
+			recentProjectLocations: information.recent_project_locations,
+		});
 
-	if (result == null) return;
+		if (result == null) return;
 
-	dialog.replace(<CreatingProject />);
+		dialog.replace(<CreatingProject />);
 
-	await commands.environmentCreateProject(
-		result.projectLocation,
-		result.projectName,
-		result.templateId,
-		information.templates_version,
-		result.unityVersion,
-	);
-	dialog.close();
-	toastSuccess(tt("projects:toast:project created"));
-	await queryClient.invalidateQueries({
-		queryKey: ["environmentProjects"],
-	});
-	const projectPath = `${result.projectLocation}${pathSeparator()}${result.projectName}`;
-	router.navigate({
-		to: "/projects/manage",
-		search: { projectPath },
-	});
+		await commands.environmentCreateProject(
+			result.projectLocation,
+			result.projectName,
+			result.templateId,
+			information.templates_version,
+			result.unityVersion,
+		);
+		dialog.close();
+		toastSuccess(tt("projects:toast:project created"));
+		await queryClient.invalidateQueries({
+			queryKey: ["environmentProjects"],
+		});
+		const projectPath = `${result.projectLocation}${pathSeparator()}${result.projectName}`;
+		await router.navigate({
+			to: "/projects/manage",
+			search: { projectPath },
+		});
+	} catch (e) {
+		toastThrownError(e);
+	}
 }
 
 function DialogBase({

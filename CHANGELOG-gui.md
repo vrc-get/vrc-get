@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - `vcc:` Deep Linking not working on macOS (backports `#3211`)
+- Creating project mignt fail without any dialog (backports `#3232`)
 
 ### Security
 
