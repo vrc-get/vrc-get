@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog].
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
 - `vcc:` Deep Linking not working on macOS `#3211`
+- Creating project mignt fail without any dialog `#3232`
 
 ### Security
 
