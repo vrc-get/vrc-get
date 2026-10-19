@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Changed license of this project to MPL-2.0 `#3231`
 
 ### Deprecated
 

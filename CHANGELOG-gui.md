@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
+- Changed license of this project to MPL-2.0 `#3231`
 
 ### Deprecated
 
