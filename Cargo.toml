@@ -20,11 +20,11 @@ default-members = [
 [workspace.package]
 edition = "2024"
 
-license = "MIT"
 authors = ["anatawa12 <anatawa12@icloud.com>"]
 homepage = "https://github.com/anatawa12/vrc-get#readme"
 repository = "https://github.com/anatawa12/vrc-get"
 readme = "README.md"
+license = "MPL-2.0"
 
 [profile.xtask]
 inherits = "dev"
