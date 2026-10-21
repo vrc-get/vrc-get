@@ -8,6 +8,7 @@
     "general:version": "Version",
     "general:packages": "Packages",
     "general:source": "Source",
+    "general:project-path": "Project Path", // for labels like table label
 
     "general:button:add": "Add",
     "general:button:edit": "Edit",
@@ -211,8 +212,6 @@
 
     "projects:dialog:mismatch-found": "Project lists in VCC and ALCOM do not match",
     "projects:dialog:mismatch-found:description": "{{only_in_vcc}} projects are in VCC but not in ALCOM, and {{only_in_vrc_get}} projects are in ALCOM but not in VCC.<br/>Select which projects to keep or remove.",
-    "projects:dialog:mismatch-project-table:path": "Project Path",
-    "projects:dialog:mismatch-project-table:source": "Source",
     "projects:dialog:mismatch-project-table:keep": "Keep",
     "projects:dialog:mismatch-project-table:remove": "Remove",
     "projects:dialog:mismatch-project-table:only in vcc": "Only in VCC",

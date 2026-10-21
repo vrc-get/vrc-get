@@ -85,9 +85,9 @@ export function MismatchDialogContent({
 				>
 					<ProjectRow className={"row-start-1 row-end-2 *:p-1"}>
 						<div className={"col-span-2 flex justify-center"}>
-							{tc("projects:dialog:mismatch-project-table:path")}
+							{tc("general:project-path")}
 						</div>
-						<div>{tc("projects:dialog:mismatch-project-table:source")}</div>
+						<div>{tc("general:source")}</div>
 						<div>{tc("projects:dialog:mismatch-project-table:keep")}</div>
 						<div>{tc("projects:dialog:mismatch-project-table:remove")}</div>
 					</ProjectRow>
