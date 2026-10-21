@@ -195,6 +195,7 @@ jobs:
             function fileType(relative, contents) {
                 // excludes
                 if (relative.startsWith("vrc-get-gui/project-templates/")) return null;
+                if (relative == 'vrc-get-gui/lib/bindings.ts') return null; // generated
 
                 // general cases
                 switch (path.basename(relative)) {
