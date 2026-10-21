@@ -55,6 +55,38 @@ const environmentProjects = queryOptions({
 
 function Page() {
 	const result = useQuery(environmentProjects);
+
+	//TODO remove temporary Mock
+	if(!result.error){
+		result.data = result.data?.map(project => {
+			const id = crypto.randomUUID()
+			project.name = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx "+id
+			project.path = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy "+id
+
+			if (Math.random() > 0.5) {
+				project.memo = ""
+				project.tags = []
+				return project
+			}
+
+			project.memo = "Super memo with much details n°"+id
+			if(project.tags == null){
+				project.tags = []
+			project.tags.push("Spokeek")
+			if (Math.random() > 0.3) project.tags.push("Number "+Math.ceil(Math.random()*1000))
+			if (Math.random() > 0.3) project.tags.push("Emoji 🔥")
+			if (Math.random() > 0.3) project.tags.push("Chinese 本前开但因只从想")
+			if (Math.random() > 0.3) project.tags.push("Cursed ḑ̸̨͈̬̲̜̟̤͉̪̪̞̖̏̄̀̓̈́́͐̈́̓̆̎͜z̷͙̣̘̰̻̲͔̻͕͕͖̙͎̿̾͒͒͌̀̍͒̔̏̿̏̚͘a̸̡̡̧̨͓͈͖͎̹̰͕̲͍̾̀͂͆̽̅͗̒̑̍͘̚̚͜d̵̨̧̡̰̻͖̯̱͖͖̰̘́̽͂͆̀̍͗̾̂̐͐̑̏â̷̲̈́͊̌͛̉̇̇ͅd̵̜̠̳͎̙̝͚̓̅̋̆͐͘͜͠͝͝")
+
+			if (Math.random() > 0.5)
+				project.tags.push("Random 0.5")
+			if (Math.random() > 0.7)
+				project.tags.push("Super Random 0.7")
+			}
+			return project
+		})
+	}
+
 	const [search, setSearch] = useState("");
 
 	const viewModeQuery = useQuery({
