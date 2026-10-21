@@ -30,8 +30,8 @@ use tauri_plugin_dialog::DialogExt;
 use tokio::sync::Semaphore;
 use vrc_get_vpm::ProjectType;
 use vrc_get_vpm::environment::{
-    InvalidRealProjectInformation, PackageInstaller, RealProjectInformation, Settings, UserProject,
-    ValidRealProjectInformation, VccDatabaseConnection,
+    InvalidRealProjectInformation, PackageInstaller, ProjectListMismatch, ProjectManagement,
+    RealProjectInformation, UserProject, ValidRealProjectInformation, VccDatabaseConnection,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::UnityVersion;
@@ -48,7 +48,7 @@ pub struct TauriProject {
     created_at: i64,
     favorite: bool,
     is_exists: bool,
-    is_valid: Option<bool>,
+    is_valid: bool,
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -94,26 +94,20 @@ impl From<ProjectType> for TauriProjectType {
 
 impl TauriProject {
     fn new(project: &UserProject) -> Self {
-        let is_exists = std::fs::metadata(project.path().unwrap())
+        let is_exists = std::fs::metadata(project.path())
             .map(|x| x.is_dir())
             .unwrap_or(false);
         Self {
-            name: project.name().unwrap().to_string(),
-            path: project.path().unwrap().to_string(),
+            name: project.name().to_string(),
+            path: project.path().to_string(),
             project_type: project.project_type().into(),
             unity: project
                 .unity_version()
                 .map(|v| v.to_string())
                 .unwrap_or_else(|| "unknown".into()),
             unity_revision: project.unity_revision().map(|x| x.to_string()),
-            last_modified: project
-                .last_modified()
-                .map(|x| x.as_unix_milliseconds())
-                .unwrap_or(0),
-            created_at: project
-                .crated_at()
-                .map(|x| x.as_unix_milliseconds())
-                .unwrap_or(0),
+            last_modified: project.last_modified().as_unix_milliseconds(),
+            created_at: project.crated_at().as_unix_milliseconds(),
             favorite: project.favorite(),
             is_exists,
             is_valid: project.is_valid_project(),
@@ -143,19 +137,6 @@ impl TauriUpdatedRealProjectInfo {
     }
 }
 
-async fn migrate_sanitize_projects(
-    connection: &mut VccDatabaseConnection,
-    io: &DefaultEnvironmentIo,
-    settings: &Settings,
-) -> io::Result<()> {
-    info!("migrating projects from settings.json");
-    // migrate from settings json
-    connection.migrate(settings, io).await?;
-    connection.dedup_projects();
-    connection.normalize_path();
-    Ok(())
-}
-
 fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) {
     static LAST_UPDATE: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
     // update after one minutes.
@@ -171,10 +152,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
         // start update thread
         log::info!("starting sync with real project...");
         tauri::async_runtime::spawn(sync_with_real_project(
-            projects
-                .iter()
-                .map(|x| x.path().unwrap().to_string())
-                .collect(),
+            projects.iter().map(|x| x.path().to_string()).collect(),
             app.clone(),
         ));
     } else {
@@ -193,8 +171,8 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
 
         let io = app.state::<DefaultEnvironmentIo>();
 
-        let projects = join_all(projects.into_iter().map(async |project| {
-            match ValidRealProjectInformation::load_from_fs(&io, project.to_owned()).await {
+        let real_projects = join_all(projects.into_iter().map(async |project| {
+            let real_project = match ValidRealProjectInformation::load_from_fs(&io, project.to_owned()).await {
                 Ok(Some(project)) => {
                     app.emit(
                         "projects-updated",
@@ -220,6 +198,23 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
                     error!(gui_toast = false; "Error updating project information of {project}: {err}");
                     RealProjectInformation::Invalid(InvalidRealProjectInformation::new(project))
                 }
+            };
+
+            let mut projects = match ProjectManagement::start_no_migration(io.inner()).await {
+                Ok(connection) => connection,
+                Err(e) => {
+                    error!("Error opening database: {e}");
+                    return;
+                }
+            };
+            match projects
+                .sync_with_real_projects_information(real_project)
+                .await
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    error!("Error updating database: {e}");
+                }
             }
         }))
         .await;
@@ -227,27 +222,23 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
 
         info!(
             "updating database real project information of {} projects",
-            projects.len()
+            real_projects.len()
         );
-
-        let mut connection = match VccDatabaseConnection::connect(io.inner()).await {
-            Ok(connection) => connection,
-            Err(e) => {
-                error!("Error opening database: {e}");
-                return;
-            }
-        };
-        connection.sync_with_real_projects_information(projects);
-        match connection.save(io.inner()).await {
-            Ok(()) => {}
-            Err(e) => {
-                error!("Error updating database: {e}");
-                return;
-            }
-        }
 
         info!("updated database based on real project information");
     }
+}
+
+#[derive(Serialize, specta::Type)]
+pub struct TauriProjects {
+    projects: Vec<TauriProject>,
+    only_in_vcc: Vec<TauriPartialProject>,
+    only_in_vrc_get: Vec<TauriPartialProject>,
+}
+
+#[derive(Serialize, specta::Type)]
+pub struct TauriPartialProject {
+    path: String,
 }
 
 #[tauri::command]
@@ -256,25 +247,73 @@ pub async fn environment_projects(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
     app: AppHandle,
-) -> Result<Vec<TauriProject>, RustError> {
-    let mut settings = settings.load_mut(io.inner()).await?;
-    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-
-    migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-    settings.load_from_db(&connection)?;
-    connection.save(io.inner()).await?;
-    settings.save().await?;
+) -> Result<TauriProjects, RustError> {
+    let settings_mut = settings.extern_mutation().await;
+    let management = ProjectManagement::start(io.inner()).await?;
+    settings_mut.finish();
 
     info!("fetching projects");
 
-    let mut projects = connection.get_projects();
-    projects.retain(|x| x.path().is_some());
+    let projects = management.get_projects();
 
     sync_with_real_project_background(&projects, &app);
 
-    let vec = projects.iter().map(TauriProject::new).collect::<Vec<_>>();
+    let projects = projects.iter().map(TauriProject::new).collect::<Vec<_>>();
+    let mut only_in_vcc = vec![];
+    let mut only_in_vrc_get = vec![];
 
-    Ok(vec)
+    for mismatch in management.find_project_list_mismatch().await? {
+        match mismatch {
+            ProjectListMismatch::OnlyInVcc { path } => {
+                only_in_vcc.push(TauriPartialProject { path });
+            }
+            ProjectListMismatch::OnlyInVrcGet { path } => {
+                only_in_vrc_get.push(TauriPartialProject { path });
+            }
+        }
+    }
+
+    Ok(TauriProjects {
+        projects,
+        only_in_vcc,
+        only_in_vrc_get,
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_fix_project_list_mismatch(
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    paths_to_restore_projects_from_litedb: Vec<String>,
+    paths_to_restore_projects_from_sqlite: Vec<String>,
+    paths_to_remove_projects_from_litedb: Vec<String>,
+    paths_to_remove_projects_from_sqlite: Vec<String>,
+) -> Result<(), RustError> {
+    let settings_mut = settings.extern_mutation().await;
+    let mut management = ProjectManagement::start(io.inner()).await?;
+    management
+        .fix_project_list_mismatch(
+            &paths_to_restore_projects_from_litedb
+                .iter()
+                .map(|x| x.as_str())
+                .collect::<Vec<_>>(),
+            &paths_to_restore_projects_from_sqlite
+                .iter()
+                .map(|x| x.as_str())
+                .collect::<Vec<_>>(),
+            &paths_to_remove_projects_from_litedb
+                .iter()
+                .map(|x| x.as_str())
+                .collect::<Vec<_>>(),
+            &paths_to_remove_projects_from_sqlite
+                .iter()
+                .map(|x| x.as_str())
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+    settings_mut.finish();
+    Ok(())
 }
 
 #[derive(Serialize, specta::Type)]
@@ -326,22 +365,18 @@ pub async fn environment_add_project_with_picker(
     };
 
     {
-        let mut settings = settings.load_mut(io.inner()).await?;
-        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
+        let settings_mut = settings.extern_mutation().await;
+        let mut projects = ProjectManagement::start(io.inner()).await?;
 
-        let projects = connection.get_projects();
-        if (projects.iter().cartesian_product(unity_projects.iter()))
-            .any(|(in_db, adding)| in_db.path().map(Path::new) == Some(adding.project_dir()))
-        {
+        if unity_projects.iter().any(|p| {
+            projects
+                .find_project(p.project_dir().to_str().unwrap())
+                .is_ok_and(|x| x.is_some())
+        }) {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
-        for unity_project in unity_projects {
-            connection.add_project(&unity_project).await?;
-        }
-        connection.save(io.inner()).await?;
-        settings.load_from_db(&connection)?;
-        settings.save().await?;
+        projects.add_projects(&unity_projects).await?;
+        settings_mut.finish();
     }
 
     Ok(TauriAddProjectWithPickerResult::Successful)
@@ -355,19 +390,18 @@ pub async fn environment_remove_project_by_path(
     project_path: String,
     directory: bool,
 ) -> Result<(), RustError> {
-    let mut settings = settings.load_mut(io.inner()).await?;
-    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-    let Some(project) = connection.find_project(&project_path).unwrap() else {
+    let settings_mut = settings.extern_mutation().await;
+    let mut projects = ProjectManagement::start(io.inner()).await?;
+    let Some(project) = projects.find_project(&project_path)? else {
         return Err(RustError::unrecoverable_str("project not found"));
     };
-    connection.remove_project(&project);
-    connection.save(io.inner()).await?;
-    settings.load_from_db(&connection)?;
-    settings.save().await?;
+    projects
+        .remove_projects(std::slice::from_ref(&project))
+        .await?;
+    settings_mut.finish();
 
     if directory {
-        let path = project.path().unwrap();
+        let path = project.path();
         info!("removing project directory: {path}");
 
         if let Err(err) = trash_delete(PathBuf::from(path)).await {
@@ -541,16 +575,12 @@ where
 
             let settings = ctx.state::<SettingsState>();
             let io = ctx.state::<DefaultEnvironmentIo>();
-
-            {
-                let mut settings = settings.load_mut(io.inner()).await?;
-                let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-                migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-                connection.add_project(&unity_project).await?;
-                connection.save(io.inner()).await?;
-                settings.load_from_db(&connection)?;
-                settings.save().await?;
-            }
+            let settings_mut = settings.extern_mutation().await;
+            let mut projects = ProjectManagement::start(io.inner()).await?;
+            projects
+                .add_projects(std::slice::from_ref(&unity_project))
+                .await?;
+            settings_mut.finish();
 
             Ok(new_path_str)
         })
@@ -565,13 +595,10 @@ pub async fn environment_set_favorite_project(
     project_path: String,
     favorite: bool,
 ) -> Result<(), RustError> {
-    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    let Some(mut project) = connection.find_project(&project_path).unwrap() else {
+    let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    if !projects.set_favorite(&project_path, favorite).await? {
         return Err(RustError::unrecoverable_str("project not found"));
     };
-    project.set_favorite(favorite);
-    connection.update_project(&project);
-    connection.save(io.inner()).await?;
     Ok(())
 }
 
@@ -838,19 +865,19 @@ pub async fn environment_create_project(
 
     let packages;
     {
-        let mut settings = settings.load_mut(io.inner()).await?;
+        let settings = settings.load(io.inner()).await?;
         packages = packages_state
             .load_fully(&settings, io.inner(), http.inner())
             .await?;
-
-        // add the project to listing
-        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-        connection.add_project(&unity_project).await?;
-        connection.save(io.inner()).await?;
-        settings.load_from_db(&connection)?;
-        settings.save().await?;
     }
+
+    // add the project to listing
+    let settings_mut = settings.extern_mutation().await;
+    let mut projects = ProjectManagement::start(io.inner()).await?;
+    projects
+        .add_projects(std::slice::from_ref(&unity_project))
+        .await?;
+    settings_mut.finish();
 
     {
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));

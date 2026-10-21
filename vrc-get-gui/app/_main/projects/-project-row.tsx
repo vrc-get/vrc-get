@@ -584,17 +584,17 @@ export function useSetProjectFavoriteMutation() {
 		onMutate: async (project) => {
 			await queryClient.cancelQueries(environmentProjects);
 
-			const previousData = queryClient.getQueryData<TauriProject[]>(
+			const previousData = queryClient.getQueryData(
 				environmentProjects.queryKey,
 			);
 
 			if (previousData !== undefined) {
-				queryClient.setQueryData<TauriProject[]>(
-					environmentProjects.queryKey,
-					previousData.map((v) =>
+				queryClient.setQueryData(environmentProjects.queryKey, {
+					...previousData,
+					projects: previousData.projects.map((v) =>
 						v.path === project.path ? { ...v, favorite: project.favorite } : v,
 					),
-				);
+				});
 			}
 
 			return previousData;

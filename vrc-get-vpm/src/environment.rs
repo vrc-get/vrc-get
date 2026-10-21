@@ -20,6 +20,8 @@ mod package_installer;
 #[cfg(feature = "experimental-project-management")]
 mod project_management;
 mod settings;
+#[cfg(feature = "experimental-project-management")]
+mod sqlite;
 #[cfg(feature = "experimental-unity-management")]
 mod unity_management;
 
@@ -38,7 +40,11 @@ use url::Url;
 
 use crate::io::{DefaultEnvironmentIo, DirEntry, IoTrait};
 #[cfg(feature = "experimental-project-management")]
-pub use project_management::*;
+pub use project_management::{
+    Error as ProjectManagementError, InvalidRealProjectInformation, ProjectListMismatch,
+    ProjectManagement, RealProjectInformation, SyncWithLitedbMode, UserProject,
+    ValidRealProjectInformation,
+};
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
 #[cfg(feature = "experimental-unity-management")]
