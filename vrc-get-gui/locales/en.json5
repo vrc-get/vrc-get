@@ -210,6 +210,10 @@
     "projects:dialog:removing...": "Removing the project...",
     "projects:toast:project removed": "Project was removed successfully.",
 
+    "projects:set project display name": "Set Project Display Name",
+    "projects:warn set project display name": "Set a display name for this project.<br>This will not change the directory name.",
+    "projects:toast:project display name changed": "Project display name changed successfully.",
+
     "projects:dialog:mismatch-found": "Project lists in VCC and ALCOM do not match",
     "projects:dialog:mismatch-found:description": "{{only_in_vcc}} projects are in VCC but not in ALCOM, and {{only_in_vrc_get}} projects are in ALCOM but not in VCC.<br/>Select which projects to keep or remove.",
     "projects:dialog:mismatch-project-table:keep": "Keep",
