@@ -589,9 +589,9 @@ impl<'io> ProjectManagement<'io> {
                     valid.unity_version,
                     valid.unity_revision.as_deref(),
                 );
-                tx.prepare_cached("UPDATE projects SET is_valid = 1, unity_version_with_revision = ?, type = ? WHERE path = ?")
+                tx.prepare_cached("UPDATE projects SET is_valid = 1, unity_version_with_revision = ?, type = ?, display_name = ? WHERE path = ?")
                     .expect("prepare")
-                    .execute((unity_with_revision, valid.project_type as i32, &valid.path))
+                    .execute((unity_with_revision, valid.project_type as i32, &valid.display_name, &valid.path))
                     .map_err(Error::SQLite)?;
             }
             RealProjectInformation::Invalid(info) => {
