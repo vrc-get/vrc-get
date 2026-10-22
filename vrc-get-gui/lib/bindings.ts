@@ -95,6 +95,8 @@ export const commands = {
 	projectSetCustomUnityArgs: (projectPath: string, args: string[] | null) => __TAURI_INVOKE<boolean>("project_set_custom_unity_args", { projectPath, args }),
 	projectGetUnityPath: (projectPath: string) => __TAURI_INVOKE<string | null>("project_get_unity_path", { projectPath }),
 	projectSetUnityPath: (projectPath: string, unityPath: string | null) => __TAURI_INVOKE<boolean>("project_set_unity_path", { projectPath, unityPath }),
+	projectSetDisplayName: (projectPath: string, displayName: string) => __TAURI_INVOKE<boolean>("project_set_display_name", { projectPath, displayName }),
+	projectClearDisplayName: (projectPath: string) => __TAURI_INVOKE<boolean>("project_clear_display_name", { projectPath }),
 	utilOpen: (path: string, ifNotExists: OpenOptions) => __TAURI_INVOKE<null>("util_open", { path, ifNotExists }),
 	utilOpenUrl: (url: string) => __TAURI_INVOKE<null>("util_open_url", { url }),
 	utilOpenUrlNocheck: (url: string) => __TAURI_INVOKE<null>("util_open_url_nocheck", { url }),
@@ -341,6 +343,7 @@ export type TauriProject = {
 	unity_revision: string | null,
 	last_modified: number,
 	created_at: number,
+	display_name: string | null,
 	favorite: boolean,
 	is_exists: boolean,
 	is_valid: boolean,
@@ -361,6 +364,7 @@ export type TauriProjectDetails = {
 	unity_revision: string | null,
 	installed_packages: ([string, TauriBasePackageInfo])[],
 	should_resolve: boolean,
+	display_name: string | null,
 };
 
 export type TauriProjectDirCheckResult = "InvalidNameForFolderName" | "MayCompatibilityProblem" | "WideChar" | "AlreadyExists" | "Ok";
@@ -427,6 +431,7 @@ export type TauriUpdatedRealProjectInfo = {
 	project_type: TauriProjectType,
 	unity: string,
 	unity_revision: string | null,
+	display_name: string | null,
 };
 
 export type TauriUserPackage = {

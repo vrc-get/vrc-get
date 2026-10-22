@@ -33,6 +33,7 @@ void tauriListen<TauriUpdatedRealProjectInfo>("projects-updated", (e) => {
 			project.unity = e.payload.unity;
 			project.project_type = e.payload.project_type;
 			project.unity_revision = e.payload.unity_revision;
+			project.display_name = e.payload.display_name;
 		}
 		const newList = [...old.projects];
 		newList[index] = project;
