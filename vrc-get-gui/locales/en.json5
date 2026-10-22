@@ -211,7 +211,7 @@
     "projects:toast:project removed": "Project was removed successfully.",
 
     "projects:set project display name": "Set Project Display Name",
-    "projects:warn set project display name": "Set a display name for this project. The directory name will remain unchanged.",
+    "projects:warn set project display name": "Set a display name for this project.<br>This will not change the directory name.",
     "projects:toast:project display name changed": "Project display name changed successfully.",
 
     "projects:dialog:mismatch-found": "Project lists in VCC and ALCOM do not match",
