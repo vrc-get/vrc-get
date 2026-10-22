@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import {
 	queryOptions,
 	useMutation,
@@ -586,17 +595,17 @@ export function useSetProjectFavoriteMutation() {
 		onMutate: async (project) => {
 			await queryClient.cancelQueries(environmentProjects);
 
-			const previousData = queryClient.getQueryData<TauriProject[]>(
+			const previousData = queryClient.getQueryData(
 				environmentProjects.queryKey,
 			);
 
 			if (previousData !== undefined) {
-				queryClient.setQueryData<TauriProject[]>(
-					environmentProjects.queryKey,
-					previousData.map((v) =>
+				queryClient.setQueryData(environmentProjects.queryKey, {
+					...previousData,
+					projects: previousData.projects.map((v) =>
 						v.path === project.path ? { ...v, favorite: project.favorite } : v,
 					),
-				);
+				});
 			}
 
 			return previousData;

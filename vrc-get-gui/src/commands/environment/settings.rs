@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use std::ffi::OsStr;
 use std::io;
 use std::path::Path;
@@ -69,6 +78,7 @@ pub struct TauriEnvironmentSettings {
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, specta::Type)]
 pub enum TauriSyncWithLitedbMode {
     ProjectsUnion,
+    AskForUser,
     TrustLitedb,
 }
 
@@ -76,6 +86,7 @@ impl From<SyncWithLitedbMode> for TauriSyncWithLitedbMode {
     fn from(mode: SyncWithLitedbMode) -> Self {
         match mode {
             SyncWithLitedbMode::ProjectsUnion => TauriSyncWithLitedbMode::ProjectsUnion,
+            SyncWithLitedbMode::AskForUser => TauriSyncWithLitedbMode::AskForUser,
             SyncWithLitedbMode::TrustLitedb => TauriSyncWithLitedbMode::TrustLitedb,
         }
     }
@@ -85,6 +96,7 @@ impl From<TauriSyncWithLitedbMode> for SyncWithLitedbMode {
     fn from(mode: TauriSyncWithLitedbMode) -> Self {
         match mode {
             TauriSyncWithLitedbMode::ProjectsUnion => SyncWithLitedbMode::ProjectsUnion,
+            TauriSyncWithLitedbMode::AskForUser => SyncWithLitedbMode::AskForUser,
             TauriSyncWithLitedbMode::TrustLitedb => SyncWithLitedbMode::TrustLitedb,
         }
     }

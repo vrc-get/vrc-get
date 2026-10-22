@@ -62,6 +62,7 @@
     "setup:back": "Назад",
 
     "setup:steps card:Appearance": "Внешний вид",
+    "setup:appearance:heading": "Внешний вид",
     "setup:appearance:description": "Сначала настройте параметры внешнего вида.<br/>Позже все эти параметры можно изменить на странице настроек.",
 
     "setup:steps card:UnityHub": "Unity Hub",
@@ -76,8 +77,8 @@
     "setup:unity-hub:not found": "Unity Hub не найден.",
 
     "setup:steps card:ProjectPath": "Каталог сохранения",
-    "setup:projects:projects-path": "Каталог сохранения проекта",
-    "setup:projects:projects-path description": "Когда вы создаете проект через ALCOM, он будет сохранен в этом расположении.",
+    "setup:project-path:heading": "Каталог сохранения проекта",
+    "setup:project-path:description": "Когда вы создаете проект через ALCOM, он будет сохранен в этом расположении.",
 
     "setup:steps card:Backups": "Настройки резервного копирования",
     "setup:backups:heading": "Настройки резервного копирования проекта",

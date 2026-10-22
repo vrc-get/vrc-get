@@ -57,6 +57,7 @@
     "setup:back": "戻る",
 
     "setup:steps card:Appearance": "UI設定",
+    "setup:appearance:heading": "UI設定",
     "setup:appearance:description": "はじめに、UIの設定を行いましょう。<br>ここで行う初期設定の内容は後からでも変えることができます。",
 
     "setup:steps card:UnityHub": "Unity Hubの設定",
@@ -71,8 +72,8 @@
     "setup:unity-hub:not found": "Unity Hubが見つかりませんでした。",
 
     "setup:steps card:ProjectPath": "保存先の設定",
-    "setup:projects:projects-path": "プロジェクト作成時の保存先",
-    "setup:projects:projects-path description": "ALCOMでプロジェクトを作成する場合、プロジェクトはこの場所に保存されます。",
+    "setup:project-path:heading": "プロジェクト作成時の保存先",
+    "setup:project-path:description": "ALCOMでプロジェクトを作成する場合、プロジェクトはこの場所に保存されます。",
 
     "setup:steps card:Backups": "バックアップ設定",
     "setup:backups:heading": "バックアップの設定",

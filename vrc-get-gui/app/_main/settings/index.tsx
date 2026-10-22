@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 "use client";
 import {
 	queryOptions,
@@ -19,6 +28,8 @@ import {
 	GuiCompactSwitch,
 	LanguageSelector,
 	ProjectPathWarnings,
+	ProjectSyncModeSelect,
+	ProjectSyncModeWarning,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { HNavBar, HNavBarText, VStack } from "@/components/layout";
@@ -475,11 +486,12 @@ function DefaultProjectPathCard() {
 	const queryClient = useQueryClient();
 
 	const {
-		data: { defaultProjectPath },
+		data: { defaultProjectPath, projectListSyncMode },
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			defaultProjectPath: data.default_project_path,
+			projectListSyncMode: data.project_list_sync_mode,
 		}),
 	});
 
@@ -511,7 +523,8 @@ function DefaultProjectPathCard() {
 
 	return (
 		<SettingsCard>
-			<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
+			<h2 className={"mb-2"}>{tc("settings:project management")}</h2>
+			<h3>{tc("settings:default project path")}</h3>
 			<p className={"whitespace-normal"}>
 				{tc("settings:default project path description")}
 			</p>
@@ -520,6 +533,13 @@ function DefaultProjectPathCard() {
 				pick={pickProjectDefaultPath.mutate}
 			/>
 			<ProjectPathWarnings projectPath={defaultProjectPath} />
+			<h3 className="mt-2">{tc("settings:projects:sync-mode")}</h3>
+			<p className={"whitespace-normal"}>
+				{tc("settings:projects:sync-mode:description")}
+			</p>
+			<ProjectSyncModeSelect projectListSyncMode={projectListSyncMode} />
+			<div className="mb-2" />
+			<ProjectSyncModeWarning projectListSyncMode={projectListSyncMode} />
 		</SettingsCard>
 	);
 }

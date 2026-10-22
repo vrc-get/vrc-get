@@ -8,6 +8,7 @@
     "general:version": "Version",
     "general:packages": "Packages",
     "general:source": "Source",
+    "general:project-path": "Project Path", // for labels like table label
 
     "general:button:add": "Add",
     "general:button:edit": "Edit",
@@ -61,8 +62,10 @@
     "setup:entry:welcome description": "ALCOM is an Open-Source Creator Companion for VRChat and other Unity Projects.",
     "setup:next": "Next",
     "setup:back": "Back",
+//    "setup:new-setting-is-added": "New Setting is added!", // unused
 
     "setup:steps card:Appearance": "Appearance",
+    "setup:appearance:heading": "Appearance",
     "setup:appearance:description": "Please set up your appearance preferences at the beginning.<br/>You can change everything configured here later on settings page.",
 
     "setup:steps card:UnityHub": "Unity Hub",
@@ -76,16 +79,9 @@
     "setup:unity-hub:detection failed description": "Please click the above \"Recheck Installation\" button to re-detect Unity Hub installation. If this doesn't work, ALCOM fails to detect your Unity Hub installation. Please set Unity Hub Manually below.",
     "setup:unity-hub:not found": "Unity Hub was not found.",
 
-    "setup:steps card:Projects": "Projects",
-    "setup:projects:heading": "Projects",
-    "setup:projects:projects-path": "Save Location",
-    "setup:projects:projects-path description": "When you create project with ALCOM, the project will be saved in this location.",
-    "setup:projects:new-setting-is-added": "New Setting is added!",
-    "setup:projects:sync-mode": "Project List",
-    "setup:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC (For users who primarily use ALCOM)",
-    "setup:projects:sync-mode:TrustLitedb": "Use VCC's project list (For users who primarily use VCC)",
-    "setup:projects:sync-mode:ProjectsUnion:description": "Preserves projects removed from VCC and keeps them in the ALCOM project list. Unlike VCC, ALCOM keeps projects it cannot access, such as those on unavailable external or network drives.",
-    "setup:projects:sync-mode:TrustLitedb:description": "Uses VCC's project list as the source of truth. Projects removed from VCC will also be removed from the ALCOM project list.",
+    "setup:steps card:ProjectPath": "Save Location",
+    "setup:project-path:heading": "Project Save Location",
+    "setup:project-path:description": "When you create project with ALCOM, the project will be saved in this location.",
 
     "setup:steps card:Backups": "Backup Settings",
     "setup:backups:heading": "Project Backup Settings",
@@ -217,6 +213,15 @@
     "projects:set project display name": "Set Project Display Name",
     "projects:warn set project display name": "Set a display name for this project. The directory name will remain unchanged.",
     "projects:toast:project display name changed": "Project display name changed successfully.",
+
+    "projects:dialog:mismatch-found": "Project lists in VCC and ALCOM do not match",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}} projects are in VCC but not in ALCOM, and {{only_in_vrc_get}} projects are in ALCOM but not in VCC.<br/>Select which projects to keep or remove.",
+    "projects:dialog:mismatch-project-table:keep": "Keep",
+    "projects:dialog:mismatch-project-table:remove": "Remove",
+    "projects:dialog:mismatch-project-table:only in vcc": "Only in VCC",
+    "projects:dialog:mismatch-project-table:only in alcom": "Only in ALCOM",
+    "projects:dialog:apply changes": "Apply Changes",
+    "projects:dialog:check later": "Check Later",
 
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Back to projects",
@@ -490,9 +495,19 @@
     "settings:default unity arguments description": "Those command-line arguments will be used when opening Unity from ALCOM.",
     "settings:dialog:default launch arguments": "Default Unity Command-line Arguments",
 
+    "settings:project management": "Project Management",
+
     "settings:default project path": "Default Project Path",
     "settings:default project path description": "The default project path is the directory where new projects are created.",
     "settings:toast:default project path updated": "Updated the default project path successfully!",
+
+    "settings:projects:sync-mode": "Project List Sync Mode",
+    "settings:projects:sync-mode:description": "ALCOM and VCC maintain separate project lists.<br>This setting controls how the lists are synchronized.",
+    "settings:projects:sync-mode:ProjectsUnion": "Preserve projects removed in VCC",
+    "settings:projects:sync-mode:AskForUser": "Ask when a mismatch is detected (Default)",
+    "settings:projects:sync-mode:TrustLitedb": "Use VCC's project list",
+    "settings:projects:sync-mode:warning:ProjectsUnion": "Unlike VCC, ALCOM keeps projects that cannot be accessed, such as those on unavailable external or network drives.<br>However, projects that were manually removed in VCC will also be restored.",
+    "settings:projects:sync-mode:warning:TrustLitedb": "When VCC automatically removes projects that cannot be accessed, such as those on unavailable external or network drives, ALCOM will also lose them.",
 
     "settings:backup:path": "Backup Path",
     "settings:backup:path description": "The backup path is the directory where ALCOM will create backup zips of the projects.",

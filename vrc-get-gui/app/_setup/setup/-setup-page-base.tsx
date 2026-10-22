@@ -1,9 +1,23 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Circle, CircleCheck, CircleChevronRight } from "lucide-react";
 import type React from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+	Card,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+} from "@/components/ui/card";
 import type { SetupPages, TauriEnvironmentSettings } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
@@ -20,7 +34,6 @@ export function SetupPageBase({
 	backContent = tc("setup:back"),
 	nextContent = tc("setup:next"),
 	pageId,
-	withoutSteps = false,
 }: {
 	heading: React.ReactNode;
 	Body: React.ComponentType<BodyProps>;
@@ -28,7 +41,6 @@ export function SetupPageBase({
 	backContent?: React.ReactNode;
 	nextContent?: React.ReactNode;
 	pageId: SetupPages | null;
-	withoutSteps?: boolean;
 }) {
 	const navigate = useNavigate();
 
@@ -40,7 +52,7 @@ export function SetupPageBase({
 	const setupPages = useGlobalInfo().setupPages;
 	const currentPageIndex = setupPages.findIndex(([page]) => page === pageId);
 	const prevPage =
-		currentPageIndex > 0
+		currentPageIndex >= 0
 			? setupPages[currentPageIndex - 1]?.[1]
 			: // biome-ignore lint/style/noNonNullAssertion: setupPages is not empty
 				setupPages.at(-1)![1];
@@ -64,18 +76,32 @@ export function SetupPageBase({
 		onFinish?.();
 	};
 
+	const isInitialView = finishedPages.length === 0;
+
 	return (
 		<div className={"w-full flex items-center justify-center"}>
 			<div className={"flex gap-4"}>
-				{!withoutSteps && <StepCard current={pageId} />}
+				{!isInitialView && <StepCard current={pageId} />}
 				<Card
-					className={`${withoutSteps ? "w-[30rem]" : "w-96"} min-w-[50vw] min-h-[max(50dvh,20rem)] p-4 flex gap-3 compact:min-h-[max(40dvh,20rem)]`}
+					className={`${isInitialView ? "w-120" : "w-96"} min-w-[50vw] min-h-[max(50dvh,20rem)] p-4 flex gap-3 compact:min-h-[max(40dvh,20rem)]`}
 				>
 					<div className={"flex flex-col grow gap-3 compact:gap-2"}>
 						<CardHeader>
-							<h1 className={"text-center"}>{heading}</h1>
+							<h1 className={"text-center"}>
+								{isInitialView ? tc("setup:entry:welcome") : heading}
+							</h1>
 						</CardHeader>
 						<div className={"pb-4"} />
+						{isInitialView && (
+							<>
+								<CardDescription
+									className={"whitespace-normal text-lg text-center"}
+								>
+									{tc("setup:entry:welcome description")}
+								</CardDescription>
+								<div className={"pb-3"} />
+							</>
+						)}
 						{!result.data ? (
 							<p>{tc("setup:loading")}</p>
 						) : (
@@ -139,21 +165,44 @@ function StepElement({
 	const active = current === pageId;
 	return (
 		<li
-			className={`${active ? "text-foreground" : finished ? "text-success" : "text-foreground/50"} flex gap-1`}
+			className={`${finished ? "text-success" : active ? "text-foreground" : "text-foreground/50"} flex gap-1`}
 		>
-			<Link
-				to={link}
-				className={`${!active && finished ? "" : "cursor-not-allowed"} flex gap-1`}
-			>
-				{finished ? (
-					<CircleCheck />
-				) : active ? (
+			<Link to={link} disabled={!active && !finished} className={`flex gap-1`}>
+				{active ? (
 					<CircleChevronRight />
+				) : finished ? (
+					<CircleCheck />
 				) : (
 					<Circle />
 				)}
 				{tc(`setup:steps card:${pageId}`)}
 			</Link>
 		</li>
+	);
+}
+
+export function NewSettings({
+	isNewSettings,
+	children,
+}: {
+	isNewSettings: boolean;
+	children?: React.ReactNode;
+}) {
+	return (
+		<div
+			className={`flex flex-col grow gap-3 compact:gap-2 ${isNewSettings ? "outline-2 outline-offset-[6px] rounded-sm outline-warning relative" : ""}`}
+		>
+			{isNewSettings && (
+				<div
+					className={
+						"absolute top-[30%] right-[calc(100%+2em)] transform-[translateY(-50%)] bg-background outline-warning outline-2 text-warning-foreground px-3 py-2 rounded-md " +
+						"before:content-[''] before:absolute before:left-full before:top-1/2 before:transform-[translateY(-50%)] before:border-t-[6px] before:border-b-[6px] before:border-l-[--spacing(6)] before:border-transparent before:border-l-warning"
+					}
+				>
+					{tc("setup:new-setting-is-added")}
+				</div>
+			)}
+			{children}
+		</div>
 	);
 }

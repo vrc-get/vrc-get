@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -79,6 +88,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::config::environment_set_unity_hub_access_method,
         environment::config::environment_set_template_favorite,
         environment::projects::environment_projects,
+        environment::projects::environment_fix_project_list_mismatch,
         environment::projects::environment_add_project_with_picker,
         environment::projects::environment_remove_project_by_path,
         environment::projects::environment_copy_project_for_migration,
@@ -194,6 +204,7 @@ pub(crate) fn export_ts() {
             environment::config::environment_set_unity_hub_access_method,
             environment::config::environment_set_template_favorite,
             environment::projects::environment_projects,
+            environment::projects::environment_fix_project_list_mismatch,
             environment::projects::environment_add_project_with_picker,
             environment::projects::environment_remove_project_by_path,
             environment::projects::environment_copy_project_for_migration,
