@@ -29,8 +29,6 @@ The format is based on [Keep a Changelog].
 - Improved compatibility with better compatibility with tools resizes window on launch `#3157`
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
-- `vcc:` Deep Linking not working on macOS `#3211`
-- Creating project mignt fail without any dialog `#3232`
 
 ### Security
 
@@ -40,8 +38,8 @@ The format is based on [Keep a Changelog].
   - Addresses recent eMudhra intermediate CA key compromise (No single CVE number)
 
 ### Fixed
-- `vcc:` Deep Linking not working on macOS (backports `#3211`)
-- Creating project mignt fail without any dialog (backports `#3232`)
+- `vcc:` Deep Linking not working on macOS (backports [`#3211`](https://github.com/vrc-get/vrc-get/pull/3211))
+- Creating project mignt fail without any dialog (backports [`#3232`](https://github.com/vrc-get/vrc-get/pull/3232))
 
 ## [1.1.8] - 2026-07-11
 ### Fixed
