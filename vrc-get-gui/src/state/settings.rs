@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use arc_swap::ArcSwapOption;
 use std::backtrace::Backtrace;
 use std::io;
@@ -94,6 +103,12 @@ impl SettingsState {
 
         Ok(SettingMutRef::new(loaded, &self.inner, io, guard))
     }
+
+    pub async fn extern_mutation(&self) -> ExternMutationScope<'_> {
+        let guard = self.load_lock.lock().await;
+        self.inner.store(None);
+        ExternMutationScope { guard }
+    }
 }
 
 pub struct SettingsRef<'a> {
@@ -187,6 +202,17 @@ impl DerefMut for SettingMutRef<'_> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut Settings {
         &mut self.owned.settings
+    }
+}
+
+pub struct ExternMutationScope<'s> {
+    guard: MutexGuard<'s, ()>,
+}
+
+impl ExternMutationScope<'_> {
+    pub fn finish(self) {
+        // We have cleared cache in extern_mutation so nothing to do here
+        drop(self.guard);
     }
 }
 

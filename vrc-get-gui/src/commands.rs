@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -7,7 +16,7 @@ pub use start::startup;
 use tauri::generate_handler;
 use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
-use vrc_get_vpm::environment::VccDatabaseConnection;
+use vrc_get_vpm::environment::{ProjectManagement, ProjectManagementError};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
@@ -79,6 +88,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::config::environment_set_unity_hub_access_method,
         environment::config::environment_set_template_favorite,
         environment::projects::environment_projects,
+        environment::projects::environment_fix_project_list_mismatch,
         environment::projects::environment_add_project_with_picker,
         environment::projects::environment_remove_project_by_path,
         environment::projects::environment_copy_project_for_migration,
@@ -118,6 +128,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_set_use_alcom_for_vcc_protocol,
         environment::settings::environment_get_default_unity_arguments,
         environment::settings::environment_set_default_unity_arguments,
+        environment::settings::environment_set_project_list_sync_mode,
         environment::templates::environment_export_template,
         environment::templates::environment_get_alcom_template,
         environment::templates::environment_pick_unity_packages,
@@ -148,6 +159,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         project::project_set_custom_unity_args,
         project::project_get_unity_path,
         project::project_set_unity_path,
+        project::project_set_display_name,
+        project::project_clear_display_name,
         util::util_open,
         util::util_open_url,
         util::util_open_url_nocheck,
@@ -191,6 +204,7 @@ pub(crate) fn export_ts() {
             environment::config::environment_set_unity_hub_access_method,
             environment::config::environment_set_template_favorite,
             environment::projects::environment_projects,
+            environment::projects::environment_fix_project_list_mismatch,
             environment::projects::environment_add_project_with_picker,
             environment::projects::environment_remove_project_by_path,
             environment::projects::environment_copy_project_for_migration,
@@ -230,6 +244,7 @@ pub(crate) fn export_ts() {
             environment::settings::environment_set_use_alcom_for_vcc_protocol,
             environment::settings::environment_get_default_unity_arguments,
             environment::settings::environment_set_default_unity_arguments,
+            environment::settings::environment_set_project_list_sync_mode,
             environment::templates::environment_export_template,
             environment::templates::environment_get_alcom_template,
             environment::templates::environment_pick_unity_packages,
@@ -260,6 +275,8 @@ pub(crate) fn export_ts() {
             project::project_set_custom_unity_args,
             project::project_get_unity_path,
             project::project_set_unity_path,
+            project::project_set_display_name,
+            project::project_clear_display_name,
             util::util_open,
             util::util_open_url,
             util::util_open_url_nocheck,
@@ -283,15 +300,19 @@ pub(crate) fn export_ts() {
 }
 
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
-    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), io::Error> {
-        let mut connection = VccDatabaseConnection::connect(io).await?;
-        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
-        connection.save(io).await?;
+    async fn inner(
+        io: &DefaultEnvironmentIo,
+        project_dir: &Path,
+    ) -> Result<(), ProjectManagementError> {
+        let mut projects = ProjectManagement::start_no_migration(io).await?;
+        projects
+            .update_project_last_modified(&project_dir.to_string_lossy())
+            .await?;
         Ok(())
     }
 
     if let Err(err) = inner(io, project_dir).await {
-        eprintln!("error updating project updated_at on vcc: {err}");
+        error!("error updating project updated_at on vcc: {err}");
     }
 }
 
@@ -396,6 +417,7 @@ impl_from_error!(
     async_zip::error::ZipError,
     vrc_get_vpm::environment::AddRepositoryErr,
     vrc_get_vpm::unity_project::RemovePackageErr,
+    ProjectManagementError,
     fs_extra::error::Error,
 );
 

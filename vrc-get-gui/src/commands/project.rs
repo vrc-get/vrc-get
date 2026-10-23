@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
@@ -14,8 +23,8 @@ use std::str::FromStr;
 use tauri::{AppHandle, State, Window};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
-use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::environment::{PackageInstaller, ProjectManagement};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
@@ -29,6 +38,7 @@ pub struct TauriProjectDetails {
     unity_revision: Option<String>,
     installed_packages: Vec<(String, TauriBasePackageInfo)>,
     should_resolve: bool,
+    display_name: Option<String>,
 }
 
 #[tauri::command]
@@ -48,6 +58,7 @@ pub async fn project_details(project_path: String) -> Result<TauriProjectDetails
             .map(|(k, p)| (k.to_string(), TauriBasePackageInfo::new(p)))
             .collect(),
         should_resolve: unity_project.should_resolve(),
+        display_name: unity_project.detect_display_name().await,
     })
 }
 
@@ -515,14 +526,15 @@ pub async fn project_open_unity(
     let mut custom_args: Option<Vec<String>> = None;
 
     {
-        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-        if let Some(project) = connection.find_project(project_path.as_ref())? {
+        let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+        if let Some(project) = projects.find_project(project_path.as_ref())? {
             custom_args = project
                 .custom_unity_args()
                 .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
         }
-        connection.update_project_last_modified(project_path.as_ref())?;
-        connection.save(io.inner()).await?;
+        projects
+            .update_project_last_modified(project_path.as_ref())
+            .await?;
     }
 
     let project_path_key = PathBuf::from(&project_path);
@@ -804,8 +816,8 @@ pub async fn project_get_custom_unity_args(
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
-    let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref())? {
+    let projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    if let Some(project) = projects.find_project(project_path.as_ref())? {
         Ok(project
             .custom_unity_args()
             .map(|x| x.iter().map(ToOwned::to_owned).collect()))
@@ -821,19 +833,10 @@ pub async fn project_set_custom_unity_args(
     project_path: String,
     args: Option<Vec<String>>,
 ) -> Result<bool, RustError> {
-    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
-        if let Some(args) = args {
-            project.set_custom_unity_args(args);
-        } else {
-            project.clear_custom_unity_args();
-        }
-        connection.update_project(&project);
-        connection.save(io.inner()).await?;
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+    let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    Ok(projects
+        .set_custom_unity_args(&project_path, args.as_deref())
+        .await?)
 }
 
 #[tauri::command]
@@ -842,8 +845,8 @@ pub async fn project_get_unity_path(
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<String>, RustError> {
-    let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref())? {
+    let projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    if let Some(project) = projects.find_project(project_path.as_ref())? {
         Ok(project.unity_path().map(ToOwned::to_owned))
     } else {
         Ok(None)
@@ -857,17 +860,48 @@ pub async fn project_set_unity_path(
     project_path: String,
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
-    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
-        if let Some(unity_path) = unity_path {
-            project.set_unity_path(unity_path);
-        } else {
-            project.clear_unity_path();
-        }
-        connection.update_project(&project);
-        connection.save(io.inner()).await?;
-        Ok(true)
-    } else {
-        Ok(false)
+    let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    Ok(projects
+        .set_unity_path(&project_path, unity_path.as_deref())
+        .await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn project_clear_display_name(
+    io: State<'_, DefaultEnvironmentIo>,
+    project_path: String,
+) -> Result<bool, RustError> {
+    let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    let success = projects.set_display_name(&project_path, None).await?;
+    if success {
+        let project_name_file =
+            Path::new(project_path.as_str()).join("UserSettings/ProjectName.txt");
+        io.remove_file(&project_name_file).await?;
     }
+    Ok(success)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn project_set_display_name(
+    io: State<'_, DefaultEnvironmentIo>,
+    project_path: String,
+    display_name: String,
+) -> Result<bool, RustError> {
+    let mut projects = ProjectManagement::start_no_migration(io.inner()).await?;
+    let success = projects
+        .set_display_name(&project_path, Some(&display_name))
+        .await?;
+    if success {
+        let project_name_file =
+            Path::new(project_path.as_str()).join("UserSettings/ProjectName.txt");
+
+        if let Some(parent) = project_name_file.parent() {
+            io.create_dir_all(parent).await?;
+        }
+        io.write(&project_name_file, display_name.as_bytes())
+            .await?;
+    }
+    Ok(success)
 }

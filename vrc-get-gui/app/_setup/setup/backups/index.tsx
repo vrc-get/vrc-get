@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +19,6 @@ import {
 import { CardDescription } from "@/components/ui/card";
 import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
-import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { type BodyProps, SetupPageBase } from "../-setup-page-base";
@@ -20,16 +28,10 @@ export const Route = createFileRoute("/_setup/setup/backups/")({
 });
 
 function Page() {
-	const shouldInstallDeepLink = useGlobalInfo().shouldInstallDeepLink;
-
 	return (
 		<SetupPageBase
 			heading={tc("setup:backups:heading")}
 			Body={Body}
-			nextPage={
-				shouldInstallDeepLink ? "/setup/system-setting" : "/setup/finish"
-			}
-			prevPage={"/setup/project-path"}
 			pageId={"Backups"}
 		/>
 	);

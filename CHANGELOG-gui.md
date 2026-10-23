@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog].
 - Project launch buttons now show when Unity is opening or running and can bring open Unity Editor windows to the foreground on Windows, macOS, and Linux. [`#3109`](https://github.com/vrc-get/vrc-get/pull/3109) `#3153`
 
 ### Changed
+- Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
+- Changed license of this project to MPL-2.0 `#3231`
+- Changed how the Project List is managed `#3184`
+  - Added a project list for ALCOM and logic to sync it with VCC's project list.
+  - Added a configuration option for the project list syncing mode.
+- Use display name from Unity Hub on the Project List `#2657`
 
 ### Deprecated
 
@@ -23,6 +29,8 @@ The format is based on [Keep a Changelog].
 - Improved compatibility with better compatibility with tools resizes window on launch `#3157`
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
+- `vcc:` Deep Linking not working on macOS `#3211`
+- Creating project mignt fail without any dialog `#3232`
 
 ### Security
 

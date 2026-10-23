@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import {
 	queryOptions,
 	useMutation,
@@ -15,6 +24,7 @@ import {
 	OpenUnityButtonWidthSizer,
 } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -136,7 +146,9 @@ export function ProjectRow({
 									<TooltipTriggerIfValid
 										className={"text-left select-text cursor-auto w-full"}
 									>
-										<p className="font-normal whitespace-pre">{project.name}</p>
+										<p className="font-normal whitespace-pre">
+											{project.display_name || project.name}
+										</p>
 										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
 											{project.path}
 										</p>
@@ -259,6 +271,14 @@ export function ProjectRow({
 									disabled={removed || !(is_valid ?? true)}
 								>
 									{tc("projects:menuitem:copy project")}
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() =>
+										openSingleDialog(SetProjectDisplayNameDialog, { project })
+									}
+									disabled={removed || !(is_valid ?? true)}
+								>
+									{tc("projects:set project display name")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() =>
@@ -575,17 +595,17 @@ export function useSetProjectFavoriteMutation() {
 		onMutate: async (project) => {
 			await queryClient.cancelQueries(environmentProjects);
 
-			const previousData = queryClient.getQueryData<TauriProject[]>(
+			const previousData = queryClient.getQueryData(
 				environmentProjects.queryKey,
 			);
 
 			if (previousData !== undefined) {
-				queryClient.setQueryData<TauriProject[]>(
-					environmentProjects.queryKey,
-					previousData.map((v) =>
+				queryClient.setQueryData(environmentProjects.queryKey, {
+					...previousData,
+					projects: previousData.projects.map((v) =>
 						v.path === project.path ? { ...v, favorite: project.favorite } : v,
 					),
-				);
+				});
 			}
 
 			return previousData;
