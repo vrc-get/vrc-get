@@ -29,10 +29,17 @@ The format is based on [Keep a Changelog].
 - Improved compatibility with better compatibility with tools resizes window on launch `#3157`
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
-- `vcc:` Deep Linking not working on macOS `#3211`
-- Creating project mignt fail without any dialog `#3232`
 
 ### Security
+
+## [1.1.9] - 2026-10-23
+### Changed
+- Upgraded rustls-webpki to 0.103.16 (HotFix)
+  - Addresses recent eMudhra intermediate CA key compromise (No single CVE number)
+
+### Fixed
+- `vcc:` Deep Linking not working on macOS (backports [`#3211`](https://github.com/vrc-get/vrc-get/pull/3211))
+- Creating project mignt fail without any dialog (backports [`#3232`](https://github.com/vrc-get/vrc-get/pull/3232))
 
 ## [1.1.8] - 2026-07-11
 ### Fixed
@@ -747,7 +754,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.8...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.9...HEAD
+[1.1.9]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.8...gui-v1.1.9
 [1.1.8]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.7...gui-v1.1.8
 [1.1.7]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.6...gui-v1.1.7
 [1.1.6]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.5...gui-v1.1.6
