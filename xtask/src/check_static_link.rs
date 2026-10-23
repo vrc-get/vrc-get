@@ -184,7 +184,7 @@ fn process_elf_64<E: Endian>(binary: &[u8]) -> Result<bool> {
     for x in parsed.imports()? {
         println!(
             "dynamic importing symbol: {}",
-            std::str::from_utf8(x.name()).unwrap_or("<unknown>")
+            std::str::from_utf8(x?.name().name().unwrap()).unwrap_or("<unknown>")
         );
         success = false;
     }
