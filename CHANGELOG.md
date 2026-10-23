@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Upgraded rustls-webpki to 0.103.16 (HotFix)
+  - Addresses recent eMudhra intermediate CA key compromise (No single CVE number)
 
 ### Deprecated
 
