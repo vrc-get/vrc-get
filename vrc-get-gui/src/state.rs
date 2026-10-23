@@ -1,8 +1,18 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 mod changes;
 mod config;
 mod packages;
 mod settings;
 mod templates;
+mod unity;
 mod updater;
 
 pub use changes::*;
@@ -10,6 +20,7 @@ pub use config::*;
 pub use packages::*;
 pub use settings::*;
 pub use templates::*;
+pub use unity::*;
 pub use updater::*;
 
 pub fn new_http_client() -> reqwest::Client {

@@ -23,7 +23,8 @@ export const commands = {
 	environmentSetProjectViewMode: (projectViewMode: string) => __TAURI_INVOKE<null>("environment_set_project_view_mode", { projectViewMode }),
 	environmentSetUnityHubAccessMethod: (unityHubAccessMethod: UnityHubAccessMethod) => __TAURI_INVOKE<null>("environment_set_unity_hub_access_method", { unityHubAccessMethod }),
 	environmentSetTemplateFavorite: (templateId: string, favorite: boolean) => __TAURI_INVOKE<null>("environment_set_template_favorite", { templateId, favorite }),
-	environmentProjects: () => __TAURI_INVOKE<TauriProject[]>("environment_projects"),
+	environmentProjects: () => __TAURI_INVOKE<TauriProjects>("environment_projects"),
+	environmentFixProjectListMismatch: (pathsToRestoreProjectsFromLitedb: string[], pathsToRestoreProjectsFromSqlite: string[], pathsToRemoveProjectsFromLitedb: string[], pathsToRemoveProjectsFromSqlite: string[]) => __TAURI_INVOKE<null>("environment_fix_project_list_mismatch", { pathsToRestoreProjectsFromLitedb, pathsToRestoreProjectsFromSqlite, pathsToRemoveProjectsFromLitedb, pathsToRemoveProjectsFromSqlite }),
 	environmentAddProjectWithPicker: () => __TAURI_INVOKE<TauriAddProjectWithPickerResult>("environment_add_project_with_picker"),
 	environmentRemoveProjectByPath: (projectPath: string, directory: boolean) => __TAURI_INVOKE<null>("environment_remove_project_by_path", { projectPath, directory }),
 	environmentCopyProjectForMigration: (channel: string, sourcePath: string) => __TAURI_INVOKE<AsyncCallResult<TauriCopyProjectProgress, string>>("environment_copy_project_for_migration", { channel, sourcePath }),
@@ -63,6 +64,7 @@ export const commands = {
 	environmentSetUseAlcomForVccProtocol: (useAlcomForVccProtocol: boolean) => __TAURI_INVOKE<null>("environment_set_use_alcom_for_vcc_protocol", { useAlcomForVccProtocol }),
 	environmentGetDefaultUnityArguments: () => __TAURI_INVOKE<string[]>("environment_get_default_unity_arguments"),
 	environmentSetDefaultUnityArguments: (defaultUnityArguments: string[] | null) => __TAURI_INVOKE<null>("environment_set_default_unity_arguments", { defaultUnityArguments }),
+	environmentSetProjectListSyncMode: (projectListSyncMode: TauriSyncWithLitedbMode) => __TAURI_INVOKE<null>("environment_set_project_list_sync_mode", { projectListSyncMode }),
 	environmentExportTemplate: (id: string) => __TAURI_INVOKE<null>("environment_export_template", { id }),
 	environmentGetAlcomTemplate: (id: string) => __TAURI_INVOKE<TauriAlcomTemplate>("environment_get_alcom_template", { id }),
 	environmentPickUnityPackages: () => __TAURI_INVOKE<string[]>("environment_pick_unity_packages"),
@@ -86,11 +88,15 @@ export const commands = {
 	projectMigrateProjectToVpm: (projectPath: string) => __TAURI_INVOKE<null>("project_migrate_project_to_vpm", { projectPath }),
 	projectOpenUnity: (projectPath: string, unityPath: string) => __TAURI_INVOKE<boolean>("project_open_unity", { projectPath, unityPath }),
 	projectIsUnityLaunching: (projectPath: string) => __TAURI_INVOKE<boolean>("project_is_unity_launching", { projectPath }),
+	projectUnityStatus: (projectPath: string) => __TAURI_INVOKE<TauriUnityProjectStatus>("project_unity_status", { projectPath }),
+	projectBringUnityToFront: (projectPath: string) => __TAURI_INVOKE<TauriUnityWindowActionResult>("project_bring_unity_to_front", { projectPath }),
 	projectCreateBackup: (channel: string, projectPath: string) => __TAURI_INVOKE<AsyncCallResult<TauriCreateBackupProgress, null>>("project_create_backup", { channel, projectPath }),
 	projectGetCustomUnityArgs: (projectPath: string) => __TAURI_INVOKE<string[] | null>("project_get_custom_unity_args", { projectPath }),
 	projectSetCustomUnityArgs: (projectPath: string, args: string[] | null) => __TAURI_INVOKE<boolean>("project_set_custom_unity_args", { projectPath, args }),
 	projectGetUnityPath: (projectPath: string) => __TAURI_INVOKE<string | null>("project_get_unity_path", { projectPath }),
 	projectSetUnityPath: (projectPath: string, unityPath: string | null) => __TAURI_INVOKE<boolean>("project_set_unity_path", { projectPath, unityPath }),
+	projectSetDisplayName: (projectPath: string, displayName: string) => __TAURI_INVOKE<boolean>("project_set_display_name", { projectPath, displayName }),
+	projectClearDisplayName: (projectPath: string) => __TAURI_INVOKE<boolean>("project_clear_display_name", { projectPath }),
 	utilOpen: (path: string, ifNotExists: OpenOptions) => __TAURI_INVOKE<null>("util_open", { path, ifNotExists }),
 	utilOpenUrl: (url: string) => __TAURI_INVOKE<null>("util_open_url", { url }),
 	utilOpenUrlNocheck: (url: string) => __TAURI_INVOKE<null>("util_open_url_nocheck", { url }),
@@ -147,10 +153,11 @@ export type GlobalInfo = {
 	defaultUnityArguments: string[],
 	vpmHomeFolder: string,
 	checkForUpdates: boolean,
+	setupPages: ([SetupPages, string])[],
 	shouldInstallDeepLink: boolean,
 };
 
-// Errors that is expected to be handled on the GUI side
+/**  Errors that is expected to be handled on the GUI side */
 export type HandleableRustError = { type: "MissingDependencies"; dependencies: ([string, string])[] };
 
 export type InstallUpgradeProgress = { type: "DownloadProgress"; received: number; total: number | null } | { type: "DownloadComplete" };
@@ -182,7 +189,9 @@ export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace";
 
 export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists";
 
-export type RustError = { type: "Unrecoverable"; message: string } | { type: "Localizable" } & (LocalizableRustError) | { type: "Handleable"; message: string; body: HandleableRustError };
+export type RustError = ({ type: "Unrecoverable"; message: string }) & { body?: never } | {
+	type: "Localizable",
+} & LocalizableRustError | { type: "Handleable"; message: string; body: HandleableRustError };
 
 export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting";
 
@@ -254,6 +263,7 @@ export type TauriEnvironmentSettings = {
 	gui_compact: boolean,
 	unity_hub_access_method: UnityHubAccessMethod,
 	exclude_vpm_packages_from_backup: boolean,
+	project_list_sync_mode: TauriSyncWithLitedbMode,
 };
 
 export type TauriImportDuplicated = TauriImportDuplicated_Serialize | TauriImportDuplicated_Deserialize;
@@ -294,7 +304,7 @@ export type TauriImportTemplateResult_Serialize = {
 
 export type TauriPackage = {
 	source: TauriPackageSource,
-} & (TauriBasePackageInfo);
+} & TauriBasePackageInfo;
 
 export type TauriPackageChange = ({ InstallNew: TauriBasePackageInfo }) & { Remove?: never } | ({ Remove: TauriRemoveReason }) & { InstallNew?: never };
 
@@ -302,6 +312,10 @@ export type TauriPackageSource = "LocalUser" | { Remote: {
 	id: string,
 	display_name: string,
 } };
+
+export type TauriPartialProject = {
+	path: string,
+};
 
 export type TauriPendingProjectChanges = {
 	changes_version: number,
@@ -329,9 +343,10 @@ export type TauriProject = {
 	unity_revision: string | null,
 	last_modified: number,
 	created_at: number,
+	display_name: string | null,
 	favorite: boolean,
 	is_exists: boolean,
-	is_valid: boolean | null,
+	is_valid: boolean,
 };
 
 export type TauriProjectCreationInformation = {
@@ -349,6 +364,7 @@ export type TauriProjectDetails = {
 	unity_revision: string | null,
 	installed_packages: ([string, TauriBasePackageInfo])[],
 	should_resolve: boolean,
+	display_name: string | null,
 };
 
 export type TauriProjectDirCheckResult = "InvalidNameForFolderName" | "MayCompatibilityProblem" | "WideChar" | "AlreadyExists" | "Ok";
@@ -364,6 +380,12 @@ export type TauriProjectTemplateInfo = {
 };
 
 export type TauriProjectType = "Unknown" | "LegacySdk2" | "LegacyWorlds" | "LegacyAvatars" | "UpmWorlds" | "UpmAvatars" | "UpmStarter" | "Worlds" | "Avatars" | "VpmStarter";
+
+export type TauriProjects = {
+	projects: TauriProject[],
+	only_in_vcc: TauriPartialProject[],
+	only_in_vrc_get: TauriPartialProject[],
+};
 
 export type TauriRemoteRepositoryInfo = {
 	display_name: string,
@@ -386,11 +408,22 @@ export type TauriRepositoryDescriptor = {
 	headers: { [key in string]: string },
 };
 
+export type TauriSyncWithLitedbMode = "ProjectsUnion" | "AskForUser" | "TrustLitedb";
+
+export type TauriUnityProjectStatus = {
+	status: TauriUnityProjectStatusKind,
+	can_bring_to_front: boolean,
+};
+
+export type TauriUnityProjectStatusKind = "Closed" | "Opening" | "Open";
+
 export type TauriUnityVersions = {
 	unity_paths: ([string, string, boolean])[],
 	recommended_version: string,
 	install_recommended_version_link: string,
 };
+
+export type TauriUnityWindowActionResult = "BroughtToFront" | "FailedToBringToFront" | "WindowNotFound" | "Unsupported";
 
 export type TauriUpdatedRealProjectInfo = {
 	path: string,
@@ -398,6 +431,7 @@ export type TauriUpdatedRealProjectInfo = {
 	project_type: TauriProjectType,
 	unity: string,
 	unity_revision: string | null,
+	display_name: string | null,
 };
 
 export type TauriUserPackage = {
@@ -426,9 +460,9 @@ export type TauriVersion = {
 };
 
 export type UnityHubAccessMethod = 
-// Reads config files of Unity Hub
+/**  Reads config files of Unity Hub */
 "ReadConfig" | 
-// Launches headless Unity Hub in background
+/**  Launches headless Unity Hub in background */
 "CallHub";
 
 export type UpdaterStatus = 

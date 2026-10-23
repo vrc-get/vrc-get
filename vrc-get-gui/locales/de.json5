@@ -24,9 +24,9 @@
     // Used in place of date part but not known
     "general:unknown date": "Unbekanntes Datum",
 
-    "general:dialog:select file or directory header": "Datei oder Ordner auswählen",
-    "general:dialog:select file or directory": "Bitte Datei oder Ordner auswählen.",
-    "general:toast:invalid directory": "Ungültiger Ordner wurde ausgewählt.",
+    "general:dialog:select file or directory header": "Datei oder Verzeichnis auswählen",
+    "general:dialog:select file or directory": "Bitte Datei oder Verzeichnis auswählen.",
+    "general:toast:invalid directory": "Ungültiges Verzeichnis wurde ausgewählt.",
     "general:toast:invalid file": "Ungültige Datei wurde ausgewählt.",
 
     "general:toast:not supported": "{{name}} wird noch nicht unterstützt.",
@@ -63,6 +63,7 @@
     "setup:back": "Zurück",
 
     "setup:steps card:Appearance": "Darstellung",
+    "setup:appearance:heading": "Darstellung",
     "setup:appearance:description": "Bitte stelle zuerst die Darstellung ein.<br/>Du kannst dies später in den Einstellungen ändern.",
 
     "setup:steps card:UnityHub": "Unity Hub",
@@ -126,6 +127,9 @@
     "projects:type:avatars": "Avatar",
     "projects:type:legacy": "Veraltet",
     "projects:button:open unity": "Öffnen",
+    "projects:button:opening unity": "Öffne...",
+    "projects:button:bring unity to front": "Hervorholen",
+    "projects:button:unity is open": "Bereits offen",
     "projects:button:manage": "Verwalten",
     "projects:backup": "Backup",
     "projects:menuitem:open directory": "Projektverzeichnis öffnen",
@@ -156,6 +160,9 @@
     "projects:toast:project created": "Projekt wurde erfolgreich erstellt.",
 
     "projects:toast:opening unity...": "Öffne Unity...",
+    "projects:toast:bring unity to front failed": "ALCOM konnte das Unity Fenster nicht hervorholen.",
+    "projects:toast:unity window not found": "Kein Unity Fenster für dieses Projekt gefunden.",
+    "projects:toast:bring unity to front unsupported": "Das Hervorholen eines Unity-Fensters wird auf dieser Plattform nicht unterstützt.",
     "projects:dialog:unity not found": "Unity wurde nicht gefunden",
     "projects:dialog:unity version of the project not found": "Dieses Projekt verwendet Unity {{unity}}, welches nicht installiert ist.<br>Bitte installiere Unity {{unity}} über Unity Hub und starte ALCOM neu.",
     "projects:dialog:open unity hub": "Öffne Unity Hub",
@@ -318,7 +325,7 @@
     "projects:manage:dialog:unity version conflicts_other": "Es gibt mehrere Unity Versionskonflikte",
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> unterstützt deine Unity Version nicht.",
     // TODO: plurals
-    "projects:manage:dialog:files and directories are removed as legacy": "Die folgenden veralteten Daten und Ordner werden entfernt",
+    "projects:manage:dialog:files and directories are removed as legacy": "Die folgenden veralteten Daten und Verzeichnisse werden entfernt",
     "projects:manage:dialog:packages installed in the following directories will be removed": "Pakete die in diesem Verzeichnis installiert sind werden entfernt.",
     "projects:manage:button:see changelog": "Changelog anzeigen",
     "projects:manage:button:apply changes": "Änderungen anwenden",
@@ -518,7 +525,7 @@
     "settings:files and directories:description": "Schneller Zugriff auf relevante Dateien und Verzeichnisse von ALCOM.",
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
-    "settings:button:open logs": "Log Ordner",
+    "settings:button:open logs": "Log Verzeichnis",
     "settings:button:open vcc templates": "VCC Templates Directory",
 
     "settings:check update": "Suche nach Updates",

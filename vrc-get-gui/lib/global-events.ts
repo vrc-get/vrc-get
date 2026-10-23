@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import { queryOptions } from "@tanstack/react-query";
 import { listen as tauriListen } from "@tauri-apps/api/event";
 import { useSyncExternalStore } from "react";
@@ -16,18 +25,19 @@ void tauriListen<TauriUpdatedRealProjectInfo>("projects-updated", (e) => {
 	});
 	queryClient.setQueryData(options.queryKey, (old) => {
 		if (old === undefined) return undefined;
-		const index = old.findIndex((p) => p.path === e.payload.path);
+		const index = old.projects.findIndex((p) => p.path === e.payload.path);
 		if (index === -1) return old;
-		const project = { ...old[index] };
+		const project = { ...old.projects[index] };
 		project.is_valid = e.payload.is_valid;
 		if (e.payload.is_valid) {
 			project.unity = e.payload.unity;
 			project.project_type = e.payload.project_type;
 			project.unity_revision = e.payload.unity_revision;
+			project.display_name = e.payload.display_name;
 		}
-		const newList = [...old];
+		const newList = [...old.projects];
 		newList[index] = project;
-		return newList;
+		return { ...old, projects: newList };
 	});
 });
 

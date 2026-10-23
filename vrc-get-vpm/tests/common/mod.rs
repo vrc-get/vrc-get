@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 // since this moduke is shared between multiple tests, we need to allow dead code and unused imports
 #![allow(dead_code)]
 #![allow(unused_imports)]
@@ -117,4 +126,12 @@ pub fn get_temp_path(base_name: &str) -> PathBuf {
         env!("CARGO_CRATE_NAME"),
         std::panic::Location::caller().line()
     ))
+}
+
+pub fn init_log() {
+    env_logger::Builder::new()
+        .filter_level(log::LevelFilter::Trace)
+        .is_test(true)
+        .try_init()
+        .ok();
 }

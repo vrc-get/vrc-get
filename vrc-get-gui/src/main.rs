@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -10,9 +19,9 @@ mod config;
 mod deep_link_support;
 mod logging;
 mod templates;
+#[cfg(any(windows, target_os = "macos"))]
+mod unity_process;
 
-#[cfg_attr(windows, path = "os_windows.rs")]
-#[cfg_attr(not(windows), path = "os_posix.rs")]
 mod os;
 mod state;
 mod updater;
@@ -68,6 +77,7 @@ fn main() {
         .manage(state::PackagesState::new())
         .manage(state::ChangesState::new())
         .manage(state::TemplatesState::new())
+        .manage(state::UnityProjectState::new())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {

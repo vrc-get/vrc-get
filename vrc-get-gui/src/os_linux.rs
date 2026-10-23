@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 // linux-specific functionality.
 
 use std::collections::HashSet;
@@ -12,8 +21,17 @@ use arc_swap::ArcSwapOption;
 use nix::libc::uname;
 use tauri::Manager;
 
+use crate::os::BringUnityToFrontResult;
+
+pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = false;
+pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = false;
+
 pub(crate) async fn start_command(name: &OsStr, path: &OsStr, args: &[&OsStr]) -> io::Result<()> {
     super::start_command_posix(name, path, args).await
+}
+
+pub(super) fn bring_unity_to_front(_project_path: &Path) -> io::Result<BringUnityToFrontResult> {
+    Ok(BringUnityToFrontResult::Unsupported)
 }
 
 pub(super) fn compute_os_info() -> String {

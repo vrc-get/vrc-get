@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronsUpDown, ChevronUp, Star } from "lucide-react";
@@ -9,7 +18,7 @@ import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString } from "@/lib/version";
-import { ProjectRow } from "./-project-row";
+import { ProjectRow, ProjectRowWidthSizer } from "./-project-row";
 
 export const sortings = [
 	"createdAt",
@@ -192,6 +201,7 @@ export function ProjectsTableCard({
 				</tr>
 			</thead>
 			<tbody>
+				<ProjectRowWidthSizer />
 				{projectsShown.map((project) => (
 					<ProjectRow key={project.path} project={project} loading={loading} />
 				))}
@@ -205,8 +215,11 @@ export function sortSearchProjects(
 	search: string,
 	sorting: Sorting,
 ): TauriProject[] {
-	const searched = projects.filter((project) =>
-		project.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
+	const searchString = search?.toLowerCase() ?? "";
+	const searched = projects.filter(
+		(project) =>
+			project.name.toLowerCase().includes(searchString) ||
+			project.display_name?.toLowerCase().includes(searchString),
 	);
 
 	searched.sort((a, b) => b.last_modified - a.last_modified);
@@ -225,10 +238,14 @@ export function sortSearchProjects(
 			searched.sort((a, b) => a.last_modified - b.last_modified);
 			break;
 		case "name":
-			searched.sort((a, b) => a.name.localeCompare(b.name));
+			searched.sort((a, b) =>
+				(a.display_name || a.name).localeCompare(b.display_name || b.name),
+			);
 			break;
 		case "nameReversed":
-			searched.sort((a, b) => b.name.localeCompare(a.name));
+			searched.sort((a, b) =>
+				(b.display_name || b.name).localeCompare(a.display_name || a.name),
+			);
 			break;
 		case "type":
 			searched.sort((a, b) =>

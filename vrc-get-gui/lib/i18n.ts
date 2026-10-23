@@ -1,23 +1,38 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import i18next, { t as i18nextt, type Resource } from "i18next";
 import React from "react";
 import { initReactI18next, Trans, useTranslation } from "react-i18next";
 import type { TransProps } from "react-i18next/TransWithoutContext";
 import { ExternalLink } from "@/components/ExternalLink";
+import { commands } from "@/lib/bindings";
 import globalInfo from "@/lib/global-info";
+import { queryClient } from "@/lib/query-client";
 import deJson from "@/locales/de.json5";
 import enJson from "@/locales/en.json5";
+import esJson from "@/locales/es.json5";
 import frJson from "@/locales/fr.json5";
 import jaJson from "@/locales/ja.json5";
 import koJson from "@/locales/ko.json5";
+import ruJson from "@/locales/ru.json5";
 import zh_hansJson from "@/locales/zh_hans.json5";
 import zh_hantJson from "@/locales/zh_hant.json5";
 
 const languageResources = {
 	en: enJson,
+	es: esJson,
 	de: deJson,
 	ja: jaJson,
 	ko: koJson,
 	fr: frJson,
+	ru: ruJson,
 	zh_hans: zh_hansJson,
 	zh_hant: zh_hantJson,
 };
@@ -41,6 +56,20 @@ i18next.changeLanguage(globalInfo.language);
 
 export default i18next;
 export const languages = Object.keys(languageResources);
+
+// dev-only language switcher helpers (see SideBar.tsx / providers.tsx)
+export function languageAt(delta: number): string {
+	const index =
+		(languages.indexOf(i18next.language) + delta) % languages.length;
+	return languages.at(index) ?? languages[0];
+}
+
+export async function cycleLanguage(delta: number) {
+	const next = languageAt(delta);
+	await i18next.changeLanguage(next);
+	await commands.environmentSetLanguage(next);
+	await queryClient.invalidateQueries({ queryKey: ["environmentLanguage"] });
+}
 
 function VGTrans(props: TransProps<string>) {
 	const components = {
