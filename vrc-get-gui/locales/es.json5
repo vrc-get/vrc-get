@@ -210,9 +210,9 @@
     "projects:dialog:removing...": "Eliminando el proyecto...",
     "projects:toast:project removed": "El proyecto se eliminó con éxito.",
 
-     "projects:set project display name": "Asignar alias del proyecto",
-     "projects:warn set project display name": "Al asignar un alias al proyecto, no afectará al nombre del directorio del mismo.",
-     "projects:toast:project display name changed": "El alias del proyecto se cambió con éxito.",
+    "projects:set project display name": "Asignar alias del proyecto",
+    "projects:warn set project display name": "Al asignar un alias al proyecto, no afectará al nombre del directorio del mismo.",
+    "projects:toast:project display name changed": "El alias del proyecto se cambió con éxito.",
 
     "projects:dialog:mismatch-found": "El listado de proyectos en VCC y ALCOM no coincide",
     "projects:dialog:mismatch-found:description": "{{only_in_vcc}} proyectos están en VCC pero no en ALCOM, y {{only_in_vrc_get}} proyectos están en ALCOM pero no en VCC.<br/>Selecciona qué proyectos mantener o eliminar.",
