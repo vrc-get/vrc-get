@@ -142,16 +142,20 @@ pub async fn cleanup_repos_folder(
     Ok(())
 }
 
-pub async fn remove_vrchat_repository_caches(io: &DefaultEnvironmentIo) -> io::Result<()> {
-    for path in [LOCAL_OFFICIAL_PATH, LOCAL_CURATED_PATH] {
-        match io.remove_file(path.as_ref()).await {
-            Ok(()) => {}
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-            Err(error) => return Err(error),
-        }
-    }
+pub async fn remove_official_repository_cache(io: &DefaultEnvironmentIo) -> io::Result<()> {
+    remove_repository_cache(io, LOCAL_OFFICIAL_PATH).await
+}
 
-    Ok(())
+pub async fn remove_curated_repository_cache(io: &DefaultEnvironmentIo) -> io::Result<()> {
+    remove_repository_cache(io, LOCAL_CURATED_PATH).await
+}
+
+async fn remove_repository_cache(io: &DefaultEnvironmentIo, path: &str) -> io::Result<()> {
+    match io.remove_file(path.as_ref()).await {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
 }
 
 async fn write_new_repo(

@@ -235,7 +235,10 @@ function PageBody() {
 	}).data;
 
 	const userRepos = result.data?.user_repositories;
-	const useVrchatRepositories = result.data?.use_vrchat_repositories ?? true;
+	const useOfficialRepository = result.data?.use_official_repository ?? true;
+	const useCuratedRepository = result.data?.use_curated_repository ?? true;
+	const builtInRepositoryCount =
+		Number(useOfficialRepository) + Number(useCuratedRepository);
 
 	const listIdMapRef = useRef<Map<string, string>>(new Map());
 
@@ -380,8 +383,8 @@ function PageBody() {
 	const activeVisualIndex = useMemo(() => {
 		if (!activeId) return 0;
 		const effectiveId = overId ?? activeId;
-		return orderedListIds.indexOf(effectiveId) + (useVrchatRepositories ? 2 : 0);
-	}, [activeId, overId, orderedListIds, useVrchatRepositories]);
+		return orderedListIds.indexOf(effectiveId) + builtInRepositoryCount;
+	}, [activeId, overId, orderedListIds, builtInRepositoryCount]);
 
 	function handleDragStart(event: DragStartEvent) {
 		setActiveId(event.active.id as string);
@@ -482,7 +485,8 @@ function PageBody() {
 							hiddenUserRepos={hiddenUserRepos}
 							theadRowRef={theadRowRef}
 							guiAnimation={guiAnimation}
-							useVrchatRepositories={useVrchatRepositories}
+							useOfficialRepository={useOfficialRepository}
+							useCuratedRepository={useCuratedRepository}
 							onToggleVisibility={(id, shown) =>
 								setHideRepository.mutate({ id, shown })
 							}
@@ -517,7 +521,8 @@ function RepositoryTableBody({
 	hiddenUserRepos,
 	theadRowRef,
 	guiAnimation,
-	useVrchatRepositories,
+	useOfficialRepository,
+	useCuratedRepository,
 	onToggleVisibility,
 	isDragActive,
 }: {
@@ -526,7 +531,8 @@ function RepositoryTableBody({
 	hiddenUserRepos: Set<string>;
 	theadRowRef: React.RefObject<HTMLTableRowElement | null>;
 	guiAnimation: boolean;
-	useVrchatRepositories: boolean;
+	useOfficialRepository: boolean;
+	useCuratedRepository: boolean;
 	onToggleVisibility: (id: string, shown: boolean) => void;
 	isDragActive: boolean;
 }) {
@@ -548,32 +554,35 @@ function RepositoryTableBody({
 				</tr>
 			</thead>
 			<tbody>
-				{useVrchatRepositories && (
-					<>
-						<RepositoryRow
-							repoId={"com.vrchat.repos.official"}
-							url={"https://packages.vrchat.com/official?download"}
-							displayName={tt("vpm repositories:source:official")}
-							hiddenUserRepos={hiddenUserRepos}
-							canRemove={false}
-							rowIndex={0}
-							guiAnimation={guiAnimation}
-							onToggleVisibility={onToggleVisibility}
-							isDragActive={isDragActive}
-						/>
-						<RepositoryRow
-							repoId={"com.vrchat.repos.curated"}
-							url={"https://packages.vrchat.com/curated?download"}
-							displayName={tt("vpm repositories:source:curated")}
-							hiddenUserRepos={hiddenUserRepos}
-							className={"border-b border-primary/10"}
-							canRemove={false}
-							rowIndex={1}
-							guiAnimation={guiAnimation}
-							onToggleVisibility={onToggleVisibility}
-							isDragActive={isDragActive}
-						/>
-					</>
+				{useOfficialRepository && (
+					<RepositoryRow
+						repoId={"com.vrchat.repos.official"}
+						url={"https://packages.vrchat.com/official?download"}
+						displayName={tt("vpm repositories:source:official")}
+						hiddenUserRepos={hiddenUserRepos}
+						className={
+							useCuratedRepository ? undefined : "border-b border-primary/10"
+						}
+						canRemove={false}
+						rowIndex={0}
+						guiAnimation={guiAnimation}
+						onToggleVisibility={onToggleVisibility}
+						isDragActive={isDragActive}
+					/>
+				)}
+				{useCuratedRepository && (
+					<RepositoryRow
+						repoId={"com.vrchat.repos.curated"}
+						url={"https://packages.vrchat.com/curated?download"}
+						displayName={tt("vpm repositories:source:curated")}
+						hiddenUserRepos={hiddenUserRepos}
+						className={"border-b border-primary/10"}
+						canRemove={false}
+						rowIndex={useOfficialRepository ? 1 : 0}
+						guiAnimation={guiAnimation}
+						onToggleVisibility={onToggleVisibility}
+						isDragActive={isDragActive}
+					/>
 				)}
 				<SortableContext
 					items={orderedListIds}
@@ -591,7 +600,11 @@ function RepositoryTableBody({
 								displayName={repo.display_name}
 								url={repo.url}
 								hiddenUserRepos={hiddenUserRepos}
-								rowIndex={(useVrchatRepositories ? 2 : 0) + index}
+								rowIndex={
+									Number(useOfficialRepository) +
+									Number(useCuratedRepository) +
+									index
+								}
 								guiAnimation={guiAnimation}
 								onToggleVisibility={onToggleVisibility}
 								isDragActive={isDragActive}
