@@ -21,7 +21,8 @@ use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
 use vrc_get_vpm::environment::{
-    SyncWithLitedbMode, VccDatabaseConnection, find_unity_hub, remove_vrchat_repository_caches,
+    SyncWithLitedbMode, VccDatabaseConnection, find_unity_hub, remove_curated_repository_cache,
+    remove_official_repository_cache,
 };
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
@@ -66,7 +67,8 @@ pub struct TauriEnvironmentSettings {
     unity_hub: String,
     unity_paths: Vec<(String, String, bool)>,
     show_prerelease_packages: bool,
-    use_vrchat_repositories: bool,
+    use_official_repository: bool,
+    use_curated_repository: bool,
     backup_format: String,
     release_channel: String,
     use_alcom_for_vcc_protocol: bool,
@@ -121,7 +123,8 @@ pub async fn environment_get_settings(
     let default_project_path;
     let project_backup_path;
     let show_prerelease_packages;
-    let use_vrchat_repositories;
+    let use_official_repository;
+    let use_curated_repository;
     let gui_animation;
     let gui_compact;
     let unity_hub_access_method;
@@ -165,7 +168,8 @@ pub async fn environment_get_settings(
         project_backup_path = crate::utils::project_backup_path(&mut settings).to_string();
         show_prerelease_packages = settings.show_prerelease_packages();
         project_list_sync_mode = settings.project_list_sync_mode().into();
-        use_vrchat_repositories = !settings.ignore_vrchat_repositories();
+        use_official_repository = !settings.ignore_official_repository();
+        use_curated_repository = !settings.ignore_curated_repository();
 
         settings.save().await?;
     }
@@ -176,7 +180,8 @@ pub async fn environment_get_settings(
         unity_hub,
         unity_paths,
         show_prerelease_packages,
-        use_vrchat_repositories,
+        use_official_repository,
+        use_curated_repository,
         backup_format,
         release_channel,
         use_alcom_for_vcc_protocol,
@@ -448,19 +453,39 @@ pub async fn environment_set_show_prerelease_packages(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn environment_set_use_vrchat_repositories(
+pub async fn environment_set_use_official_repository(
     io: State<'_, DefaultEnvironmentIo>,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     value: bool,
 ) -> Result<(), RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
-    settings.set_ignore_vrchat_repositories(!value);
+    settings.set_ignore_official_repository(!value);
     settings.save().await?;
     packages.clear_cache();
 
     if !value {
-        remove_vrchat_repository_caches(io.inner()).await?;
+        remove_official_repository_cache(io.inner()).await?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_use_curated_repository(
+    io: State<'_, DefaultEnvironmentIo>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    value: bool,
+) -> Result<(), RustError> {
+    let mut settings = settings.load_mut(io.inner()).await?;
+    settings.set_ignore_curated_repository(!value);
+    settings.save().await?;
+    packages.clear_cache();
+
+    if !value {
+        remove_curated_repository_cache(io.inner()).await?;
     }
 
     Ok(())

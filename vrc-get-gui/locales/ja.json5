@@ -493,8 +493,11 @@
     "settings:show prerelease": "プレリリース版のパッケージを表示する",
     "settings:show prerelease description": "この設定を有効にすると、パッケージのバージョン一覧にプレリリース版のものが表示されるようになり、パッケージの依存関係を解決する際にもそれらが使用されるようになります。<br>プレリリース版のパッケージは正式リリース前の動作確認等に用いられるものであり、安定版よりバグに遭遇しやすくなります。",
 
-    "settings:use vrchat repositories": "VRChat標準リポジトリを使用する",
-    "settings:use vrchat repositories description": "無効にすると、ALCOMはVRChat公式およびCuratedリポジトリを使用せず、キャッシュファイルを削除します。ユーザーが追加したリポジトリには影響しません。",
+    "settings:vrchat repositories experimental": "VRChat標準リポジトリを無効にする機能は実験段階であり、今後動作が変更される可能性があります。",
+    "settings:use official repository": "VRChat Officialリポジトリを使用する",
+    "settings:use official repository description": "無効にすると、ALCOMはVRChat Officialリポジトリを使用せず、キャッシュファイルを削除します。ユーザーが追加したリポジトリには影響しません。",
+    "settings:use curated repository": "VRChat Curatedリポジトリを使用する",
+    "settings:use curated repository description": "無効にすると、ALCOMはVRChat Curatedリポジトリを使用せず、キャッシュファイルを削除します。ユーザーが追加したリポジトリには影響しません。",
 
     "settings:dialog:show prerelease packages": "プレリリース版のパッケージを表示する",
     "settings:dialog:show prerelease packages description": "プレリリース版のパッケージを使用すると、安定版よりバグに遭遇しやすくなります。<br>プレリリース版のパッケージを表示してもよろしいですか？",

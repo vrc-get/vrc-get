@@ -79,7 +79,8 @@ pub struct TauriRepositoriesInfo {
     hidden_user_repositories: Vec<String>,
     hide_local_user_packages: bool,
     show_prerelease_packages: bool,
-    use_vrchat_repositories: bool,
+    use_official_repository: bool,
+    use_curated_repository: bool,
 }
 
 #[tauri::command]
@@ -95,7 +96,8 @@ pub async fn environment_repositories_info(
     drop(config);
 
     let settings = settings.load(io.inner()).await?;
-    let use_vrchat_repositories = !settings.ignore_vrchat_repositories();
+    let use_official_repository = !settings.ignore_official_repository();
+    let use_curated_repository = !settings.ignore_curated_repository();
     let user_repositories = settings
         .get_user_repos()
         .iter()
@@ -118,7 +120,8 @@ pub async fn environment_repositories_info(
         hidden_user_repositories,
         hide_local_user_packages,
         show_prerelease_packages,
-        use_vrchat_repositories,
+        use_official_repository,
+        use_curated_repository,
     })
 }
 

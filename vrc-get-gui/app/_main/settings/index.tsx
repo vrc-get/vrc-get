@@ -647,16 +647,18 @@ function PackagesCard() {
 	const queryClient = useQueryClient();
 
 	const {
-		data: { showPrereleasePackages },
+		data: {
+			showPrereleasePackages,
+			useOfficialRepository,
+			useCuratedRepository,
+		},
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			showPrereleasePackages: data.show_prerelease_packages,
+			useOfficialRepository: data.use_official_repository,
+			useCuratedRepository: data.use_curated_repository,
 		}),
-	});
-	const { data: useVrchatRepositories } = useSuspenseQuery({
-		...environmentGetSettings,
-		select: (data) => data.use_vrchat_repositories,
 	});
 
 	const clearPackageCache = useMutation({
@@ -699,9 +701,9 @@ function PackagesCard() {
 		},
 	});
 
-	const setUseVrchatRepositories = useMutation({
+	const setUseOfficialRepository = useMutation({
 		mutationFn: async (value: boolean) =>
-			await commands.environmentSetUseVrchatRepositories(value),
+			await commands.environmentSetUseOfficialRepository(value),
 		onError: (e) => {
 			console.error(e);
 			toastThrownError(e);
@@ -710,7 +712,27 @@ function PackagesCard() {
 			await Promise.all([
 				queryClient.invalidateQueries(environmentGetSettings),
 				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
-				queryClient.invalidateQueries({ queryKey: ["environmentRepositoriesInfo"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
+			]);
+		},
+	});
+
+	const setUseCuratedRepository = useMutation({
+		mutationFn: async (value: boolean) =>
+			await commands.environmentSetUseCuratedRepository(value),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries(environmentGetSettings),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
 			]);
 		},
 	});
@@ -736,17 +758,36 @@ function PackagesCard() {
 				</p>
 			</div>
 			<div>
+				<p className={"text-sm whitespace-normal font-semibold"}>
+					{tc("settings:vrchat repositories experimental")}
+				</p>
+			</div>
+			<div>
 				<label className={"flex items-center gap-2"}>
 					<Checkbox
-						checked={useVrchatRepositories}
+						checked={useOfficialRepository}
 						onCheckedChange={(value) =>
-							setUseVrchatRepositories.mutate(value === true)
+							setUseOfficialRepository.mutate(value === true)
 						}
 					/>
-					{tc("settings:use vrchat repositories")}
+					{tc("settings:use official repository")}
 				</label>
 				<p className={"text-sm whitespace-normal"}>
-					{tc("settings:use vrchat repositories description")}
+					{tc("settings:use official repository description")}
+				</p>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={useCuratedRepository}
+						onCheckedChange={(value) =>
+							setUseCuratedRepository.mutate(value === true)
+						}
+					/>
+					{tc("settings:use curated repository")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>
+					{tc("settings:use curated repository description")}
 				</p>
 			</div>
 		</SettingsCard>

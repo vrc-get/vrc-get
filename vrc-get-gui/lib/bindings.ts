@@ -58,7 +58,8 @@ export const commands = {
 	environmentPickProjectDefaultPath: () => __TAURI_INVOKE<TauriPickProjectDefaultPathResult>("environment_pick_project_default_path"),
 	environmentPickProjectBackupPath: () => __TAURI_INVOKE<TauriPickProjectBackupPathResult>("environment_pick_project_backup_path"),
 	environmentSetShowPrereleasePackages: (value: boolean) => __TAURI_INVOKE<null>("environment_set_show_prerelease_packages", { value }),
-	environmentSetUseVrchatRepositories: (value: boolean) => __TAURI_INVOKE<null>("environment_set_use_vrchat_repositories", { value }),
+	environmentSetUseOfficialRepository: (value: boolean) => __TAURI_INVOKE<null>("environment_set_use_official_repository", { value }),
+	environmentSetUseCuratedRepository: (value: boolean) => __TAURI_INVOKE<null>("environment_set_use_curated_repository", { value }),
 	environmentSetBackupFormat: (backupFormat: string) => __TAURI_INVOKE<null>("environment_set_backup_format", { backupFormat }),
 	environmentSetExcludeVpmPackagesFromBackup: (excludeVpmPackagesFromBackup: boolean) => __TAURI_INVOKE<null>("environment_set_exclude_vpm_packages_from_backup", { excludeVpmPackagesFromBackup }),
 	environmentSetReleaseChannel: (releaseChannel: string) => __TAURI_INVOKE<null>("environment_set_release_channel", { releaseChannel }),
@@ -256,7 +257,8 @@ export type TauriEnvironmentSettings = {
 	unity_hub: string,
 	unity_paths: ([string, string, boolean])[],
 	show_prerelease_packages: boolean,
-	use_vrchat_repositories: boolean,
+	use_official_repository: boolean,
+	use_curated_repository: boolean,
 	backup_format: string,
 	release_channel: string,
 	use_alcom_for_vcc_protocol: boolean,
@@ -403,7 +405,8 @@ export type TauriRepositoriesInfo = {
 	hidden_user_repositories: string[],
 	hide_local_user_packages: boolean,
 	show_prerelease_packages: boolean,
-	use_vrchat_repositories: boolean,
+	use_official_repository: boolean,
+	use_curated_repository: boolean,
 };
 
 export type TauriRepositoryDescriptor = {
