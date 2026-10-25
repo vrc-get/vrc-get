@@ -71,6 +71,16 @@ impl VrcGetSettings {
         self.should_save = true;
     }
 
+    pub fn set_ignore_official_repository(&mut self, value: bool) {
+        self.parsed.ignore_official_repository = value;
+        self.should_save = true;
+    }
+
+    pub fn set_ignore_curated_repository(&mut self, value: bool) {
+        self.parsed.ignore_curated_repository = value;
+        self.should_save = true;
+    }
+
     pub async fn save(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
         if self.should_save {
             save_json(io, JSON_PATH.as_ref(), &self.parsed).await?;

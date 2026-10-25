@@ -529,6 +529,12 @@
     "settings:show prerelease": "Show Prerelease Packages",
     "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list, and they will be used when resolving dependencies.<br>Prerelease packages may have more bugs than stable packages.",
 
+    "settings:vrchat repositories experimental": "The option to disable built-in VRChat repositories is experimental and may change in the future.",
+    "settings:use official repository": "Use built-in VRChat Official repository",
+    "settings:use official repository description": "When disabled, ALCOM will stop using the VRChat Official repository and remove its cached file. User-added repositories are not affected.",
+    "settings:use curated repository": "Use built-in VRChat Curated repository",
+    "settings:use curated repository description": "When disabled, ALCOM will stop using the VRChat Curated repository and remove its cached file. User-added repositories are not affected.",
+
     "settings:dialog:show prerelease packages": "Show Prerelease Packages",
     "settings:dialog:show prerelease packages description": "Prerelease packages may have more bugs than stable packages.<br>Are you sure you want to show prerelease packages?",
     "settings:dialog:enable show prerelease packages": "Show",

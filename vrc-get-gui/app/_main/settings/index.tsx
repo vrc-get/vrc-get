@@ -647,11 +647,17 @@ function PackagesCard() {
 	const queryClient = useQueryClient();
 
 	const {
-		data: { showPrereleasePackages },
+		data: {
+			showPrereleasePackages,
+			useOfficialRepository,
+			useCuratedRepository,
+		},
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			showPrereleasePackages: data.show_prerelease_packages,
+			useOfficialRepository: data.use_official_repository,
+			useCuratedRepository: data.use_curated_repository,
 		}),
 	});
 
@@ -695,6 +701,42 @@ function PackagesCard() {
 		},
 	});
 
+	const setUseOfficialRepository = useMutation({
+		mutationFn: async (value: boolean) =>
+			await commands.environmentSetUseOfficialRepository(value),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries(environmentGetSettings),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
+			]);
+		},
+	});
+
+	const setUseCuratedRepository = useMutation({
+		mutationFn: async (value: boolean) =>
+			await commands.environmentSetUseCuratedRepository(value),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries(environmentGetSettings),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
+			]);
+		},
+	});
+
 	return (
 		<SettingsCard className={"flex flex-col gap-4"}>
 			<h2>{tc("settings:packages")}</h2>
@@ -713,6 +755,39 @@ function PackagesCard() {
 				</label>
 				<p className={"text-sm whitespace-normal"}>
 					{tc("settings:show prerelease description")}
+				</p>
+			</div>
+			<div>
+				<p className={"text-sm whitespace-normal font-semibold"}>
+					{tc("settings:vrchat repositories experimental")}
+				</p>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={useOfficialRepository}
+						onCheckedChange={(value) =>
+							setUseOfficialRepository.mutate(value === true)
+						}
+					/>
+					{tc("settings:use official repository")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>
+					{tc("settings:use official repository description")}
+				</p>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={useCuratedRepository}
+						onCheckedChange={(value) =>
+							setUseCuratedRepository.mutate(value === true)
+						}
+					/>
+					{tc("settings:use curated repository")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>
+					{tc("settings:use curated repository description")}
 				</p>
 			</div>
 		</SettingsCard>

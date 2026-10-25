@@ -101,12 +101,14 @@ pub async fn cleanup_repos_folder(
     settings: &Settings,
     io: &DefaultEnvironmentIo,
 ) -> io::Result<()> {
-    let mut uesr_repo_file_names = HashSet::<OsString>::from_iter([
-        OsString::from("vrc-official.json"),
-        OsString::from("vrc-curated.json"),
-        // package cache management file used by VCC but not used by vrc-get
-        OsString::from("package-cache.json"),
-    ]);
+    let mut uesr_repo_file_names =
+        HashSet::<OsString>::from_iter([OsString::from("package-cache.json")]);
+    if !settings.ignore_official_repository() {
+        uesr_repo_file_names.insert(OsString::from("vrc-official.json"));
+    }
+    if !settings.ignore_curated_repository() {
+        uesr_repo_file_names.insert(OsString::from("vrc-curated.json"));
+    }
     let repos_base = io.resolve(REPO_CACHE_FOLDER.as_ref());
 
     for x in settings.get_user_repos() {
@@ -138,6 +140,22 @@ pub async fn cleanup_repos_folder(
     }
 
     Ok(())
+}
+
+pub async fn remove_official_repository_cache(io: &DefaultEnvironmentIo) -> io::Result<()> {
+    remove_repository_cache(io, LOCAL_OFFICIAL_PATH).await
+}
+
+pub async fn remove_curated_repository_cache(io: &DefaultEnvironmentIo) -> io::Result<()> {
+    remove_repository_cache(io, LOCAL_CURATED_PATH).await
+}
+
+async fn remove_repository_cache(io: &DefaultEnvironmentIo, path: &str) -> io::Result<()> {
+    match io.remove_file(path.as_ref()).await {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
 }
 
 async fn write_new_repo(
