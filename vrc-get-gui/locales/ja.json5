@@ -55,6 +55,7 @@
     "setup:entry:welcome description": "ALCOMはUnityプロジェクトを管理するための<br>オープンソースなCreator Companionです。",
     "setup:next": "進む",
     "setup:back": "戻る",
+//    "setup:new-setting-is-added": "新しい設定が追加されました！", // unused
 
     "setup:steps card:Appearance": "UI設定",
     "setup:appearance:heading": "UI設定",
@@ -201,6 +202,19 @@
     "projects:button:remove directory": "プロジェクトのファイルも削除する",
     "projects:dialog:removing...": "プロジェクトを削除中...",
     "projects:toast:project removed": "プロジェクトを削除しました。",
+
+    "projects:set project display name": "プロジェクトの表示名を設定する",
+    "projects:warn set project display name": "このプロジェクトの表示名を設定します。<br>ディレクトリ名は変更されません。",
+    "projects:toast:project display name changed": "プロジェクトの表示名を変更しました。",
+
+    "projects:dialog:mismatch-found": "ALCOM・VCC間でプロジェクトリストが一致しません",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}}個のプロジェクトがVCCにのみ、{{only_in_vrc_get}}個のプロジェクトがALCOMにのみ登録されています。<br>各プロジェクトをプロジェクトリストに残すかどうか選択してください。",
+    "projects:dialog:mismatch-project-table:keep": "残す",
+    "projects:dialog:mismatch-project-table:remove": "削除する",
+    "projects:dialog:mismatch-project-table:only in vcc": "VCCのみ",
+    "projects:dialog:mismatch-project-table:only in alcom": "ALCOMのみ",
+    "projects:dialog:apply changes": "反映する",
+    "projects:dialog:check later": "後で確認する",
 
   // Manage Projects
     "projects:manage:tooltip:back to projects": "プロジェクトリストに戻る",
@@ -469,9 +483,18 @@
     "settings:default unity arguments description": "これらのコマンドライン引数は、ALCOMからUnityを起動する際に使用されます。",
     "settings:dialog:default launch arguments": "デフォルトのUnityコマンドライン引数",
 
+    "settings:project management": "プロジェクト管理",
     "settings:default project path": "プロジェクト作成時の保存先",
     "settings:default project path description": "",
     "settings:toast:default project path updated": "プロジェクト作成時の保存先を更新しました。",
+
+    "settings:projects:sync-mode": "プロジェクトリストの同期方法",
+    "settings:projects:sync-mode:description": "ALCOM・VCC間のプロジェクトリストの同期方法を設定することができます。",
+    "settings:projects:sync-mode:ProjectsUnion": "VCCで削除されたプロジェクトを常に維持する",
+    "settings:projects:sync-mode:AskForUser": "プロジェクトリストが一致しない場合に確認する (デフォルト)",
+    "settings:projects:sync-mode:TrustLitedb": "VCCのプロジェクトリストをそのまま使用する",
+    "settings:projects:sync-mode:warning:ProjectsUnion": "(外部ストレージやネットワークドライブ上にあるなど、)何らかの理由でアクセスできないプロジェクトをVCCが自動でリストから削除しても、ALCOMから削除されないようにします。<br>ただし、VCC上で手動で削除したプロジェクトも残ります。",
+    "settings:projects:sync-mode:warning:TrustLitedb": "(外部ストレージやネットワークドライブ上にあるなど、)何らかの理由でアクセスできないプロジェクトをVCCが自動でリストから削除した時に、ALCOMからも削除されます。",
 
     "settings:backup:path": "バックアップの保存先",
     "settings:backup:path description": "",
