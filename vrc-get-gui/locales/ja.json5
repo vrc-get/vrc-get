@@ -208,7 +208,7 @@
     "projects:toast:project display name changed": "プロジェクトの表示名を変更しました。",
 
     "projects:dialog:mismatch-found": "ALCOM・VCC間でプロジェクトリストが一致しません",
-    "projects:dialog:mismatch-found:description": "各プロジェクトをプロジェクトリストに残すかどうか、選択してください。<br>VCCにあり、ALCOMにないプロジェクト: {{only_in_vcc}}個<br>ALCOMにあり、VCCにないプロジェクト: {{only_in_vrc_get}}個",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}}個のプロジェクトがVCCにのみ、{{only_in_vrc_get}}個のプロジェクトがALCOMにのみ登録されています。<br>各プロジェクトをプロジェクトリストに残すかどうか選択してください。",
     "projects:dialog:mismatch-project-table:keep": "残す",
     "projects:dialog:mismatch-project-table:remove": "削除する",
     "projects:dialog:mismatch-project-table:only in vcc": "VCCのみ",
