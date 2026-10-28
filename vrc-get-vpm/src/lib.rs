@@ -53,6 +53,9 @@ pub use version_selector::VersionSelector;
 
 pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 22);
 pub const VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK: &str = "unityhub://2022.3.22f1/887be4894c44";
+// 6000.0.67f1
+pub const VRCHAT_RECOMMENDED_6000_0_UNITY: UnityVersion = UnityVersion::new_f1(6000, 0, 67);
+pub const VRCHAT_RECOMMENDED_6000_0_UNITY_HUB_LINK: &str = "unityhub://6000.0.67f1/78a1c2bbeb6a";
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {

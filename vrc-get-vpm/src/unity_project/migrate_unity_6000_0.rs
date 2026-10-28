@@ -9,73 +9,75 @@
 
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
 use crate::{PackageCollection, UnityProject, VersionSelector};
-use crate::{PackageInstaller, VRCHAT_RECOMMENDED_2022_UNITY, io};
+use crate::{PackageInstaller, VRCHAT_RECOMMENDED_6000_0_UNITY, io};
 use log::warn;
 
 #[non_exhaustive]
 #[derive(Debug)]
-pub enum MigrateUnity2022Error {
+pub enum MigrateUnity6000_0Error {
     UnityVersionMismatch,
     VpmPackageNotFound(&'static str),
     AddPackageErr(AddPackageErr),
     Io(io::Error),
 }
 
-impl std::error::Error for MigrateUnity2022Error {
+impl std::error::Error for MigrateUnity6000_0Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            MigrateUnity2022Error::AddPackageErr(err) => Some(err),
-            MigrateUnity2022Error::Io(err) => Some(err),
+            MigrateUnity6000_0Error::AddPackageErr(err) => Some(err),
+            MigrateUnity6000_0Error::Io(err) => Some(err),
             _ => None,
         }
     }
 }
 
-impl std::fmt::Display for MigrateUnity2022Error {
+impl std::fmt::Display for MigrateUnity6000_0Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MigrateUnity2022Error::UnityVersionMismatch => write!(f, "Unity version is not 2019.x"),
-            MigrateUnity2022Error::VpmPackageNotFound(name) => {
+            MigrateUnity6000_0Error::UnityVersionMismatch => {
+                write!(f, "Unity version is not 2022.x")
+            }
+            MigrateUnity6000_0Error::VpmPackageNotFound(name) => {
                 write!(f, "VPM package {name} not found")
             }
-            MigrateUnity2022Error::AddPackageErr(err) => write!(f, "{err}"),
-            MigrateUnity2022Error::Io(err) => write!(f, "{err}"),
+            MigrateUnity6000_0Error::AddPackageErr(err) => write!(f, "{err}"),
+            MigrateUnity6000_0Error::Io(err) => write!(f, "{err}"),
         }
     }
 }
 
-impl From<AddPackageErr> for MigrateUnity2022Error {
+impl From<AddPackageErr> for MigrateUnity6000_0Error {
     fn from(err: AddPackageErr) -> Self {
-        MigrateUnity2022Error::AddPackageErr(err)
+        MigrateUnity6000_0Error::AddPackageErr(err)
     }
 }
 
-impl From<io::Error> for MigrateUnity2022Error {
+impl From<io::Error> for MigrateUnity6000_0Error {
     fn from(err: io::Error) -> Self {
-        MigrateUnity2022Error::Io(err)
+        MigrateUnity6000_0Error::Io(err)
     }
 }
 
-type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
+type Result<T = (), E = MigrateUnity6000_0Error> = std::result::Result<T, E>;
 
 impl UnityProject {
-    pub async fn migrate_unity_2022(
+    pub async fn migrate_unity_6000_0(
         &mut self,
         collection: &impl PackageCollection,
         installer: &impl PackageInstaller,
     ) -> Result {
-        migrate_unity_2022(self, collection, installer).await
+        migrate_unity_6000_0(self, collection, installer).await
     }
 }
 
-async fn migrate_unity_2022(
+async fn migrate_unity_6000_0(
     project: &mut UnityProject,
     collection: &impl PackageCollection,
     installer: &impl PackageInstaller,
 ) -> Result {
     // See https://misskey.niri.la/notes/9nod7sk4sr for migration process
     if project.unity_version().major() != 2019 {
-        return Err(MigrateUnity2022Error::UnityVersionMismatch);
+        return Err(MigrateUnity6000_0Error::UnityVersionMismatch);
     }
 
     // since this command is made for projects with VPM VRCSDK, wan if not
@@ -101,11 +103,11 @@ async fn migrate_unity_2022(
     ];
     for package in migrating_packages {
         if project.get_locked(package).is_some() {
-            let unity_version = Some(VRCHAT_RECOMMENDED_2022_UNITY);
+            let unity_version = Some(VRCHAT_RECOMMENDED_6000_0_UNITY);
             let Some(vrcsdk) = collection
                 .find_package_by_name(package, VersionSelector::latest_for(unity_version, false))
             else {
-                return Err(MigrateUnity2022Error::VpmPackageNotFound(package));
+                return Err(MigrateUnity6000_0Error::VpmPackageNotFound(package));
             };
             packages.push(vrcsdk);
         }
