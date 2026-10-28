@@ -23,10 +23,12 @@ use vrc_get_vpm::io::DefaultEnvironmentIo;
 #[command(author, version)]
 pub enum Migrate {
     Unity2022(Unity2022),
+    #[command(name = "unity6000.0")]
+    Unity6000_0(Unity6000_0),
     Vpm(Vpm),
 }
 
-multi_command!(Migrate is Unity2022, Vpm);
+multi_command!(Migrate is Unity2022, Unity6000_0, Vpm);
 
 /// Migrate your project to Unity 2022
 #[derive(Parser)]
@@ -96,6 +98,103 @@ impl Unity2022 {
                     // since we know it's unity 2022, we can safely unwrap
                     log::warn!(
                         "Recommended Unity 2022 version is not found. Using found version: {}",
+                        found.version().unwrap()
+                    );
+                }
+
+                PathBuf::from(found.path().unwrap())
+            }
+        };
+
+        let status = Command::new(&unity)
+            .args([
+                "-quit".as_ref(),
+                "-batchmode".as_ref(),
+                "-projectPath".as_ref(),
+                project.project_dir().as_os_str(),
+            ])
+            .status()
+            .await
+            .exit_context("launching unity to finalize migration");
+
+        if !status.success() {
+            exit_with!("Unity exited with status {}", status);
+        }
+
+        info!("Unity exited successfully. Migration finished.");
+
+        update_project_last_modified(&io, project.project_dir()).await;
+    }
+}
+
+/// Migrate your project to Unity 6000.0
+#[derive(Parser)]
+pub struct Unity6000_0 {
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<Box<Path>>,
+    #[cfg(not(feature = "experimental-vcc"))]
+    /// Path to unity 6000.0 executable.
+    #[arg(long)]
+    unity: PathBuf,
+    #[cfg(feature = "experimental-vcc")]
+    /// Path to unity 6000.0 executable.
+    #[arg(long)]
+    unity: Option<PathBuf>,
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl Unity6000_0 {
+    pub async fn run(self) {
+        println!("You're migrating your project to Unity 6000.0 in-place.");
+        println!("It's hard to undo this command.");
+        println!("You MUST create backup of your project before running this command.");
+        if !confirm_prompt("Do you want to continue?") {
+            exit(1);
+        }
+
+        let mut project = load_unity(self.project).await;
+
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
+
+        #[cfg(feature = "experimental-vcc")]
+        let connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
+
+        project
+            .migrate_unity_6000_0(&collection, &installer)
+            .await
+            .exit_context("migrating unity project");
+
+        info!(
+            "Updating manifest file finished successfully. Launching Unity to finalize migration..."
+        );
+
+        #[cfg(not(feature = "experimental-vcc"))]
+        let unity = self.unity;
+
+        #[cfg(feature = "experimental-vcc")]
+        let unity = match self.unity {
+            Some(path) => path,
+            None => {
+                use vrc_get_vpm::VRCHAT_RECOMMENDED_6000_0_UNITY;
+                let Some(found) =
+                    connection.find_most_suitable_unity(VRCHAT_RECOMMENDED_6000_0_UNITY)
+                else {
+                    exit_with!(
+                        "Unity 6000.0 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option."
+                    )
+                };
+
+                if found.version() != Some(VRCHAT_RECOMMENDED_6000_0_UNITY) {
+                    // since we know it's unity 6000.0, we can safely unwrap
+                    log::warn!(
+                        "Recommended Unity 6000.0 version is not found. Using found version: {}",
                         found.version().unwrap()
                     );
                 }
