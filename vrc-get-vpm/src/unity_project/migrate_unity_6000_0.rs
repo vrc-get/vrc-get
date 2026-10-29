@@ -75,8 +75,7 @@ async fn migrate_unity_6000_0(
     collection: &impl PackageCollection,
     installer: &impl PackageInstaller,
 ) -> Result {
-    // See https://misskey.niri.la/notes/9nod7sk4sr for migration process
-    if project.unity_version().major() != 2019 {
+    if project.unity_version().major() != 2022 {
         return Err(MigrateUnity6000_0Error::UnityVersionMismatch);
     }
 
@@ -88,10 +87,7 @@ async fn migrate_unity_6000_0(
     // remove legacy XR packages
     project
         .upm_manifest
-        .remove_dependency("com.unity.xr.oculus.standalone");
-    project
-        .upm_manifest
-        .remove_dependency("com.unity.xr.openvr.standalone");
+        .remove_dependency("com.unity.ide.vscode");
 
     // upgrade VRCSDK if installed
     let mut packages = vec![];
@@ -105,7 +101,8 @@ async fn migrate_unity_6000_0(
         if project.get_locked(package).is_some() {
             let unity_version = Some(VRCHAT_RECOMMENDED_6000_0_UNITY);
             let Some(vrcsdk) = collection
-                .find_package_by_name(package, VersionSelector::latest_for(unity_version, false))
+                // TODO: make include_prerelease false in the future
+                .find_package_by_name(package, VersionSelector::latest_for(unity_version, true))
             else {
                 return Err(MigrateUnity6000_0Error::VpmPackageNotFound(package));
             };
