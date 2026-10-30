@@ -8,9 +8,14 @@
  */
 
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
+use crate::utils::{Guid, find_assets, save_json};
 use crate::{PackageCollection, UnityProject, VersionSelector};
 use crate::{PackageInstaller, VRCHAT_RECOMMENDED_6000_0_UNITY, io};
+use futures::StreamExt;
 use log::warn;
+use std::future::ready;
+
+const MARKER_FILE_LOCATION: &str = "Library/VRCProjectUpgradeMarker.json";
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -123,7 +128,57 @@ async fn migrate_unity_6000_0(
         project.apply_pending_changes(installer, request).await?;
     }
 
+    // create VRCProjectUpgradeMarker.json
+    {
+        let io = project.io();
+
+        let scene_list = find_assets(io)
+            .filter(|asset| ready(asset.path.extension() == Some("unity".as_ref())))
+            .filter(|asset| ready(asset.is_file))
+            .map(|asset| asset.guid)
+            .collect::<Vec<_>>()
+            .await;
+
+        save_json(
+            io,
+            MARKER_FILE_LOCATION.as_ref(),
+            &VRCProjectUpgradeMarker {
+                upgraded_from: VRCProjectUpgradeMarkerUnityVersion {
+                    full: &project.unity_version().to_string(),
+                    major: project.unity_version().major() as u32,
+                    minor: project.unity_version().minor() as u32,
+                    patch: project.unity_version().revision() as u32,
+                },
+                wizard_completed: false,
+                scene_list,
+                upgraded_scenes: None,
+            },
+        )
+        .await?;
+    }
+
     Ok(())
+}
+
+#[derive(serde::Serialize)]
+struct VRCProjectUpgradeMarker<'a> {
+    #[serde(rename = "upgradedFrom")]
+    upgraded_from: VRCProjectUpgradeMarkerUnityVersion<'a>,
+    #[serde(rename = "wizardCompleted")]
+    wizard_completed: bool, // = false
+    #[serde(rename = "sceneList")]
+    scene_list: Vec<Guid>,
+    #[serde(rename = "upgradedScenes")]
+    // Infallible does not implement Serialize. see https://github.com/serde-rs/serde/issues/2740
+    upgraded_scenes: Option<()>, // = None (null)
+}
+
+#[derive(serde::Serialize)]
+struct VRCProjectUpgradeMarkerUnityVersion<'a> {
+    full: &'a str,
+    major: u32,
+    minor: u32,
+    patch: u32,
 }
 
 // memo /Applications/Unity/Hub/Editor/2022.3.6f1/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath .
