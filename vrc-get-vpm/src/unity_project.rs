@@ -10,8 +10,6 @@
 mod add_package;
 mod find_legacy_assets;
 mod migrate_unity;
-mod migrate_unity_2022;
-mod migrate_unity_6000_0;
 mod migrate_vpm;
 mod package_resolution;
 pub mod pending_project_changes;
@@ -43,7 +41,6 @@ pub use add_package::AddPackageErr;
 pub use add_package::AddPackageOperation;
 pub use migrate_unity::MigrateUnityError;
 pub use migrate_unity::UnityMigration;
-pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use migrate_vpm::MigrateVpmError;
 pub use pending_project_changes::PendingProjectChanges;
 pub use reinstall::ReinstalPackagesError;
