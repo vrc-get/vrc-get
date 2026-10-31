@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use std::ffi::OsStr;
 use std::io;
 use std::path::Path;
@@ -7,11 +16,13 @@ use crate::commands::prelude::*;
 use crate::config::UnityHubAccessMethod;
 use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
 use log::info;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
-use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_cli, find_unity_hub};
+use vrc_get_vpm::environment::{
+    SyncWithLitedbMode, VccDatabaseConnection, find_unity_cli, find_unity_hub,
+};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
@@ -64,6 +75,34 @@ pub struct TauriEnvironmentSettings {
     gui_compact: bool,
     unity_hub_access_method: UnityHubAccessMethod,
     exclude_vpm_packages_from_backup: bool,
+    project_list_sync_mode: TauriSyncWithLitedbMode,
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, specta::Type)]
+pub enum TauriSyncWithLitedbMode {
+    ProjectsUnion,
+    AskForUser,
+    TrustLitedb,
+}
+
+impl From<SyncWithLitedbMode> for TauriSyncWithLitedbMode {
+    fn from(mode: SyncWithLitedbMode) -> Self {
+        match mode {
+            SyncWithLitedbMode::ProjectsUnion => TauriSyncWithLitedbMode::ProjectsUnion,
+            SyncWithLitedbMode::AskForUser => TauriSyncWithLitedbMode::AskForUser,
+            SyncWithLitedbMode::TrustLitedb => TauriSyncWithLitedbMode::TrustLitedb,
+        }
+    }
+}
+
+impl From<TauriSyncWithLitedbMode> for SyncWithLitedbMode {
+    fn from(mode: TauriSyncWithLitedbMode) -> Self {
+        match mode {
+            TauriSyncWithLitedbMode::ProjectsUnion => SyncWithLitedbMode::ProjectsUnion,
+            TauriSyncWithLitedbMode::AskForUser => SyncWithLitedbMode::AskForUser,
+            TauriSyncWithLitedbMode::TrustLitedb => SyncWithLitedbMode::TrustLitedb,
+        }
+    }
 }
 
 #[tauri::command]
@@ -86,6 +125,7 @@ pub async fn environment_get_settings(
     let gui_compact;
     let unity_hub_access_method;
     let exclude_vpm_packages_from_backup;
+    let project_list_sync_mode;
 
     {
         let config = config.get();
@@ -123,6 +163,7 @@ pub async fn environment_get_settings(
         default_project_path = crate::utils::default_project_path(&mut settings).to_string();
         project_backup_path = crate::utils::project_backup_path(&mut settings).to_string();
         show_prerelease_packages = settings.show_prerelease_packages();
+        project_list_sync_mode = settings.project_list_sync_mode().into();
 
         settings.save().await?;
     }
@@ -144,6 +185,7 @@ pub async fn environment_get_settings(
         gui_compact,
         unity_hub_access_method,
         exclude_vpm_packages_from_backup,
+        project_list_sync_mode,
     })
 }
 
@@ -486,5 +528,18 @@ pub async fn environment_set_default_unity_arguments(
     let mut config = config.load_mut().await?;
     config.default_unity_arguments = default_unity_arguments;
     config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_project_list_sync_mode(
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    project_list_sync_mode: TauriSyncWithLitedbMode,
+) -> Result<(), RustError> {
+    let mut settings = settings.load_mut(io.inner()).await?;
+    settings.set_project_list_sync_mode(project_list_sync_mode.into());
+    settings.save().await?;
     Ok(())
 }

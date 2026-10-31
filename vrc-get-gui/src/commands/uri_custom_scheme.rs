@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use serde::Serialize;
 use std::borrow::Cow;
 use tauri::http::{Request, Response};
@@ -44,6 +53,7 @@ pub struct GlobalInfo<'a> {
     default_unity_arguments: &'a [&'a str],
     vpm_home_folder: &'a std::path::Path,
     check_for_updates: bool,
+    setup_pages: Vec<(super::environment::config::SetupPages, &'static str)>,
     should_install_deep_link: bool,
 }
 
@@ -97,6 +107,10 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
         vpm_home_folder: &vpm_home_folder,
         check_for_updates,
+        setup_pages: super::environment::config::SetupPages::pages(app)
+            .iter()
+            .map(|&page_id| (page_id, page_id.path()))
+            .collect(),
         should_install_deep_link,
     };
 

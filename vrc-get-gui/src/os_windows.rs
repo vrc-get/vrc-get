@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 //! OS-specific functionality.
 
 //! This module is for creating `cmd.exe /d /c start "Name"
@@ -42,7 +51,9 @@ const LOCK_RANGE_LOW: u32 = u32::MAX;
 const LOCK_RANGE_HIGH: u32 = u32::MAX;
 const UNITY_EDITOR_WINDOW_CLASS: &str = "UnityContainerWndClass";
 const UNITY_RUNTIME_CACHE_TTL: Duration = Duration::from_secs(1);
-pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = true;
+pub(crate) fn can_bring_unity_to_front() -> bool {
+    true
+}
 pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = true;
 
 #[derive(Clone, Copy)]

@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 #![no_std]
 #![no_main]
 #![windows_subsystem = "windows"]
@@ -298,19 +307,6 @@ impl WCString {
     }
 }
 
-const unsafe fn wcslen(mut s: *const u16) -> usize {
-    unsafe {
-        let mut len = 0;
-
-        while *s != 0 {
-            len += 1;
-            s = s.add(1);
-        }
-
-        len
-    }
-}
-
 struct StackPath {
     buf: [u16; MAX_PATH as usize],
 }
@@ -462,6 +458,7 @@ fn error_out(out: &WCstr) {
 // prevent crt from linking
 
 #[unsafe(no_mangle)]
+#[allow(suspicious_runtime_symbol_definitions)]
 pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     for i in 0..n {
         unsafe { *dest.add(i) = *src.add(i) };
@@ -470,9 +467,24 @@ pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
 }
 
 #[unsafe(no_mangle)]
+#[allow(suspicious_runtime_symbol_definitions)]
 pub extern "C" fn memset(dest: *mut u8, c: core::ffi::c_int, n: usize) -> *mut u8 {
     for i in 0..n {
         unsafe { *dest.add(i) = c as u8 };
     }
     dest
+}
+
+#[unsafe(no_mangle)]
+const unsafe extern "C" fn wcslen(mut s: *const u16) -> usize {
+    unsafe {
+        let mut len = 0;
+
+        while *s != 0 {
+            len += 1;
+            s = s.add(1);
+        }
+
+        len
+    }
 }

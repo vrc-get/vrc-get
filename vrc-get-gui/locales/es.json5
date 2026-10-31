@@ -8,6 +8,7 @@
     "general:version": "Versión",
     "general:packages": "Paquetes",
     "general:source": "Origen",
+    "general:project-path": "Ruta del proyecto", // for labels like table label
 
     "general:button:add": "Añadir",
     "general:button:edit": "Editar",
@@ -61,8 +62,10 @@
     "setup:entry:welcome description": "ALCOM es una utilidad de código abierto para creación de proyectos para VRChat y otros proyectos de Unity.",
     "setup:next": "Siguiente",
     "setup:back": "Atrás",
+//    "setup:new-setting-is-added": "¡Nuevo ajuste agregado!", // unused
 
     "setup:steps card:Appearance": "Apariencia",
+    "setup:appearance:heading": "Apariencia",
     "setup:appearance:description": "Por favor, configura tus preferencias de apariencia.<br/>Puedes cambiar todo lo configurado aquí más adelante en la página de ajustes.",
 
     "setup:steps card:UnityHub": "Unity Hub",
@@ -126,6 +129,9 @@
     "projects:type:avatars": "Avatares",
     "projects:type:legacy": "Antiguo",
     "projects:button:open unity": "Abrir Unity",
+    "projects:button:opening unity": "Abriendo...",
+    "projects:button:bring unity to front": "Mover al frente",
+    "projects:button:unity is open": "Ya está ejecutandose",
     "projects:button:manage": "Gestionar",
     "projects:backup": "Copia de seguridad",
     "projects:menuitem:open directory": "Abrir directorio del proyecto",
@@ -156,6 +162,9 @@
     "projects:toast:project created": "El proyecto se creó con éxito.",
 
     "projects:toast:opening unity...": "Abriendo Unity...",
+    "projects:toast:bring unity to front failed": "ALCOM no pudo mover la ventana de Unity al frente.",
+    "projects:toast:unity window not found": "No se encontró la ventana del proyecto.",
+    "projects:toast:bring unity to front unsupported": "No es posible mover la ventana de Unity al frente en tu plataforma.",
     "projects:dialog:unity not found": "No se encontró Unity.",
     "projects:dialog:unity version of the project not found": "El proyecto está usando Unity {{unity}} pero no se encontró.<br>Por favor, instale Unity {{unity}} con Unity Hub y reinicie ALCOM.",
     "projects:dialog:open unity hub": "Abrir Unity Hub",
@@ -200,6 +209,19 @@
     "projects:button:remove directory": "Eliminar el directorio",
     "projects:dialog:removing...": "Eliminando el proyecto...",
     "projects:toast:project removed": "El proyecto se eliminó con éxito.",
+
+    "projects:set project display name": "Asignar alias del proyecto",
+    "projects:warn set project display name": "Al asignar un alias al proyecto, no afectará al nombre del directorio del mismo.",
+    "projects:toast:project display name changed": "El alias del proyecto se cambió con éxito.",
+
+    "projects:dialog:mismatch-found": "El listado de proyectos en VCC y ALCOM no coincide",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}} proyectos están en VCC pero no en ALCOM, y {{only_in_vrc_get}} proyectos están en ALCOM pero no en VCC.<br/>Selecciona qué proyectos mantener o eliminar.",
+    "projects:dialog:mismatch-project-table:keep": "Mantener",
+    "projects:dialog:mismatch-project-table:remove": "Eliminar",
+    "projects:dialog:mismatch-project-table:only in vcc": "Solo en VCC",
+    "projects:dialog:mismatch-project-table:only in alcom": "Solo en ALCOM",
+    "projects:dialog:apply changes": "Aplicar cambios",
+    "projects:dialog:check later": "Revisar más tarde",
 
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Volver a proyectos",
@@ -471,9 +493,19 @@
     "settings:default unity arguments description": "Esos argumentos de línea de comandos se utilizarán al abrir Unity desde ALCOM.",
     "settings:dialog:default launch arguments": "Argumentos de línea de comandos predeterminados de Unity",
 
+    "settings:project management": "Gestión de proyectos",
+
     "settings:default project path": "Ruta de proyecto predeterminada",
     "settings:default project path description": "La ruta de proyecto predeterminada es el directorio donde se crean los nuevos proyectos.",
     "settings:toast:default project path updated": "Ruta de proyecto predeterminada actualizada con éxito.",
+
+    "settings:projects:sync-mode": "Modo de sincronización de proyectos",
+    "settings:projects:sync-mode:description": "Determina cómo ALCOM va a manejar los proyectos sincronizados.",
+    "settings:projects:sync-mode:ProjectsUnion": "Conservar proyectos quitados de VCC",
+    "settings:projects:sync-mode:AskForUser": "Preguntar cuando un conflicto ocurra (Por defecto)",
+    "settings:projects:sync-mode:TrustLitedb": "Usar la lista de proyectos de VCC",
+    "settings:projects:sync-mode:warning:ProjectsUnion": "A diferencia de VCC, ALCOM no elimina proyectos que no se puedan acceder, como los que no están disponibles por red o unidades externas.<br>Sin embargo, proyectos que se hayan eliminado manualmente de VCC van a ser restaurados.",
+    "settings:projects:sync-mode:warning:TrustLitedb": "Cuando VCC automaticamente elimima proyectos que no se puedan acceder, como los que no están disponibles por red o unidades externas, ALCOM también perderá esos proyectos.",
 
     "settings:backup:path": "Ruta de copia de seguridad",
     "settings:backup:path description": "La ruta de copia de seguridad es el directorio donde ALCOM creará archivos zip de copia de seguridad de los proyectos.",

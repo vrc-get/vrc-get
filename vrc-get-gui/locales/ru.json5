@@ -62,6 +62,7 @@
     "setup:back": "Назад",
 
     "setup:steps card:Appearance": "Внешний вид",
+    "setup:appearance:heading": "Внешний вид",
     "setup:appearance:description": "Сначала настройте параметры внешнего вида.<br/>Позже все эти параметры можно изменить на странице настроек.",
 
     "setup:steps card:UnityHub": "Unity Hub",

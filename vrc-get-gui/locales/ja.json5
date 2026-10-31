@@ -55,8 +55,10 @@
     "setup:entry:welcome description": "ALCOMはUnityプロジェクトを管理するための<br>オープンソースなCreator Companionです。",
     "setup:next": "進む",
     "setup:back": "戻る",
+//    "setup:new-setting-is-added": "新しい設定が追加されました！", // unused
 
     "setup:steps card:Appearance": "UI設定",
+    "setup:appearance:heading": "UI設定",
     "setup:appearance:description": "はじめに、UIの設定を行いましょう。<br>ここで行う初期設定の内容は後からでも変えることができます。",
 
     "setup:steps card:UnityHub": "Unity Hubの設定",
@@ -120,6 +122,9 @@
     "projects:type:avatars": "アバター",
     "projects:type:legacy": "レガシー",
     "projects:button:open unity": "Unityを開く",
+    "projects:button:opening unity": "起動中...",
+    "projects:button:bring unity to front": "Unityを表示",
+    "projects:button:unity is open": "Unity起動済み",
     "projects:button:manage": "管理",
     "projects:backup": "バックアップ",
     "projects:menuitem:open directory": "プロジェクトの保存場所を開く",
@@ -150,6 +155,9 @@
     "projects:toast:project created": "プロジェクトを作成しました。",
 
     "projects:toast:opening unity...": "Unityを起動中...",
+    "projects:toast:bring unity to front failed": "ALCOMからUnityを前面に表示させることができませんでした。",
+    "projects:toast:unity window not found": "このプロジェクトを開いているUnityウィンドウが見つかりませんでした。",
+    "projects:toast:bring unity to front unsupported": "ご利用のプラットフォームでは、ALCOMからUnityを前面に表示させることができません。",
     "projects:dialog:unity not found": "Unityが見つかりません",
     "projects:dialog:unity version of the project not found": "このプロジェクトで使用されているUnity {{unity}}が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
     "projects:dialog:open unity hub": "Unity Hubを開く",
@@ -194,6 +202,19 @@
     "projects:button:remove directory": "プロジェクトのファイルも削除する",
     "projects:dialog:removing...": "プロジェクトを削除中...",
     "projects:toast:project removed": "プロジェクトを削除しました。",
+
+    "projects:set project display name": "プロジェクトの表示名を設定する",
+    "projects:warn set project display name": "このプロジェクトの表示名を設定します。<br>ディレクトリ名は変更されません。",
+    "projects:toast:project display name changed": "プロジェクトの表示名を変更しました。",
+
+    "projects:dialog:mismatch-found": "ALCOM・VCC間でプロジェクトリストが一致しません",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}}個のプロジェクトがVCCにのみ、{{only_in_vrc_get}}個のプロジェクトがALCOMにのみ登録されています。<br>各プロジェクトをプロジェクトリストに残すかどうか選択してください。",
+    "projects:dialog:mismatch-project-table:keep": "残す",
+    "projects:dialog:mismatch-project-table:remove": "削除する",
+    "projects:dialog:mismatch-project-table:only in vcc": "VCCのみ",
+    "projects:dialog:mismatch-project-table:only in alcom": "ALCOMのみ",
+    "projects:dialog:apply changes": "反映する",
+    "projects:dialog:check later": "後で確認する",
 
   // Manage Projects
     "projects:manage:tooltip:back to projects": "プロジェクトリストに戻る",
@@ -333,7 +354,7 @@
     "vpm repositories:url": "URL",
     "vpm repositories:button:add repository": "VPMリポジトリを追加",
     "vpm repositories:remove repository": "VPMリポジトリを削除",
-    "vpm repositories:tooltip:remove curated or official repository": "OfficialやCuratedのリポジトリは削除出来ません。",
+    "vpm repositories:tooltip:remove curated or official repository": "OfficialやCuratedのリポジトリは削除できません。",
     "vpm repositories:button:import repositories": "リポジトリ一覧の読み込み",
     "vpm repositories:button:export repositories": "リポジトリ一覧の出力",
 
@@ -460,9 +481,18 @@
     "settings:default unity arguments description": "これらのコマンドライン引数は、ALCOMからUnityを起動する際に使用されます。",
     "settings:dialog:default launch arguments": "デフォルトのUnityコマンドライン引数",
 
+    "settings:project management": "プロジェクト管理",
     "settings:default project path": "プロジェクト作成時の保存先",
     "settings:default project path description": "",
     "settings:toast:default project path updated": "プロジェクト作成時の保存先を更新しました。",
+
+    "settings:projects:sync-mode": "プロジェクトリストの同期方法",
+    "settings:projects:sync-mode:description": "ALCOM・VCC間のプロジェクトリストの同期方法を設定することができます。",
+    "settings:projects:sync-mode:ProjectsUnion": "VCCで削除されたプロジェクトを常に維持する",
+    "settings:projects:sync-mode:AskForUser": "プロジェクトリストが一致しない場合に確認する (デフォルト)",
+    "settings:projects:sync-mode:TrustLitedb": "VCCのプロジェクトリストをそのまま使用する",
+    "settings:projects:sync-mode:warning:ProjectsUnion": "(外部ストレージやネットワークドライブ上にあるなど、)何らかの理由でアクセスできないプロジェクトをVCCが自動でリストから削除しても、ALCOMから削除されないようにします。<br>ただし、VCC上で手動で削除したプロジェクトも残ります。",
+    "settings:projects:sync-mode:warning:TrustLitedb": "(外部ストレージやネットワークドライブ上にあるなど、)何らかの理由でアクセスできないプロジェクトをVCCが自動でリストから削除した時に、ALCOMからも削除されます。",
 
     "settings:backup:path": "バックアップの保存先",
     "settings:backup:path description": "",
@@ -502,7 +532,7 @@
     "settings:theme:dark": "ダーク",
 
     "settings:files and directories": "設定ファイル",
-    "settings:files and directories:description": "ALCOMの設定ファイルや関連するフォルダを開くことが出来ます。",
+    "settings:files and directories:description": "ALCOMの設定ファイルや関連するフォルダを開くことができます。",
     "settings:button:open settings.json": "settings.jsonを開く",
     "settings:button:open gui config.json": "gui-config.jsonを開く",
     "settings:button:open logs": "ログフォルダを開く",

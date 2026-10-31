@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import {
 	queryOptions,
 	useMutation,
@@ -17,7 +26,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { commands } from "@/lib/bindings";
+import { commands, type TauriSyncWithLitedbMode } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import i18next, { languages, tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
@@ -384,5 +393,78 @@ export function BackupFormatSelect({ backupFormat }: { backupFormat: string }) {
 				</SelectGroup>
 			</SelectContent>
 		</Select>
+	);
+}
+
+export function ProjectSyncModeSelect({
+	projectListSyncMode,
+}: {
+	projectListSyncMode: TauriSyncWithLitedbMode;
+}) {
+	const setProjectListSyncMode = useMutation({
+		mutationFn: async (mode: TauriSyncWithLitedbMode) =>
+			await commands.environmentSetProjectListSyncMode(mode),
+		onMutate: async (mode, ctx) => {
+			await ctx.client.cancelQueries(environmentGetSettings);
+			const current = ctx.client.getQueryData(environmentGetSettings.queryKey);
+			if (current != null) {
+				ctx.client.setQueryData(environmentGetSettings.queryKey, {
+					...current,
+					project_list_sync_mode: mode,
+				});
+			}
+			return current;
+		},
+		onError: (e, _, prev, ctx) => {
+			console.error(e);
+			toastThrownError(e);
+			ctx.client.setQueryData(environmentGetSettings.queryKey, prev);
+		},
+		onSettled: async (_, _1, _2, _3, ctx) => {
+			await ctx.client.invalidateQueries(environmentGetSettings);
+		},
+	});
+
+	return (
+		<Select
+			value={projectListSyncMode}
+			onValueChange={(value) => setProjectListSyncMode.mutate(value as never)}
+		>
+			<SelectTrigger className={"min-w-0 whitespace-normal"}>
+				<SelectValue />
+			</SelectTrigger>
+			<SelectContent>
+				<SelectItem value={"ProjectsUnion"}>
+					{tc("settings:projects:sync-mode:ProjectsUnion")}
+				</SelectItem>
+				<SelectItem value={"AskForUser"}>
+					{tc("settings:projects:sync-mode:AskForUser")}
+				</SelectItem>
+				<SelectItem value={"TrustLitedb"}>
+					{tc("settings:projects:sync-mode:TrustLitedb")}
+				</SelectItem>
+			</SelectContent>
+		</Select>
+	);
+}
+
+export function ProjectSyncModeWarning({
+	projectListSyncMode,
+}: {
+	projectListSyncMode: TauriSyncWithLitedbMode;
+}) {
+	return (
+		<div className="flex flex-col gap-1">
+			{projectListSyncMode === "ProjectsUnion" && (
+				<WarningMessage>
+					{tc("settings:projects:sync-mode:warning:ProjectsUnion")}
+				</WarningMessage>
+			)}
+			{projectListSyncMode === "TrustLitedb" && (
+				<WarningMessage>
+					{tc("settings:projects:sync-mode:warning:TrustLitedb")}
+				</WarningMessage>
+			)}
+		</div>
 	);
 }

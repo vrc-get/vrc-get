@@ -97,8 +97,8 @@ jobs:
           sed -i vrc-get-gui/bundle/alcom.spec -e "/^Version:/c\Version:        ${GUI_VERSION//-/\~}"
 
           case "$GITHUB_REF_NAME" in
-            master | master-* )
-              echo "head is master or master-*"
+            master | master-* | hotfix-* )
+              echo "head is master, master-*, or hotfix-*"
               ;;
             * )
               if [ "$DRY_RUN" = "true" ]; then

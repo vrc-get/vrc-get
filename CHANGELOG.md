@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Changed license of this project to MPL-2.0 `#3231`
+- Changed how the Project List is managed `#3184`
+  - Added a project list for ALCOM / vrc-get and logic to sync it with VCC's project list.
+  - Added a configuration option for the project list syncing mode.
 
 ### Deprecated
 
@@ -18,6 +22,11 @@ The format is based on [Keep a Changelog].
 ### Fixed
 
 ### Security
+
+## [1.9.3] - 2026-10-23
+### Changed
+- Upgraded rustls-webpki to 0.103.16 (HotFix)
+  - Addresses recent eMudhra intermediate CA key compromise (No single CVE number)
 
 ## [1.9.2] - 2026-07-12
 ### Changed
@@ -516,7 +525,8 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.9.2...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.9.3...HEAD
+[1.9.3]: https://github.com/vrc-get/vrc-get/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/vrc-get/vrc-get/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/vrc-get/vrc-get/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/vrc-get/vrc-get/compare/v1.8.2...v1.9.0

@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LoaderCircle } from "lucide-react";
@@ -60,6 +69,30 @@ function PreventDoubleClick({
 			disabled={disabledSelf || disabled}
 			{...props}
 		/>
+	);
+}
+
+// Renders every label OpenUnityButton can show, stacked in a single grid cell so
+// the widest one defines the width. Used by the collapsed sizer row of the
+// projects table (ProjectRowWidthSizer) to pin the button column width.
+export function OpenUnityButtonWidthSizer(
+	props: React.ComponentProps<typeof Button>,
+) {
+	const label = "col-start-1 row-start-1";
+	return (
+		<Button {...props}>
+			<span className="inline-grid justify-items-center">
+				<span className={label}>{tc("projects:button:open unity")}</span>
+				<span className={label}>
+					{tc("projects:button:bring unity to front")}
+				</span>
+				<span className={label}>{tc("projects:button:unity is open")}</span>
+				<span className={`${label} inline-flex items-center gap-2`}>
+					<LoaderCircle className="size-4" />
+					{tc("projects:button:opening unity")}
+				</span>
+			</span>
+		</Button>
 	);
 }
 
