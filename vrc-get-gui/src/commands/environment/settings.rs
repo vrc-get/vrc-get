@@ -22,13 +22,18 @@ use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
 use vrc_get_vpm::environment::{SyncWithLitedbMode, VccDatabaseConnection, find_unity_hub};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
-use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
+use vrc_get_vpm::{
+    VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK,
+    VRCHAT_RECOMMENDED_6000_0_UNITY, VRCHAT_RECOMMENDED_6000_0_UNITY_HUB_LINK,
+};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriUnityVersions {
     unity_paths: Vec<(String, String, bool)>,
     recommended_version: String,
     install_recommended_version_link: String,
+    recommended_6000_0_version: String,
+    install_recommended_6000_0_version_link: String,
 }
 
 #[tauri::command]
@@ -54,6 +59,9 @@ pub async fn environment_unity_versions(
         unity_paths,
         recommended_version: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
         install_recommended_version_link: VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK.to_string(),
+        recommended_6000_0_version: VRCHAT_RECOMMENDED_6000_0_UNITY.to_string(),
+        install_recommended_6000_0_version_link: VRCHAT_RECOMMENDED_6000_0_UNITY_HUB_LINK
+            .to_string(),
     })
 }
 

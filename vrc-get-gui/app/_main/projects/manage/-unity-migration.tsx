@@ -139,7 +139,13 @@ export async function unityVersionChange({
 			data.kind === "upgradeMajor" &&
 			targetUnityVersion.startsWith("2022.")
 		) {
-			await commands.projectMigrateProjectTo2022(migrateProjectPath);
+			await commands.projectMigrateVrcUnity(migrateProjectPath, "2022");
+		} else if (
+			data.isVRC &&
+			data.kind === "upgradeMajor" &&
+			targetUnityVersion.startsWith("6000.0.")
+		) {
+			await commands.projectMigrateVrcUnity(migrateProjectPath, "6000.0");
 		}
 
 		const finalizeResult = await dialog.askClosing(
@@ -511,6 +517,17 @@ function findUnityForUnityChange(
 			return {
 				// This is using link to international version but china version of hub will handle international to china conversion
 				installLink: unityVersions.install_recommended_version_link,
+				found: false,
+			};
+		} else if (
+			compareUnityVersionString(
+				targetUnityVersion,
+				unityVersions.recommended_6000_0_version,
+			) === 0
+		) {
+			return {
+				// This is using link to international version but china version of hub will handle international to china conversion
+				installLink: unityVersions.install_recommended_6000_0_version_link,
 				found: false,
 			};
 		} else {

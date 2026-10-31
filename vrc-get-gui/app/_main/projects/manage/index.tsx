@@ -385,6 +385,14 @@ function MigrationCards({
 			detailsResult.unity_str,
 			unityVersionsResult.recommended_version,
 		) !== 0;
+	const isMigrationTo6000_0Recommended = detailsResult.unity[0] === 2022;
+	const is6000_0PatchMigrationRecommended =
+		detailsResult.unity[0] === 6000 &&
+		detailsResult.unity[1] === 0 &&
+		compareUnityVersionString(
+			detailsResult.unity_str,
+			unityVersionsResult.recommended_6000_0_version,
+		) !== 0;
 
 	const isChinaToInternationalMigrationRecommended =
 		parseUnityVersion(detailsResult.unity_str)?.chinaIncrement != null;
@@ -408,6 +416,28 @@ function MigrationCards({
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
 							unityVersionsResult.recommended_version,
+							true,
+						)
+					}
+				/>
+			)}
+			{isMigrationTo6000_0Recommended && (
+				<SuggestMigrateTo6000_0Card
+					disabled={isLoading}
+					onMigrateRequested={() =>
+						requestChangeUnityVersion(
+							unityVersionsResult.recommended_6000_0_version,
+							true,
+						)
+					}
+				/>
+			)}
+			{is6000_0PatchMigrationRecommended && (
+				<Suggest6000_0PatchMigrationCard
+					disabled={isLoading}
+					onMigrateRequested={() =>
+						requestChangeUnityVersion(
+							unityVersionsResult.recommended_6000_0_version,
 							true,
 						)
 					}
@@ -464,6 +494,54 @@ function Suggest2022PatchMigrationCard({
 		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity patch migration")}
+			</p>
+			<div className={"grow shrink-0 w-2"} />
+			<Button
+				variant={"ghost-destructive"}
+				onClick={onMigrateRequested}
+				disabled={disabled}
+			>
+				{tc("projects:manage:button:unity migrate")}
+			</Button>
+		</Card>
+	);
+}
+
+function SuggestMigrateTo6000_0Card({
+	disabled,
+	onMigrateRequested,
+}: {
+	disabled?: boolean;
+	onMigrateRequested: () => void;
+}) {
+	return (
+		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
+			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
+				{tc("projects:manage:suggest unity 6000.0 migration")}
+			</p>
+			<div className={"grow shrink-0 w-2"} />
+			<Button
+				variant={"ghost-destructive"}
+				onClick={onMigrateRequested}
+				disabled={disabled}
+			>
+				{tc("projects:manage:button:unity migrate")}
+			</Button>
+		</Card>
+	);
+}
+
+function Suggest6000_0PatchMigrationCard({
+	disabled,
+	onMigrateRequested,
+}: {
+	disabled?: boolean;
+	onMigrateRequested: () => void;
+}) {
+	return (
+		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
+			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
+				{tc("projects:manage:suggest unity 6000.0 patch migration")}
 			</p>
 			<div className={"grow shrink-0 w-2"} />
 			<Button
