@@ -473,7 +473,7 @@
     "settings:toast:unity already added": "Selected Unity was already added.",
     "settings:toast:unity added": "Added Unity successfully!",
     "settings:unity hub access method": "Unity Loading Method",
-    "settings:unity hub access method description": "How ALCOM loads the list of Unity installations. Launching Unity Hub takes much time, and calling Unity CLI requires Unity CLI to be installed in addition to Unity Hub.",
+    "settings:unity hub access method description": "How ALCOM loads the list of Unity installations. Launching Unity Hub takes much time, and calling Unity CLI requires Unity CLI to be installed in addition to Unity Hub.<br/>Launching Unity Hub will be removed in future and calling Unity CLI might also be removed, so if there is some problems with reading configuration files, please report developer from section below.",
     "settings:unity hub access method:read config": "Read Unity Hub configuration files",
     "settings:unity hub access method:call hub": "Launch Unity Hub in background",
     "settings:unity hub access method:call cli": "Call Unity CLI",

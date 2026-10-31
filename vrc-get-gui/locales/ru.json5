@@ -466,7 +466,7 @@
     "settings:toast:unity already added": "Выбранная Unity уже добавлена.",
     "settings:toast:unity added": "Unity успешно добавлена!",
     "settings:unity hub access method": "Способ загрузки Unity",
-    "settings:unity hub access method description": "Как ALCOM загружает список установок Unity. Запуск Unity Hub занимает много времени, а для вызова Unity CLI требуется, чтобы Unity CLI был установлен отдельно от Unity Hub.",
+    "settings:unity hub access method description": "Как ALCOM загружает список установок Unity. Запуск Unity Hub занимает много времени, а для вызова Unity CLI требуется, чтобы Unity CLI был установлен отдельно от Unity Hub.<br/>В будущем запуск Unity Hub будет удален, а вызов Unity CLI тоже может быть удален, поэтому если с чтением конфигурации есть проблемы, сообщите разработчикам в разделе ниже.",
     "settings:unity hub access method:read config": "Загружать из конфигурации Unity Hub",
     "settings:unity hub access method:call hub": "Запускать Unity Hub в фоне",
     "settings:unity hub access method:call cli": "Вызывать Unity CLI",
