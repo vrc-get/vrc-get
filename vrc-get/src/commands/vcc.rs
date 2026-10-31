@@ -14,10 +14,10 @@ use std::cmp::Reverse;
 use std::fmt::{Display, Formatter};
 use std::path::Path;
 use vrc_get_vpm::environment::{
-    ProjectManagement, Settings, VccDatabaseConnection, find_unity_hub,
+    ProjectManagement, Settings, VccDatabaseConnection, find_unity_cli, find_unity_hub,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
-use vrc_get_vpm::{UnityProject, unity_hub};
+use vrc_get_vpm::{UnityProject, unity_cli, unity_hub};
 
 /// Experimental VCC commands
 #[derive(Subcommand)]
@@ -273,6 +273,8 @@ enum UnityHubAccessMethod {
     ReadConfig,
     /// Launches headless Unity Hub in background
     CallHub,
+    /// Calls the standalone Unity CLI
+    CallCli,
 }
 
 impl Display for UnityHubAccessMethod {
@@ -280,6 +282,7 @@ impl Display for UnityHubAccessMethod {
         match self {
             UnityHubAccessMethod::ReadConfig => f.write_str("read-config"),
             UnityHubAccessMethod::CallHub => f.write_str("call-hub"),
+            UnityHubAccessMethod::CallCli => f.write_str("call-cli"),
         }
     }
 }
@@ -289,11 +292,6 @@ impl UnityUpdate {
         let io = DefaultEnvironmentIo::new_default();
         let mut settings = Settings::load(&io).await.exit_context("loading settings");
 
-        let unity_hub_path = find_unity_hub(&mut settings, &io)
-            .await
-            .exit_context("loading unity hub path")
-            .unwrap_or_else(|| exit_with!("Unity Hub not found"));
-
         let unity_list = match self.method {
             UnityHubAccessMethod::ReadConfig => unity_hub::load_unity_by_loading_unity_hub_files()
                 .await
@@ -302,9 +300,24 @@ impl UnityUpdate {
                 .map(|x| (x.version, x.path))
                 .collect::<Vec<_>>(),
             UnityHubAccessMethod::CallHub => {
+                let unity_hub_path = find_unity_hub(&mut settings, &io)
+                    .await
+                    .exit_context("loading unity hub path")
+                    .unwrap_or_else(|| exit_with!("Unity Hub not found"));
+
                 unity_hub::load_unity_by_calling_unity_hub(unity_hub_path.as_ref())
                     .await
                     .exit_context("loading unity list from unity hub")
+            }
+            UnityHubAccessMethod::CallCli => {
+                let unity_cli_path = find_unity_cli(&io)
+                    .await
+                    .exit_context("loading unity cli path")
+                    .unwrap_or_else(|| exit_with!("Unity CLI not found"));
+
+                unity_cli::load_unity_by_calling_unity_cli(unity_cli_path.as_ref())
+                    .await
+                    .exit_context("loading unity list from unity cli")
             }
         };
 
