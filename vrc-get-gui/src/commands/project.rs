@@ -28,7 +28,7 @@ use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
-use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
+use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges, UnityMigration};
 use vrc_get_vpm::version::{StrictEqVersion, Version};
 
 #[derive(Serialize, specta::Type)]
@@ -356,7 +356,11 @@ pub async fn project_migrate_project_to_2022(
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
         unity_project
-            .migrate_unity_2022(packages.collection(), &installer)
+            .migrate_unity(
+                UnityMigration::UNITY_2022,
+                packages.collection(),
+                &installer,
+            )
             .await?;
 
         update_project_last_modified(&io, unity_project.project_dir()).await;

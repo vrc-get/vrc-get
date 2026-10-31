@@ -19,7 +19,7 @@ pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::{ProjectManagement, ProjectManagementError};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
-    AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
+    AddPackageErr, MigrateUnityError, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
 };
 use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::{PackageInfo, PackageManifest, UnityProject};
@@ -454,10 +454,10 @@ impl From<MigrateVpmError> for RustError {
     }
 }
 
-impl From<MigrateUnity2022Error> for RustError {
-    fn from(value: MigrateUnity2022Error) -> Self {
+impl From<MigrateUnityError> for RustError {
+    fn from(value: MigrateUnityError) -> Self {
         match value {
-            MigrateUnity2022Error::AddPackageErr(add_err) => add_err.into(),
+            MigrateUnityError::AddPackageErr(add_err) => add_err.into(),
             value => RustError::unrecoverable(value),
         }
     }
