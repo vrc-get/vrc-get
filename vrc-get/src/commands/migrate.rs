@@ -17,6 +17,7 @@ use std::process::exit;
 use tokio::process::Command;
 use vrc_get_vpm::environment::PackageInstaller;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::unity_project::UnityMigration;
 
 /// Migrate Unity Project
 #[derive(Subcommand)]
@@ -70,7 +71,7 @@ impl Unity2022 {
             .exit_context("connecting to database");
 
         project
-            .migrate_unity_2022(&collection, &installer)
+            .migrate_unity(UnityMigration::UNITY_2022, &collection, &installer)
             .await
             .exit_context("migrating unity project");
 
@@ -167,7 +168,7 @@ impl Unity6000_0 {
             .exit_context("connecting to database");
 
         project
-            .migrate_unity_6000_0(&collection, &installer)
+            .migrate_unity(UnityMigration::UNITY_6000_0, &collection, &installer)
             .await
             .exit_context("migrating unity project");
 
