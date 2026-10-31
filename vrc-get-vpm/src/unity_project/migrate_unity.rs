@@ -72,6 +72,7 @@ pub struct UnityMigration {
     expected_unity_major_text: &'static str,
     packages_to_remove: &'static [&'static str],
     unity_version: UnityVersion,
+    unity_version_text: &'static str,
     with_upgrade_marker: bool,
 }
 
@@ -81,6 +82,10 @@ impl UnityMigration {
 
     pub fn unity_version(&self) -> UnityVersion {
         self.unity_version
+    }
+
+    pub fn unity_version_text(&self) -> &'static str {
+        self.unity_version_text
     }
 }
 
@@ -106,6 +111,7 @@ static UNITY_2022_MIGRATION_STATIC: UnityMigration = UnityMigration {
         "com.unity.xr.openvr.standalone",
     ],
     unity_version: VRCHAT_RECOMMENDED_2022_UNITY,
+    unity_version_text: "2022",
     with_upgrade_marker: false,
 };
 
@@ -115,6 +121,7 @@ static UNITY_6000_0_MIGRATION_STATIC: UnityMigration = UnityMigration {
     expected_unity_major_text: "2022.x",
     packages_to_remove: &["com.unity.ide.vscode"],
     unity_version: VRCHAT_RECOMMENDED_6000_0_UNITY,
+    unity_version_text: "6000.0",
     with_upgrade_marker: true,
 };
 
