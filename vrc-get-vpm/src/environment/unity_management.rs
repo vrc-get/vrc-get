@@ -259,23 +259,22 @@ fn default_unity_hub_path() -> &'static [&'static str] {
 }
 
 pub async fn find_unity_cli(io: &DefaultEnvironmentIo) -> io::Result<Option<String>> {
-    // a GUI process does not inherit the shell PATH so known locations come first
-    for &path in default_unity_cli_path() {
-        if io.is_file(path.as_ref()).await {
-            return Ok(Some(path.to_string()));
+    if let Some(path_env) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path_env) {
+            let path = dir.join(UNITY_CLI_FILE_NAME);
+            if io.is_file(&path).await
+                && let Ok(path) = path.into_os_string().into_string()
+            {
+                return Ok(Some(path));
+            }
         }
     }
 
-    let Some(path_env) = std::env::var_os("PATH") else {
-        return Ok(None);
-    };
+    // if not, try default paths
 
-    for dir in std::env::split_paths(&path_env) {
-        let path = dir.join(UNITY_CLI_FILE_NAME);
-        if io.is_file(&path).await
-            && let Ok(path) = path.into_os_string().into_string()
-        {
-            return Ok(Some(path));
+    for &path in default_unity_cli_path() {
+        if io.is_file(path.as_ref()).await {
+            return Ok(Some(path.to_string()));
         }
     }
 
@@ -297,7 +296,15 @@ fn default_unity_cli_path() -> &'static [&'static str] {
     }
     #[cfg(target_os = "macos")]
     {
-        &["/opt/homebrew/bin/unity", "/usr/local/bin/unity"]
+        lazy_static::lazy_static! {
+            static ref USER_INSTALLATION: String = {
+                let home = std::env::var("HOME").expect("HOME not set");
+                format!("{home}/.unity/bin/unity")
+            };
+            static ref INSTALLATIONS: [&'static str; 1] = [&USER_INSTALLATION];
+        }
+
+        INSTALLATIONS.as_ref()
     }
     #[cfg(target_os = "linux")]
     {
@@ -306,11 +313,7 @@ fn default_unity_cli_path() -> &'static [&'static str] {
                 let home = std::env::var("HOME").expect("HOME not set");
                 format!("{home}/.local/bin/unity")
             };
-            static ref INSTALLATIONS: [&'static str; 3] = [
-                &USER_INSTALLATION,
-                "/usr/local/bin/unity",
-                "/usr/bin/unity",
-            ];
+            static ref INSTALLATIONS: [&'static str; 1] = [&USER_INSTALLATION];
         }
 
         INSTALLATIONS.as_ref()
