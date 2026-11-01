@@ -8,6 +8,7 @@
     "general:version": "Version",
     "general:packages": "Pakete",
     "general:source": "Quelle",
+    "general:project-path": "Projektpfad", // for labels like table label
 
     "general:button:add": "Hinzufügen",
     "general:button:edit": "Bearbeiten",
@@ -26,8 +27,8 @@
 
     "general:dialog:select file or directory header": "Datei oder Verzeichnis auswählen",
     "general:dialog:select file or directory": "Bitte Datei oder Verzeichnis auswählen.",
-    "general:toast:invalid directory": "Ungültiges Verzeichnis wurde ausgewählt.",
-    "general:toast:invalid file": "Ungültige Datei wurde ausgewählt.",
+    "general:toast:invalid directory": "Ungültiges Verzeichnis ausgewählt.",
+    "general:toast:invalid file": "Ungültige Datei ausgewählt.",
 
     "general:toast:not supported": "{{name}} wird noch nicht unterstützt.",
     "general:not implemented": "Nicht implementiert",
@@ -61,10 +62,11 @@
     "setup:entry:welcome description": "ALCOM ist ein Open-Source Creator Companion für VRChat und Unity.", //Needed truncation of "projects" to fit on a single line.
     "setup:next": "Weiter",
     "setup:back": "Zurück",
+//    "setup:new-setting-is-added": "Neue Einstellung hinzugefügt!", // unused
 
     "setup:steps card:Appearance": "Darstellung",
     "setup:appearance:heading": "Darstellung",
-    "setup:appearance:description": "Bitte stelle zuerst die Darstellung ein.<br/>Du kannst dies später in den Einstellungen ändern.",
+    "setup:appearance:description": "Wähle zuerst eine Darstellung.<br/>Du kannst dies später in den Einstellungen ändern.",
 
     "setup:steps card:UnityHub": "Unity Hub",
     "setup:unity-hub:heading": "Installiere Unity Hub",
@@ -84,14 +86,14 @@
     "setup:steps card:Backups": "Backups", //Needed truncation of "Settings" to fit properly
     "setup:backups:heading": "Backup Einstellungen",
     "setup:backups:location": "Backup-Pfad",
-    "setup:backups:location description": "Backups die du über ALCOm erstellst werden hier gespeichert.<br/>Dies kann später in den Einstellungen geändert werden.",
+    "setup:backups:location description": "Backups die du über ALCOM erstellst werden hier gespeichert.<br/>Dies kann später in den Einstellungen geändert werden.",
     "setup:backups:archive": "Archiv Format",
 
     "setup:steps card:SystemSetting": "System", //Needed truncation of "Config" to fit properly
     "setup:system-setting:heading": "System Einstellungen",
-    "setup:system-setting:vcc scheme description": "Du kannst ALCOM statt VCC für vcc:// Links registrieren, um Paketquellen direkt hinzuzufügen. ALCOM and VCC teilen die gleiche Paketquellen-Liste, diese Einstellung erlaubt schnelleres Hinzufügen von Paketlisten ohne VCC öffnen zu müssen.",
+    "setup:system-setting:vcc scheme description": "Du kannst ALCOM statt VCC für vcc:// Links registrieren, um Paketquellen direkt hinzuzufügen. ALCOM und VCC teilen die gleiche Paketquellen-Liste, diese Einstellung erlaubt schnelleres Hinzufügen von Paketlisten ohne VCC öffnen zu müssen.",
     "setup:system-setting:macos bug message": "Für MacOS muss nichts weiter eingestellt werden. (Du solltest diese Seite nicht sehen, dies ist ein Bug. Bitte melde uns dies.)",
-    "setup:system-setting:hostname-with-non-ascii": "Du verwendest nicht-ASCII Zeichen im Hostnamen (PC Name). <br/>Dies könnte zu Problemen mit neueren Unity Versionen führen.<br/>Es wird empfohlen deinen Hostname zu ASCII-Zeichen zu ändern.",
+    "setup:system-setting:hostname-with-non-ascii": "Du verwendest nicht-ASCII Zeichen im Hostnamen (PC Name). <br/>Dies könnte zu Problemen mit neueren Unity Versionen führen.<br/>Es wird empfohlen deinen Hostnamen zu ASCII-Zeichen zu ändern.",
 
     "setup:finish:heading": "Einrichtung abgeschlossen!",
     "setup:finish:description": "Du hast den Installationsprozess erfolgreich abgeschlossen!<br/>Du kannst ALCOM nun verwenden!",
@@ -101,7 +103,7 @@
 // Side Bar
     "sidebar:bad hostname": "Ungültiger Hostname",
     "sidebar:dialog:bad hostname": "Es gibt Probleme mit dem Hostnamen",
-    "sidebar:dialog:bad hostname description": "Du verwendest nicht-ASCII Zeichen im Hostnamen (PC Name). <br/>Dies könnte zu Problemen mit neueren Unity Versionen führen.<br/>Es wird empfohlen deinen Hostname zu Alphanumerischen Zeichen zu ändern.",
+    "sidebar:dialog:bad hostname description": "Du verwendest nicht-ASCII Zeichen im Hostnamen (PC Name). <br/>Dies könnte zu Problemen mit neueren Unity Versionen führen.<br/>Es wird empfohlen deinen Hostnamen zu Alphanumerischen Zeichen zu ändern.",
 
     "sidebar:toast:version copied": "Versionsnummer kopiert",
 
@@ -117,7 +119,7 @@
     "projects:grid view": "Gitteransicht",
     "projects:sort by": "Sortierreihenfolge:",
     "projects:error:load error": "Fehler beim Laden der Projekte: {{msg}}",
-    "projects:error:noexec filesystem": "Das Projekt befindet sich auf einem Dateisystem dass das 'noexec' flag gesetzt hat. Dies hindert Unity daran native Plugins zu laden, und führt zu einem korrupten Zustand. Bitte verschiebe das Projekt auf ein Dateisystem ohne 'noexec' flag.",
+    "projects:error:noexec filesystem": "Das Projekt befindet sich auf einem Dateisystem das das 'noexec' flag gesetzt hat. Dies hindert Unity daran native Plugins zu laden, was zu einem inkonsistenten Zustand führt. Bitte verschiebe das Projekt auf ein Dateisystem ohne 'noexec' flag.",
     "projects:toast:project added": "Projekt erfolgreich hinzugefügt",
     "projects:toast:project already exists": "Das Projekt wurde bereits hinzugefügt.",
 
@@ -150,9 +152,9 @@
     "projects:template-name:avatars": "VRChat Avatar",
     "projects:template-name:worlds": "VRChat Welt",
     "projects:template-name:blank": "Blank",
-    "projects:template:unity version": "Unity Version:",
-    "projects:tooltip:template-unavailable": "Base template of the template is not available",
-    "projects:tooltip:template-no-unity": "No unity versions for this template are available",
+    "projects:template:unity version": "Unity-Version:",
+    "projects:tooltip:template-unavailable": "Die Basisvorlage für dieses Projekt ist nicht verfügbar",
+    "projects:tooltip:template-no-unity": "Keine Unity-Versionen für dieses Projekt sind verfügbar",
     "projects:latest": "Neueste",
     "projects:hint:path of creating project": "Pfad des neuen Projektes: <path>{{path}}</path>.",
     "projects:button:create": "Erstellen",
@@ -170,10 +172,10 @@
     "projects:dialog:multiple unity found": "Es wurden mehrere Unity Installationen mit dieser Version gefunden.",
     "projects:dialog:keep using this version": "Diese Version weiterhin verwenden",
     "projects:dialog:unity not found but china found": "Chinesische Unity-Version gefunden",
-    "projects:dialog:unity version of the project not found but china found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die Chinesische Unity Version {{chinaUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
+    "projects:dialog:unity version of the project not found but china found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die chinesische Unity-Version {{chinaUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
     "projects:dialog:use china version": "Verwende Chinesische Unity-Version",
     "projects:dialog:unity not found but international found": "Internationale Unity-Version gefunden",
-    "projects:dialog:unity version of the project not found but international found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die Internationale Unity Version {{internationalUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
+    "projects:dialog:unity version of the project not found but international found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die internationale Unity-Version {{internationalUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
     "projects:dialog:use international version": "Verwende Internationale Unity-Version",
     "projects:toast:invalid project unity version": "Wir konnten keine gültige Unity Installation finden",
     "projects:toast:loading unity from unity hub": "Lade Unity von Unity Hub...",
@@ -208,6 +210,19 @@
     "projects:dialog:removing...": "Entferne Projekt...",
     "projects:toast:project removed": "Projekt erfolgreich entfernt",
 
+    "projects:set project display name": "Anzeigenamen setzen",
+    "projects:warn set project display name": "Setze einen Anzeigenamen für dieses Projekt.<br>Dies hat keinen Einfluss auf den Projektpfad.",
+    "projects:toast:project display name changed": "Anzeigenamen erfolgreich gesetzt.",
+
+    "projects:dialog:mismatch-found": "Unstimmigkeit der Projektlisten zwischen VCC und ALCOM",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}} Projekte sind in VCC aber nicht in ALCOM, und {{only_in_vrc_get}} Projekte sind in ALCOM aber nicht in VCC.<br/>Wähle welche Projekte behalten oder entfernt werden sollen.",
+    "projects:dialog:mismatch-project-table:keep": "Behalten",
+    "projects:dialog:mismatch-project-table:remove": "Entfernen",
+    "projects:dialog:mismatch-project-table:only in vcc": "Nur in VCC",
+    "projects:dialog:mismatch-project-table:only in alcom": "Nur in ALCOM",
+    "projects:dialog:apply changes": "Anwenden",
+    "projects:dialog:check later": "Später prüfen",
+
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Zurück zu Projekte",
     "projects:menuitem:change launch options": "Startparameter ändern",
@@ -219,7 +234,7 @@
     "projects:toast:forgot unity path": "Unity Version zurückgesetzt.",
 
     "projects:manage:suggest resolve": "Das Projekt benötigt Pakete, welche nicht installiert sind. Es wird empfohlen diese zu installieren.",
-    "projects:manage:button:resolve": "Pakete Installieren",
+    "projects:manage:button:resolve": "Pakete installieren",
 
     "projects:manage:suggest unity migration": "Das Projekt verwendet Unity 2019, welches nicht mehr vom VRChat SDK unterstützt wird. Es wird empfohlen zu Unity 2022 zu migrieren.",
     "projects:manage:suggest unity patch migration": "Das Projekt verwendet einen älteren Unity 2022 patch. VRChat empfiehlt zu einer neueren Version von Unity 2022 zu migrieren.",
@@ -229,8 +244,8 @@
     "projects:manage:manage packages": "Pakete verwalten",
     "projects:manage:hidden packages": "Versteckte Pakete",
     "projects:manage:tooltip:refresh packages": "Pakete aktualisieren",
-    "projects:manage:button:upgrade all": "Alle Aktualisieren",
-    "projects:manage:button:upgrade all stable": "Alle Aktualisieren (Stabil)",
+    "projects:manage:button:upgrade all": "Alle aktualisieren",
+    "projects:manage:button:upgrade all stable": "Alle aktualisieren (Stabil)",
     "projects:manage:button:reinstall all": "Alle Pakete neu installieren",
     "projects:manage:button:package filters": "Paketquellen filtern",
     "projects:manage:menu:repository filter": "Paketquellen",
@@ -238,7 +253,7 @@
     "projects:manage:package": "Paket",
     "projects:manage:installed": "Installiert",
     "projects:manage:latest": "Neueste",
-    "projects:manage:yanked": "yanked",
+    "projects:manage:yanked": "Zurückgezogen",
     "projects:manage:none": "keine",
     "projects:manage:incompatible packages": "Nicht unterstützt",
     "projects:manage:source not selected": "Inaktive Quelle",
@@ -290,7 +305,7 @@
     "projects:manage:dialog:upgrade major vrchat supported": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird das VRChat SDK aktualisieren, Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Möchtest du fortfahren?",
     "projects:manage:dialog:upgrade major vrchat unsupported": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird das VRChat SDK aktualisieren, Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Beachte dass die gewählte Unity Version vom VRChat SDK nicht unterstützt wird, Uploads sind daher nicht möglich.<br/>Möchtest du fortfahren?",
     "projects:manage:dialog:changing china releases": "Du bist dabei die Unity Version dieses Projektes zu einer anderen China-Unity Version zu ändern. Dies wird Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Möchtest du fortfahren?",
-    "projects:button:change unity version": "Unity Version Ändern",
+    "projects:button:change unity version": "Unity Version ändern",
 
     "projects:dialog:launch options": "Startparameter Optionen",
     "projects:dialog:command-line arguments": "Startparameter",
@@ -303,12 +318,12 @@
     "projects:dialog:migrate unity2022 patch description": "Das Projekt wird zu Unity {{unity}} migriert.",
     "projects:manage:dialog:exact version unity not found for patch migration description": "Wir konnten nicht die genaue Unity 2022 Version finden. <br>Bitte installiere Unity {{unity}} über Unity Hub und starte ALCOM neu.",
     "projects:manage:dialog:unity migrate finalizing...": "Starte Unity 2022 im Hintergrund, um die Migration abzuschließen...",
-    "projects:toast:unity migrate failed by unity not found": "Fehler beim migrieren: Unity 2022 nicht gefunden",
-    "projects:toast:unity migration finalize failed by unity not found": "Fehler beim abschluss der Migration: Unity 2022 nicht gefunden",
+    "projects:toast:unity migrate failed by unity not found": "Fehler beim Migrieren: Unity 2022 nicht gefunden",
+    "projects:toast:unity migration finalize failed by unity not found": "Fehler beim Abschluss der Migration: Unity 2022 nicht gefunden",
     "projects:toast:unity migrated": "Das Projekt wurde zu Unity 2022 migriert",
 
     "projects:manage:dialog:confirm changes description": "Du bist dabei, die folgenden Änderungen vorzunehmen",
-    "projects:manage:dialog:note breaking changes": "Eine Pakete haben inkompatible Änderungen. <br/>Deine Assets, Einstellungen und Tools in diesem Projekt sind hiermit möglicherweise inkompatibel. <br/>Prüfe Kompatibilität und upgrade auf eigene Gefahr.",
+    "projects:manage:dialog:note breaking changes": "Einige Pakete haben inkompatible Änderungen. <br/>Deine Assets, Einstellungen und Tools in diesem Projekt sind hiermit möglicherweise inkompatibel. <br/>Prüfe Kompatibilität und upgrade auf eigene Gefahr.",
     "projects:manage:dialog:note incompatibility": "Es besteht Inkompatibilität zu anderen Paketen. <br/>Bei Nutzung kommt es möglicherweise zu Fehlermeldungen. <br/>Prüfe die Kompatibilität und upgrade alle Pakete, oder fahre auf eigene Gefahr fort.",
     "projects:manage:dialog:upgrade package": "Upgrade <b>{{name}}</b> version {{previousVersion}} auf <b>{{version}}</b>",
     "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} zu <b>{{version}}</b>",
@@ -321,9 +336,9 @@
     "projects:manage:dialog:conflicts with": "<b>{{pkg}}</b> steht in Konflikt zu <b>{{other}}</b>",
     "projects:manage:dialog:package version conflicts_one": "Es gibt einen Versionskonflikt",
     "projects:manage:dialog:package version conflicts_other": "Es gibt mehrere Versionskonflikte",
-    "projects:manage:dialog:unity version conflicts_one": "Es gibt ein Unity Versionskonflikt",
+    "projects:manage:dialog:unity version conflicts_one": "Es gibt einen Unity Versionskonflikt",
     "projects:manage:dialog:unity version conflicts_other": "Es gibt mehrere Unity Versionskonflikte",
-    "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> unterstützt deine Unity Version nicht.",
+    "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> unterstützt deine Unity-Version nicht.",
     // TODO: plurals
     "projects:manage:dialog:files and directories are removed as legacy": "Die folgenden veralteten Daten und Verzeichnisse werden entfernt",
     "projects:manage:dialog:packages installed in the following directories will be removed": "Pakete die in diesem Verzeichnis installiert sind werden entfernt.",
@@ -341,7 +356,7 @@
 
 
 // Packages Page
-    "resources": "Resourcen",
+    "resources": "Ressourcen",
     "vpm repositories:source:official": "Offiziell",
     "vpm repositories:source:curated": "Geprüft",
     "vpm repositories:source:local": "Benutzerdefiniert",
@@ -386,7 +401,7 @@
 
     "vpm repositories:dialog:confirm packages list": "Folgende Paketquellen werden hinzugefügt. Fehlerhafte Paketquellen werden übersprungen.<br>Möchtest du fortfahren?",
     "vpm repositories:dialog:download error:duplicated": "Die Paketquelle ist bereits vorhanden.",
-    "vpm repositories:dialog:download error:download error": "Fehler beim laden der Paketquelle.",
+    "vpm repositories:dialog:download error:download error": "Fehler beim Laden der Paketquelle.",
     "vpm repositories:button:add repositories": "Paketquellen hinzufügen",
 
     "vpm repositories:dialog:adding repositories...": "Füge Paketquellen hinzu...",
@@ -418,25 +433,25 @@
     "templates:tooltip:remove template": "Vorlage entfernen",
     "templates:tooltip:remove builtin template": "Integrierte Vorlagen können nicht entfernt werden.",
     "templates:tooltip:remove vcc template": "VCC Vorlagen können hier nicht entfernt werden. Entferne sie stattdessen im Vorlagen-Verzeichnis von VCC.",
-    "templates:menuitem:edit template": "Vorlage Bearbeiten",
-    "templates:menuitem:duplicate template": "Vorlage Duplizieren",
-    "templates:menuitem:export template": "Vorlage Exportieren",
+    "templates:menuitem:edit template": "Vorlage bearbeiten",
+    "templates:menuitem:duplicate template": "Vorlage duplizieren",
+    "templates:menuitem:export template": "Vorlage exportieren",
     "templates:tooltip:export template with unitypackage": "Vorlagen mit Unity Packages können nicht exportiert werden.",
     "templates:menuitem:open vcc template": "Öffne Vorlagen-Verzeichnis",
-    "templates:dialog:edit template": "Vorlage Bearbeiten",
-    "templates:dialog:create template": "Vorlage Erstellen",
+    "templates:dialog:edit template": "Vorlage bearbeiten",
+    "templates:dialog:create template": "Vorlage erstellen",
     "templates:dialog:general information": "Allgemeine Informationen",
     "templates:dialog:base template": "Referenz-Vorlage",
-    "templates:dialog:unity version": "Unity Version",
+    "templates:dialog:unity version": "Unity-Version",
     "templates:dialog:any version": "Beliebige Version",
     "templates:dialog:any unity specified version": "Beliebiges Unity {{version}}",
     "templates:dialog:version": "Version",
     "templates:dialog:unitypackages": "UnityPackages",
     "templates:dialog:no unitypackages": "Keine UnityPackages",
-    "templates:dialog:remove template": "Vorlage Löschen",
+    "templates:dialog:remove template": "Vorlage löschen",
     "templates:dialog:confirm remove template": "Bist du sicher dass die Vorlage {{displayName}} gelöscht werden soll?",
-    "templates:button:save template": "Vorlage Speichern",
-    "templates:button:import template": "Vorlage Importieren",
+    "templates:button:save template": "Vorlage speichern",
+    "templates:button:import template": "Vorlage importieren",
     "templates:toast:imported n templates_one": "Vorlage importiert",
     "templates:toast:imported n templates_other": "{{count}} Vorlagen importiert",
     "templates:dialog:duplicated": "Bestehende Vorlagen importieren",
@@ -480,9 +495,19 @@
     "settings:default unity arguments description": "Diese Befehlzeilenparameter werden benutzt wenn Unity über ALCOM geöffnet wird.",
     "settings:dialog:default launch arguments": "Standard-Befehlszeilenparameter von Unity bearbeiten",
 
+    "settings:project management": "Projektmanagement",
+
     "settings:default project path": "Standard Projektpfad",
     "settings:default project path description": "Das Verzeichnis, in dem neue Projekte erstellt werden.",
     "settings:toast:default project path updated": "Standard-Pfad erfolgreich aktualisiert!",
+    
+    "settings:projects:sync-mode": "Projektlisten Synchronisierung",
+    "settings:projects:sync-mode:description": "ALCOM und VCC verwalten ihre eigenen Projektlisten.<br>Diese Einstellungen ändern das Synchronisierungsverhalten.",
+    "settings:projects:sync-mode:ProjectsUnion": "Projekte die in VCC entfernt wurden beibehalten",
+    "settings:projects:sync-mode:AskForUser": "Bei differenz fragen (Standard)",
+    "settings:projects:sync-mode:TrustLitedb": "VCC's Projektliste verwenden",
+    "settings:projects:sync-mode:warning:ProjectsUnion": "Im Gegensatz zu VCC behält ALCOM Projekte in der Projektliste, unabhängig davon ob diese derzeit erreichbar sind.<br>Projekte die in VCC manuell entfernt werden bleiben in ALCOM erhalten.",
+    "settings:projects:sync-mode:warning:TrustLitedb": "VCC entfernt Projekte aus der Liste wenn diese nicht mehr zugreifbar sind, zum Beispiel wenn diese auf einem USB Laufwerk oder anderen Netzlaufwerk liegen.<br>ALCOM wird diese ebenfalls verwerfen.",
 
     "settings:backup:path": "Backup Pfad",
     "settings:backup:path description": "Das Verzeichnis, in dem Backups erstellt werden.",
@@ -495,7 +520,7 @@
     "settings:backup:format:zip-fast": "Leicht komprimierte zip (Moderat)",
     "settings:backup:format:zip-best": "Stark komprimierte zip (Langsam)",
     "settings:backup:exclude vpm packages from backup": "VPM Pakete aus Backups ausschließen",
-    "settings:backup:exclude vpm packages from backup description": "Reduziert die größe des Backups, setzt aber vorraus dass die richtigen Pakete wieder installiert werden können.",
+    "settings:backup:exclude vpm packages from backup description": "Reduziert die Größe des Backups, setzt aber voraus dass die richtigen Pakete wieder installiert werden können.",
 
     "settings:packages": "Pakete",
     "settings:clear package cache": "Temporäre Paketdaten bereinigen",
