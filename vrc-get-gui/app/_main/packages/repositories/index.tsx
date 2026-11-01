@@ -560,9 +560,6 @@ function RepositoryTableBody({
 						url={"https://packages.vrchat.com/official?download"}
 						displayName={tt("vpm repositories:source:official")}
 						hiddenUserRepos={hiddenUserRepos}
-						className={
-							useCuratedRepository ? undefined : "border-b border-primary/10"
-						}
 						canRemove={false}
 						rowIndex={0}
 						guiAnimation={guiAnimation}
@@ -576,13 +573,20 @@ function RepositoryTableBody({
 						url={"https://packages.vrchat.com/curated?download"}
 						displayName={tt("vpm repositories:source:curated")}
 						hiddenUserRepos={hiddenUserRepos}
-						className={"border-b border-primary/10"}
 						canRemove={false}
 						rowIndex={useOfficialRepository ? 1 : 0}
 						guiAnimation={guiAnimation}
 						onToggleVisibility={onToggleVisibility}
 						isDragActive={isDragActive}
 					/>
+				)}
+				{(useOfficialRepository || useCuratedRepository) && (
+					<tr>
+						<td
+							colSpan={TABLE_HEAD.length}
+							className={"h-px bg-primary/10 p-0"}
+						/>
+					</tr>
 				)}
 				<SortableContext
 					items={orderedListIds}
@@ -724,7 +728,6 @@ function RepositoryRow({
 	displayName,
 	url,
 	hiddenUserRepos,
-	className,
 	canRemove = true,
 	rowIndex,
 	guiAnimation,
@@ -737,7 +740,6 @@ function RepositoryRow({
 	displayName: TauriUserRepository["display_name"];
 	url: TauriUserRepository["url"];
 	hiddenUserRepos: Set<string>;
-	className?: string;
 	canRemove?: boolean;
 	rowIndex: number;
 	guiAnimation: boolean;
@@ -783,7 +785,7 @@ function RepositoryRow({
 		<tr
 			ref={setNodeRef}
 			style={dragStyle}
-			className={cn(visualIndex % 2 === 1 ? "bg-secondary/30" : "", className)}
+			className={visualIndex % 2 === 1 ? "bg-secondary/30" : ""}
 		>
 			<RepositoryRowCells
 				labelId={labelId}
