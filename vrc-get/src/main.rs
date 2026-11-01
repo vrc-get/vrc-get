@@ -19,6 +19,11 @@ mod commands;
 #[tokio::main]
 async fn main() {
     init_log();
+    #[cfg(target_os = "macos")]
+    if let Err(e) = rlimit::increase_nofile_limit(4096) {
+        log::error!("error while increasing nofile limit: {e}");
+    }
+
     commands::Command::parse().run().await;
 }
 

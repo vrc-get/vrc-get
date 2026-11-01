@@ -27,6 +27,9 @@ serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+rlimit = "0.11.0"
+
 [dependencies.vrc-get-vpm]
 version = "0.0.18-beta.0"
 path = "../vrc-get-vpm"
