@@ -36,10 +36,12 @@ const BLANK_TEMPLATE_ID: &str = "com.anatawa12.vrc-get.blank";
 const UNITY_2019_4_31: UnityVersion = UnityVersion::new_f1(2019, 4, 31);
 const UNITY_2022_3_6: UnityVersion = UnityVersion::new_f1(2022, 3, 6);
 const UNITY_2022_3_22: UnityVersion = UnityVersion::new_f1(2022, 3, 22);
+const UNITY_6000_0_67: UnityVersion = UnityVersion::new_f1(6000, 0, 67);
 const VRCHAT_UNITY_VERSIONS: &[UnityVersion] = &[
     UnityVersion::new_f1(2019, 4, 31),
     UnityVersion::new_f1(2022, 3, 6),
     UnityVersion::new_f1(2022, 3, 22),
+    UnityVersion::new_f1(6000, 0, 67),
 ];
 const RESERVED_TEMPLATE_PREFIX: &str = "com.anatawa12.vrc-get";
 const VCC_TEMPLATE_PREFIX: &str = "com.anatawa12.vrc-get.vcc.";
@@ -457,6 +459,8 @@ pub async fn create_project(
                     Some(ResolvedTemplateInfo::builtin(AVATARS_2022_3_6F1))
                 } else if unity_version == UNITY_2022_3_22 {
                     Some(ResolvedTemplateInfo::builtin(AVATARS_2022_3_22F1))
+                } else if unity_version == UNITY_6000_0_67 {
+                    Some(ResolvedTemplateInfo::builtin(AVATARS_6000_0_67F1))
                 } else {
                     panic!("bad version for avatars: {unity_version}")
                 }
@@ -468,6 +472,8 @@ pub async fn create_project(
                     Some(ResolvedTemplateInfo::builtin(WORLDS_2022_3_6F1))
                 } else if unity_version == UNITY_2022_3_22 {
                     Some(ResolvedTemplateInfo::builtin(WORLDS_2022_3_22F1))
+                } else if unity_version == UNITY_6000_0_67 {
+                    Some(ResolvedTemplateInfo::builtin(WORLDS_6000_0_67F1))
                 } else {
                     panic!("bad version for worlds template: {unity_version}")
                 }

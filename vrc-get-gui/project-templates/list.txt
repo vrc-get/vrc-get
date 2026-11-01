@@ -1,3 +1,5 @@
+avatars-6000.0.67f1:Avatars 6000.0.67f1
+worlds-6000.0.67f1:Worlds 6000.0.67f1
 avatars-2022.3.22f1:Avatars 2022.3.22f1
 worlds-2022.3.22f1:Worlds 2022.3.22f1
 avatars-2022.3.6f1:Avatars 2022.3.6f1
