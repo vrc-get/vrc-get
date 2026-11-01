@@ -8,6 +8,7 @@
     "general:version": "Version",
     "general:packages": "Pakete",
     "general:source": "Quelle",
+    "general:project-path": "Projektpfad", // for labels like table label
 
     "general:button:add": "Hinzufügen",
     "general:button:edit": "Bearbeiten",
@@ -61,6 +62,7 @@
     "setup:entry:welcome description": "ALCOM ist ein Open-Source Creator Companion für VRChat und Unity.", //Needed truncation of "projects" to fit on a single line.
     "setup:next": "Weiter",
     "setup:back": "Zurück",
+//    "setup:new-setting-is-added": "Neue Einstellung hinzugefügt!", // unused
 
     "setup:steps card:Appearance": "Darstellung",
     "setup:appearance:heading": "Darstellung",
@@ -207,6 +209,19 @@
     "projects:button:remove directory": "Dauerhaft löschen",
     "projects:dialog:removing...": "Entferne Projekt...",
     "projects:toast:project removed": "Projekt erfolgreich entfernt",
+
+    "projects:set project display name": "Anzeigenamen setzen",
+    "projects:warn set project display name": "Setze einen Anzeigenamen für dieses Projekt.<br>Dies hat keinen Einfluss auf den Projektpfad.",
+    "projects:toast:project display name changed": "Anzeigenamen erfolgreich gesetzt.",
+
+    "projects:dialog:mismatch-found": "Unstimmigkeit der Projektlisten zwischen VCC und ALCOM",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}} Projekte sind in VCC aber nicht in ALCOM, und {{only_in_vrc_get}} Projekte sind in ALCOM aber nicht in VCC.<br/>Wähle welche Projekte behalten oder entfernt werden sollen.",
+    "projects:dialog:mismatch-project-table:keep": "Behalten",
+    "projects:dialog:mismatch-project-table:remove": "Entfernen",
+    "projects:dialog:mismatch-project-table:only in vcc": "Nur in VCC",
+    "projects:dialog:mismatch-project-table:only in alcom": "Nur in ALCOM",
+    "projects:dialog:apply changes": "Anwenden",
+    "projects:dialog:check later": "Später prüfen",
 
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Zurück zu Projekte",
@@ -480,9 +495,19 @@
     "settings:default unity arguments description": "Diese Befehlzeilenparameter werden benutzt wenn Unity über ALCOM geöffnet wird.",
     "settings:dialog:default launch arguments": "Standard-Befehlszeilenparameter von Unity bearbeiten",
 
+    "settings:project management": "Projektmanagement",
+
     "settings:default project path": "Standard Projektpfad",
     "settings:default project path description": "Das Verzeichnis, in dem neue Projekte erstellt werden.",
     "settings:toast:default project path updated": "Standard-Pfad erfolgreich aktualisiert!",
+    
+    "settings:projects:sync-mode": "Projektlisten Synchronisierung",
+    "settings:projects:sync-mode:description": "ALCOM und VCC verwalten ihre eigenen Projektlisten.<br>Diese Einstellungen ändern das Synchronisierungsverhalten.",
+    "settings:projects:sync-mode:ProjectsUnion": "Projekte die in VCC entfernt wurden beibehalten",
+    "settings:projects:sync-mode:AskForUser": "Bei differenz fragen (Standard)",
+    "settings:projects:sync-mode:TrustLitedb": "VCC's Projektliste verwenden",
+    "settings:projects:sync-mode:warning:ProjectsUnion": "Im Gegensatz zu VCC behält ALCOM Projekte in der Projektliste, unabhängig davon ob diese derzeit erreichbar sind.<br>Projekte die in VCC manuell entfernt werden bleiben in ALCOM erhalten.",
+    "settings:projects:sync-mode:warning:TrustLitedb": "VCC entfernt Projekte aus der Liste wenn diese nicht mehr zugreifbar sind, zum Beispiel wenn diese auf einem USB Laufwerk oder anderen Netzlaufwerk liegen.<br>ALCOM wird diese ebenfalls verwerfen.",
 
     "settings:backup:path": "Backup Pfad",
     "settings:backup:path description": "Das Verzeichnis, in dem Backups erstellt werden.",
