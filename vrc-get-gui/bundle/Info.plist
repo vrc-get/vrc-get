@@ -22,6 +22,8 @@
             <string>ALCOM Project Template</string>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
             <key>LSItemContentTypes</key>
             <array>
                 <string>com.anatawa12.vrc-get.alcomtemplate</string>
