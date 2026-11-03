@@ -25,7 +25,7 @@ use vrc_get_vpm::environment::{
     AddUserPackageResult, Settings, UserPackageCollection, add_remote_repo, clear_package_cache,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
-use vrc_get_vpm::repositories_file::RepositoriesFile;
+use vrc_get_vpm::repositories_file::{RepositoriesFile, RepositoriesFileParseResult};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::{HttpClient, UserRepoSetting, VersionSelector};
 
@@ -412,10 +412,30 @@ pub async fn environment_remove_repository(
 #[serde(tag = "type")]
 pub enum TauriImportRepositoryPickResult {
     NoFilePicked,
-    ParsedRepositories {
-        repositories: Vec<TauriRepositoryDescriptor>,
-        unparsable_lines: Vec<String>,
-    },
+    ParsedRepositories(TauriParsedRepositories),
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+pub struct TauriParsedRepositories {
+    repositories: Vec<TauriRepositoryDescriptor>,
+    unparsable_lines: Vec<String>,
+}
+
+impl From<RepositoriesFileParseResult> for TauriParsedRepositories {
+    fn from(result: RepositoriesFileParseResult) -> Self {
+        Self {
+            repositories: result
+                .parsed()
+                .repositories()
+                .iter()
+                .map(|x| TauriRepositoryDescriptor {
+                    url: x.url().clone(),
+                    headers: x.headers().clone(),
+                })
+                .collect(),
+            unparsable_lines: result.unparseable_lines().to_vec(),
+        }
+    }
 }
 
 // workaround bug in specta::Type derive macro
@@ -475,18 +495,9 @@ pub async fn environment_import_repository_pick(
 
     let result = RepositoriesFile::parse(&repositories_file);
 
-    Ok(TauriImportRepositoryPickResult::ParsedRepositories {
-        repositories: result
-            .parsed()
-            .repositories()
-            .iter()
-            .map(|x| TauriRepositoryDescriptor {
-                url: x.url().clone(),
-                headers: x.headers().clone(),
-            })
-            .collect(),
-        unparsable_lines: result.unparseable_lines().to_vec(),
-    })
+    Ok(TauriImportRepositoryPickResult::ParsedRepositories(
+        result.into(),
+    ))
 }
 
 #[tauri::command]

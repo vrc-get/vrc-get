@@ -99,6 +99,7 @@ fn main() {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         tauri::RunEvent::Opened { urls } => {
             let mut templates = vec![];
+            let mut repositories = vec![];
             for url in urls {
                 if url.scheme() == "file"
                     && let Ok(file) = url.to_file_path()
@@ -106,6 +107,9 @@ fn main() {
                     match file.extension() {
                         Some(ext) if ext.eq_ignore_ascii_case("alcomtemplate") => {
                             templates.push(file)
+                        }
+                        Some(ext) if ext.eq_ignore_ascii_case("alcomrepositories") => {
+                            repositories.push(file)
                         }
                         _ => {
                             log::error!("Unsupported file: {file:?}")
@@ -116,6 +120,7 @@ fn main() {
                 }
             }
             deep_link_support::process_files(app, templates);
+            deep_link_support::import_alcom_repositories(app, repositories);
         }
         _ => {}
     });
@@ -150,7 +155,9 @@ fn process_args(app: &AppHandle, args: &[String]) {
     }
 
     fn is_deep_link(url: &str) -> bool {
-        url.starts_with("vcc://") || ends_with_ignore_ascii_case(url, ".alcomtemplate")
+        url.starts_with("vcc://")
+            || ends_with_ignore_ascii_case(url, ".alcomtemplate")
+            || ends_with_ignore_ascii_case(url, ".alcomrepositories")
     }
     fn ends_with_ignore_ascii_case(s: &str, suffix: &str) -> bool {
         s.len() >= suffix.len() && s[s.len() - suffix.len()..].eq_ignore_ascii_case(suffix)
@@ -168,6 +175,10 @@ fn process_args(app: &AppHandle, args: &[String]) {
             let path = Path::new(url);
             if (path.extension()).is_some_and(|ext| ext.eq_ignore_ascii_case("alcomtemplate")) {
                 deep_link_support::process_files(app, vec![PathBuf::from(path)]);
+                return;
+            }
+            if (path.extension()).is_some_and(|ext| ext.eq_ignore_ascii_case("alcomrepositories")) {
+                deep_link_support::import_alcom_repositories(app, vec![PathBuf::from(path)]);
                 return;
             }
         }
