@@ -222,7 +222,9 @@ function NoExactUnity2022Dialog({
 			<DialogFooter className={"gap-2"}>
 				{installWithUnityHubLink && (
 					<Button
-						onClick={() => void commands.utilOpenUrl(installWithUnityHubLink)}
+						onClick={() =>
+							void commands.utilOpenUrlNocheck(installWithUnityHubLink)
+						}
 					>
 						{tc("projects:dialog:open unity hub")}
 					</Button>
