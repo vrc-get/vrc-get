@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog].
 - Improved compatibility with better compatibility with tools resizes window on launch `#3157`
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
+- Open Unity Hub in some places does not work `#3274`
 
 ### Security
 
