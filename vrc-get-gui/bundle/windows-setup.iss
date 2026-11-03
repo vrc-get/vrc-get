@@ -87,6 +87,12 @@ Root: HKA; Subkey: "Software\Classes\ALCOM Project Template"; ValueType: string;
 Root: HKA; Subkey: "Software\Classes\ALCOM Project Template\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
 Root: HKA; Subkey: "Software\Classes\ALCOM Project Template\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
 
+Root: HKA; Subkey: "Software\Classes\.alcomrepositories"; ValueType: string; ValueName: "PerceivedType"; ValueData: "text"; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\.alcomrepositories\OpenWithProgids"; ValueType: string; ValueName: "Anatawa12.ALCOM.Repositories"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories"; ValueType: string; ValueName: ""; ValueData: "ALCOM Repositories"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
