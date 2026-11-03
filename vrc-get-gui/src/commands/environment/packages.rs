@@ -613,8 +613,9 @@ pub async fn environment_export_repositories(
         .dialog()
         .file()
         .set_parent(&window)
+        .add_filter("ALCOM Repositories", &["alcomrepositories"])
         .add_filter("Text", &["txt"])
-        .set_file_name("repositories.txt")
+        .set_file_name("repositories.alcomrepositories")
         .blocking_save_file()
         .map(|x| x.into_path_buf())
         .transpose()?
