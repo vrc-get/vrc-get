@@ -10,6 +10,7 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
+pub use environment::packages::TauriParsedRepositories;
 use log::error;
 use serde::Serialize;
 pub use start::startup;
@@ -172,6 +173,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         util::util_pick_directory,
         crate::deep_link_support::deep_link_has_add_repository,
         crate::deep_link_support::deep_link_take_add_repository,
+        crate::deep_link_support::deep_link_take_import_repositories,
         crate::deep_link_support::deep_link_install_vcc,
         crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
         crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
@@ -288,6 +290,7 @@ pub(crate) fn export_ts() {
             util::util_pick_directory,
             crate::deep_link_support::deep_link_has_add_repository,
             crate::deep_link_support::deep_link_take_add_repository,
+            crate::deep_link_support::deep_link_take_import_repositories,
             crate::deep_link_support::deep_link_install_vcc,
             crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
             crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,

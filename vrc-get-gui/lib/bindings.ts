@@ -118,6 +118,10 @@ export const commands = {
 	url: string,
 	headers: { [key in string]: string },
 } | null>("deep_link_take_add_repository"),
+	deepLinkTakeImportRepositories: () => __TAURI_INVOKE<{
+	repositories: TauriRepositoryDescriptor[],
+	unparsable_lines: string[],
+} | null>("deep_link_take_import_repositories"),
 	deepLinkInstallVcc: () => __TAURI_INVOKE<void>("deep_link_install_vcc"),
 	deepLinkImportedClearNonToastedCount: () => __TAURI_INVOKE<number>("deep_link_imported_clear_non_toasted_count"),
 	deepLinkReduceImportedClearNonToastedCount: (reduce: number) => __TAURI_INVOKE<void>("deep_link_reduce_imported_clear_non_toasted_count", { reduce }),
@@ -288,7 +292,9 @@ export type TauriImportDuplicated_Serialize = {
 	data: string,
 };
 
-export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] };
+export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | {
+	type: "ParsedRepositories",
+} & TauriParsedRepositories;
 
 export type TauriImportTemplateResult = TauriImportTemplateResult_Serialize | TauriImportTemplateResult_Deserialize;
 
@@ -312,6 +318,11 @@ export type TauriPackageSource = "LocalUser" | { Remote: {
 	id: string,
 	display_name: string,
 } };
+
+export type TauriParsedRepositories = {
+	repositories: TauriRepositoryDescriptor[],
+	unparsable_lines: string[],
+};
 
 export type TauriPartialProject = {
 	path: string,
