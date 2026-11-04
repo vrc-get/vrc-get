@@ -199,7 +199,7 @@
     "projects:toast:project migrated": "Project was migrated successfully.",
 
     "projects:dialog:backup header": "Backup Project",
-    "projects:dialog:creating backup...": "Creating a backup...",
+    "projects:dialog:creating backup...": "Creating a backup of {{name}}...",
     "projects:dialog:proceed k/n": "Processing {{count}}/{{total}} entries",
     "projects:toast:backup canceled": "Backup was canceled.",
     "projects:toast:backup succeeded": "Backup was created successfully.",

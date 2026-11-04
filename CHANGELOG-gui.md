@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
 - Added Russian localization `#3120`
 - Project launch buttons now show when Unity is opening or running and can bring open Unity Editor windows to the foreground on Windows, macOS, and Linux. [`#3109`](https://github.com/vrc-get/vrc-get/pull/3109) `#3153`
 - `.alcomrepositories` file extension for list of repositories `#3275`
+- Show the project name in the backup dialog `#3111`
   - This is exactly same as previous `repositories.txt` file, but with a distinct file extension for importing with double click.
   - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
 
