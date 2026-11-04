@@ -75,7 +75,7 @@ export function BackupProjectDialog({
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{header ?? tc("projects:dialog:backup header")}</DialogTitle>
 			<div>
-				<p>{tc("projects:dialog:creating backup...", {
+				<p>{tc("projects:dialog:creating backup of...", {
 						name: nameFromPath(projectPath),
 					})}</p>
 				<p>
