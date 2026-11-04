@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog].
   - Added a project list for ALCOM and logic to sync it with VCC's project list.
   - Added a configuration option for the project list syncing mode.
 - Use display name from Unity Hub on the Project List `#2657`
-- Show the project name in the backup progress dialog `#3278`
+- Show the project name in the backup progress dialog and the remove project dialog `#3278`
 
 ### Deprecated
 
