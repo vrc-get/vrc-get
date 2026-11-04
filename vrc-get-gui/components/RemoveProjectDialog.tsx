@@ -70,7 +70,11 @@ export function RemoveProjectDialog({
 			<DialogTitle>{tc("projects:remove project")}</DialogTitle>
 			<div>
 				{removeProject.isPending ? (
-					<p className={"font-normal"}>{tc("projects:dialog:removing...")}</p>
+					<p className={"font-normal"}>
+						{tc("projects:dialog:removing project...", {
+							name: nameFromPath(project.path),
+						})}
+					</p>
 				) : (
 					<p className={"font-normal"}>
 						{tc("projects:dialog:warn removing project", {
