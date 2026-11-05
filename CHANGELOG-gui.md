@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog].
   - Added a configuration option for the project list syncing mode.
 - Use display name from Unity Hub on the Project List `#2657`
 - Show the project name in the backup progress dialog and the remove project dialog `#3278`
+- Show the backup file name in the toast shown after creating a backup `#3279`
 
 ### Deprecated
 
