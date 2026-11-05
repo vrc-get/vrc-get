@@ -58,10 +58,14 @@ export function BackupProjectDialog({
 						if (x === "cancelled") {
 							toastNormal(tc("projects:toast:backup canceled"));
 						} else {
-							toastSuccess(tc("projects:toast:backup succeeded"));
+							toastSuccess(
+								tc("projects:toast:backup succeeded with name", {
+									name: nameFromPath(x.backup_path),
+								}),
+							);
 						}
 					}
-					return x;
+					return x === "cancelled" ? x : null;
 				})
 				.then(dialog.close, dialog.error);
 		},

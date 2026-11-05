@@ -90,7 +90,7 @@ export const commands = {
 	projectIsUnityLaunching: (projectPath: string) => __TAURI_INVOKE<boolean>("project_is_unity_launching", { projectPath }),
 	projectUnityStatus: (projectPath: string) => __TAURI_INVOKE<TauriUnityProjectStatus>("project_unity_status", { projectPath }),
 	projectBringUnityToFront: (projectPath: string) => __TAURI_INVOKE<TauriUnityWindowActionResult>("project_bring_unity_to_front", { projectPath }),
-	projectCreateBackup: (channel: string, projectPath: string) => __TAURI_INVOKE<AsyncCallResult<TauriCreateBackupProgress, null>>("project_create_backup", { channel, projectPath }),
+	projectCreateBackup: (channel: string, projectPath: string) => __TAURI_INVOKE<AsyncCallResult<TauriCreateBackupProgress, TauriCreateBackupResult>>("project_create_backup", { channel, projectPath }),
 	projectGetCustomUnityArgs: (projectPath: string) => __TAURI_INVOKE<string[] | null>("project_get_custom_unity_args", { projectPath }),
 	projectSetCustomUnityArgs: (projectPath: string, args: string[] | null) => __TAURI_INVOKE<boolean>("project_set_custom_unity_args", { projectPath, args }),
 	projectGetUnityPath: (projectPath: string) => __TAURI_INVOKE<string | null>("project_get_unity_path", { projectPath }),
@@ -245,6 +245,10 @@ export type TauriCreateBackupProgress = {
 	total: number,
 	proceed: number,
 	last_proceed: string,
+};
+
+export type TauriCreateBackupResult = {
+	backup_path: string,
 };
 
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful";

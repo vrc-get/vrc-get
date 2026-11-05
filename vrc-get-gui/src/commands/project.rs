@@ -698,6 +698,11 @@ impl Drop for RemoveOnDrop<'_> {
     }
 }
 
+#[derive(Serialize, specta::Type, Clone)]
+pub struct TauriCreateBackupResult {
+    backup_path: String,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn project_create_backup(
@@ -707,7 +712,7 @@ pub async fn project_create_backup(
     window: Window,
     channel: String,
     project_path: String,
-) -> Result<AsyncCallResult<TauriCreateBackupProgress, ()>, RustError> {
+) -> Result<AsyncCallResult<TauriCreateBackupProgress, TauriCreateBackupResult>, RustError> {
     async_command(channel, window, async {
         let backup_format = config.get().backup_format.to_ascii_lowercase();
         let exclude_vpm = config.get().exclude_vpm_packages_from_backup;
@@ -804,7 +809,9 @@ pub async fn project_create_backup(
             remove_on_drop.forget();
 
             log::info!("backup finished in {:?}", timer.elapsed());
-            Ok(())
+            Ok(TauriCreateBackupResult {
+                backup_path: backup_path.to_string_lossy().into_owned(),
+            })
         })
     })
     .await
