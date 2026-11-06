@@ -90,7 +90,7 @@ export const commands = {
 	projectIsUnityLaunching: (projectPath: string) => __TAURI_INVOKE<boolean>("project_is_unity_launching", { projectPath }),
 	projectUnityStatus: (projectPath: string) => __TAURI_INVOKE<TauriUnityProjectStatus>("project_unity_status", { projectPath }),
 	projectBringUnityToFront: (projectPath: string) => __TAURI_INVOKE<TauriUnityWindowActionResult>("project_bring_unity_to_front", { projectPath }),
-	projectCreateBackup: (channel: string, projectPath: string) => __TAURI_INVOKE<AsyncCallResult<TauriCreateBackupProgress, null>>("project_create_backup", { channel, projectPath }),
+	projectCreateBackup: (channel: string, projectPath: string) => __TAURI_INVOKE<AsyncCallResult<TauriCreateBackupProgress, TauriCreateBackupResult>>("project_create_backup", { channel, projectPath }),
 	projectGetCustomUnityArgs: (projectPath: string) => __TAURI_INVOKE<string[] | null>("project_get_custom_unity_args", { projectPath }),
 	projectSetCustomUnityArgs: (projectPath: string, args: string[] | null) => __TAURI_INVOKE<boolean>("project_set_custom_unity_args", { projectPath, args }),
 	projectGetUnityPath: (projectPath: string) => __TAURI_INVOKE<string | null>("project_get_unity_path", { projectPath }),
@@ -118,6 +118,10 @@ export const commands = {
 	url: string,
 	headers: { [key in string]: string },
 } | null>("deep_link_take_add_repository"),
+	deepLinkTakeImportRepositories: () => __TAURI_INVOKE<{
+	repositories: TauriRepositoryDescriptor[],
+	unparsable_lines: string[],
+} | null>("deep_link_take_import_repositories"),
 	deepLinkInstallVcc: () => __TAURI_INVOKE<void>("deep_link_install_vcc"),
 	deepLinkImportedClearNonToastedCount: () => __TAURI_INVOKE<number>("deep_link_imported_clear_non_toasted_count"),
 	deepLinkReduceImportedClearNonToastedCount: (reduce: number) => __TAURI_INVOKE<void>("deep_link_reduce_imported_clear_non_toasted_count", { reduce }),
@@ -243,6 +247,10 @@ export type TauriCreateBackupProgress = {
 	last_proceed: string,
 };
 
+export type TauriCreateBackupResult = {
+	backup_path: string,
+};
+
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful";
 
 export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated"; reason: TauriDuplicatedReason; duplicated_name: string } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo };
@@ -289,7 +297,9 @@ export type TauriImportDuplicated_Serialize = {
 	data: string,
 };
 
-export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] };
+export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | {
+	type: "ParsedRepositories",
+} & TauriParsedRepositories;
 
 export type TauriImportTemplateResult = TauriImportTemplateResult_Serialize | TauriImportTemplateResult_Deserialize;
 
@@ -313,6 +323,11 @@ export type TauriPackageSource = "LocalUser" | { Remote: {
 	id: string,
 	display_name: string,
 } };
+
+export type TauriParsedRepositories = {
+	repositories: TauriRepositoryDescriptor[],
+	unparsable_lines: string[],
+};
 
 export type TauriPartialProject = {
 	path: string,

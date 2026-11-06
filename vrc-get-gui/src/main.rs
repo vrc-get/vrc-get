@@ -10,7 +10,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
 mod commands;
@@ -98,15 +98,29 @@ fn main() {
     app.run(|app, event| match event {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         tauri::RunEvent::Opened { urls } => {
-            let mut files = vec![];
+            let mut templates = vec![];
+            let mut repositories = vec![];
             for url in urls {
-                if let Ok(file) = url.to_file_path() {
-                    files.push(file)
+                if url.scheme() == "file"
+                    && let Ok(file) = url.to_file_path()
+                {
+                    match file.extension() {
+                        Some(ext) if ext.eq_ignore_ascii_case("alcomtemplate") => {
+                            templates.push(file)
+                        }
+                        Some(ext) if ext.eq_ignore_ascii_case("alcomrepositories") => {
+                            repositories.push(file)
+                        }
+                        _ => {
+                            log::error!("Unsupported file: {file:?}")
+                        }
+                    }
                 } else {
                     deep_link_support::on_deep_link(url);
                 }
             }
-            deep_link_support::process_files(app, files);
+            deep_link_support::process_files(app, templates);
+            deep_link_support::import_alcom_repositories(app, repositories);
         }
         _ => {}
     });
@@ -141,7 +155,12 @@ fn process_args(app: &AppHandle, args: &[String]) {
     }
 
     fn is_deep_link(url: &str) -> bool {
-        url.starts_with("vcc://") || url.ends_with(".alcomtemplate")
+        url.starts_with("vcc://")
+            || ends_with_ignore_ascii_case(url, ".alcomtemplate")
+            || ends_with_ignore_ascii_case(url, ".alcomrepositories")
+    }
+    fn ends_with_ignore_ascii_case(s: &str, suffix: &str) -> bool {
+        s.len() >= suffix.len() && s[s.len() - suffix.len()..].eq_ignore_ascii_case(suffix)
     }
 
     fn process_deep_link_string(app: &AppHandle, url: &str) {
@@ -153,8 +172,15 @@ fn process_args(app: &AppHandle, args: &[String]) {
             return;
         }
         if std::fs::exists(url).unwrap_or(false) {
-            deep_link_support::process_files(app, vec![PathBuf::from(url)]);
-            return;
+            let path = Path::new(url);
+            if (path.extension()).is_some_and(|ext| ext.eq_ignore_ascii_case("alcomtemplate")) {
+                deep_link_support::process_files(app, vec![PathBuf::from(path)]);
+                return;
+            }
+            if (path.extension()).is_some_and(|ext| ext.eq_ignore_ascii_case("alcomrepositories")) {
+                deep_link_support::import_alcom_repositories(app, vec![PathBuf::from(path)]);
+                return;
+            }
         }
         log::error!("Invalid deep link: {url}");
     }

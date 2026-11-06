@@ -199,15 +199,15 @@
     "projects:toast:project migrated": "Project was migrated successfully.",
 
     "projects:dialog:backup header": "Backup Project",
-    "projects:dialog:creating backup...": "Creating a backup...",
+    "projects:dialog:creating backup of...": "Creating a backup of <b>{{name}}</b> ...",
     "projects:dialog:proceed k/n": "Processing {{count}}/{{total}} entries",
     "projects:toast:backup canceled": "Backup was canceled.",
-    "projects:toast:backup succeeded": "Backup was created successfully.",
+    "projects:toast:backup succeeded with name": "Backup {{name}} was created successfully.",
 
     "projects:dialog:warn removing project": "You're about to remove the project <b>{{name}}</b>. Are you sure?",
     "projects:button:remove from list": "Remove from the List",
     "projects:button:remove directory": "Remove the Directory",
-    "projects:dialog:removing...": "Removing the project...",
+    "projects:dialog:removing project...": "Removing the project <b>{{name}}</b> ...",
     "projects:toast:project removed": "Project was removed successfully.",
 
     "projects:set project display name": "Set Project Display Name",

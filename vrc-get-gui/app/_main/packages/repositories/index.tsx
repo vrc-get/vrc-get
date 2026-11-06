@@ -202,9 +202,14 @@ function PageBody() {
 	});
 
 	const processDeepLink = useCallback(async function processDeepLink() {
-		const data = await commands.deepLinkTakeAddRepository();
-		if (data == null) return;
-		await addRepository(data.url, data.headers);
+		const singleRepository = await commands.deepLinkTakeAddRepository();
+		if (singleRepository != null) {
+			await addRepository(singleRepository.url, singleRepository.headers);
+		}
+		const repositoriesInfo = await commands.deepLinkTakeImportRepositories();
+		if (repositoriesInfo != null) {
+			await importRepositories(repositoriesInfo);
+		}
 	}, []);
 
 	const hiddenUserRepos = useMemo(
