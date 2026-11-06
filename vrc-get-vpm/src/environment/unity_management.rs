@@ -310,7 +310,12 @@ fn default_unity_cli_path() -> &'static [&'static str] {
                 let home = std::env::var("HOME").expect("HOME not set");
                 format!("{home}/.unity/bin/unity")
             };
-            static ref INSTALLATIONS: [&'static str; 1] = [&USER_INSTALLATION];
+            static ref INSTALLATIONS: [&'static str; 3] = [
+                &USER_INSTALLATION,
+                // homebrew
+                "/opt/homebrew/bin/unity",
+                "/usr/local/bin/unity",
+            ];
         }
 
         INSTALLATIONS.as_ref()
@@ -322,7 +327,13 @@ fn default_unity_cli_path() -> &'static [&'static str] {
                 let home = std::env::var("HOME").expect("HOME not set");
                 format!("{home}/.local/bin/unity")
             };
-            static ref INSTALLATIONS: [&'static str; 1] = [&USER_INSTALLATION];
+            static ref INSTALLATIONS: [&'static str; 3] = [
+                &USER_INSTALLATION,
+                // linuxbrew
+                "/home/linuxbrew/.linuxbrew/bin/unity",
+                // aur package
+                "/usr/bin/unity",
+            ];
         }
 
         INSTALLATIONS.as_ref()
