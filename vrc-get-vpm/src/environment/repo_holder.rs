@@ -10,10 +10,10 @@ use crate::utils::{parse_json_file, read_to_end, to_vec_pretty_os_eol, try_load_
 use crate::{UserRepoSetting, io};
 use futures::future::join_all;
 use indexmap::IndexMap;
-use lazy_static::lazy_static;
 use log::{error, warn};
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::LazyLock;
 use url::Url;
 
 #[derive(Debug, Clone)]
@@ -123,11 +123,10 @@ impl RepoHolder {
     }
 
     fn get_predefined_repos(settings: &Settings) -> Vec<RepoSource<'static>> {
-        lazy_static! {
-            static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
-            static ref OFFICIAL_URL: Url = Url::parse(OFFICIAL_URL_STR).unwrap();
-            static ref CURATED_URL: Url = Url::parse(CURATED_URL_STR).unwrap();
-        }
+        static EMPTY_HEADERS: LazyLock<IndexMap<Box<str>, Box<str>>> = LazyLock::new(IndexMap::new);
+        static OFFICIAL_URL: LazyLock<Url> =
+            LazyLock::new(|| Url::parse(OFFICIAL_URL_STR).unwrap());
+        static CURATED_URL: LazyLock<Url> = LazyLock::new(|| Url::parse(CURATED_URL_STR).unwrap());
 
         let mut repositories = Vec::with_capacity(2);
 

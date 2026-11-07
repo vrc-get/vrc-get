@@ -18,31 +18,29 @@ struct OsEolJsonPrettyFormatter<'a> {
     indent: &'a [u8],
 }
 
-#[cfg(windows)]
 macro_rules! eol {
     () => {
-        b"\r\n"
+        cfg_select! {
+            windows => {
+                b"\r\n"
+            }
+            _ => {
+                b"\n"
+            }
+        }
     };
 }
 
-#[cfg(windows)]
 macro_rules! comma_eol {
     () => {
-        b",\r\n"
-    };
-}
-
-#[cfg(not(windows))]
-macro_rules! eol {
-    () => {
-        b"\n"
-    };
-}
-
-#[cfg(not(windows))]
-macro_rules! comma_eol {
-    () => {
-        b",\n"
+        cfg_select! {
+            windows => {
+                b",\r\n"
+            }
+            _ => {
+                b",\n"
+            }
+        }
     };
 }
 

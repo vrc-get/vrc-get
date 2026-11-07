@@ -37,13 +37,16 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
     Ok(lock.l_type != F_UNLCK as c_short)
 }
 
-#[cfg(target_os = "macos")]
-#[path = "os_macos.rs"]
-mod os_more;
-
-#[cfg(target_os = "linux")]
-#[path = "os_linux.rs"]
-mod os_more;
+cfg_select! {
+    target_os = "macos" => {
+        #[path = "os_macos.rs"]
+        mod os_more;
+    }
+    target_os = "linux" => {
+        #[path = "os_linux.rs"]
+        mod os_more;
+    }
+}
 
 pub fn os_info() -> &'static str {
     static OS_INFO: OnceLock<String> = OnceLock::new();

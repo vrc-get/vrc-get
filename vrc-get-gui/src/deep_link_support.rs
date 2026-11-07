@@ -96,12 +96,11 @@ pub fn on_deep_link(deep_link: Url) {
 
 #[allow(unused_variables)]
 pub fn should_install_deep_link(app: &AppHandle) -> bool {
-    #[cfg(target_os = "linux")]
-    if app.env().appimage.is_some() {
-        return true;
+    cfg_select! {
+        target_os = "macos" => false,
+        target_os = "windows" => true,
+        target_os = "linux" => app.env().appimage.is_some(),
     }
-
-    cfg!(target_os = "windows")
 }
 
 static IMPORTED_NON_TOASTED_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -132,61 +131,55 @@ pub fn deep_link_take_add_repository() -> Option<AddRepositoryInfo> {
 
 #[tauri::command]
 #[specta::specta]
-#[cfg(target_os = "macos")]
-pub async fn deep_link_install_vcc(_app: AppHandle) {
-    // for macos, nothing to do!
-    log::error!("deep_link_install_vcc is not supported on macos");
-}
-
-#[tauri::command]
-#[specta::specta]
-#[cfg(windows)]
-pub async fn deep_link_install_vcc(_app: AppHandle) {
-    // for windows, install to registry
-    fn impl_() -> std::io::Result<()> {
-        let exe = std::env::current_exe()?;
-        let exe = exe.to_string_lossy();
-
-        let (key, _) = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
-            .create_subkey("Software\\Classes\\vcc")?;
-        key.set_value("URL Protocol", &"")?;
-        let (default_icon, _) = key.create_subkey("DefaultIcon")?;
-        default_icon.set_value("", &format!("\"{exe}\",0"))?;
-        let (command, _) = key.create_subkey("shell\\open\\command")?;
-        command.set_value("", &format!("\"{exe}\" link \"%1\""))?;
-        Ok(())
-    }
-
-    if let Err(e) = impl_() {
-        log::error!("Failed to install vcc deep link: {e}");
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-#[cfg(target_os = "linux")]
 pub async fn deep_link_install_vcc(app: AppHandle) {
-    use tauri::Manager as _;
-    // for linux, create a desktop entry
-    // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
+    cfg_select! {
+        target_os = "macos" => {
+            let _ = app;
+            log::error!("deep_link_install_vcc is not supported on macos");
+        }
+        target_os = "windows" => {
+            let _ = app;
+            // for windows, install to registry
+            fn impl_() -> std::io::Result<()> {
+                let exe = std::env::current_exe()?;
+                let exe = exe.to_string_lossy();
 
-    let Some(home_dir) = dirs_next::data_dir() else {
-        log::error!("Failed to get XDG_DATA_HOME");
-        return;
-    };
-    let applications_dir = home_dir.join("applications");
-    let desktop_file = applications_dir.join(format!(
-        "{app_id}.desktop",
-        app_id = "com.anatawa12.vrc_get"
-    ));
+                let (key, _) = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
+                    .create_subkey("Software\\Classes\\vcc")?;
+                key.set_value("URL Protocol", &"")?;
+                let (default_icon, _) = key.create_subkey("DefaultIcon")?;
+                default_icon.set_value("", &format!("\"{exe}\",0"))?;
+                let (command, _) = key.create_subkey("shell\\open\\command")?;
+                command.set_value("", &format!("\"{exe}\" link \"%1\""))?;
+                Ok(())
+            }
 
-    let Some(appimage_path) = app.env().appimage.and_then(|x| x.into_string().ok()) else {
-        log::error!("Failed to get appimage path");
-        return;
-    };
+            if let Err(e) = impl_() {
+                log::error!("Failed to install vcc deep link: {e}");
+            }
+        }
+        target_os = "linux" => {
+            use tauri::Manager as _;
+            // for linux, create a desktop entry
+            // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
 
-    let contents = format!(
-        r#"[Desktop Entry]
+            let Some(home_dir) = dirs_next::data_dir() else {
+                log::error!("Failed to get XDG_DATA_HOME");
+                return;
+            };
+            let applications_dir = home_dir.join("applications");
+            let desktop_file = applications_dir.join(format!(
+                "{app_id}.desktop",
+                app_id = "com.anatawa12.vrc_get"
+            ));
+
+            let Some(appimage_path) = app.env().appimage.and_then(|x| x.into_string().ok()) else {
+                log::error!("Failed to get appimage path");
+                return;
+            };
+
+            let contents = format!(
+                r#"[Desktop Entry]
 Type=Application
 Name=ALCOM
 Exec="{appimage_path}" link %u
@@ -195,98 +188,94 @@ Terminal=false
 MimeType=x-scheme-handler/vcc
 Categories=Utility;
 "#,
-        appimage_path = escape(&appimage_path)
-    );
+                     appimage_path = escape(&appimage_path)
+                 );
 
-    if let Err(e) = tokio::fs::create_dir_all(&applications_dir).await {
-        log::error!("Failed to create applications directory: {e}");
-        return;
-    }
+                 if let Err(e) = tokio::fs::create_dir_all(&applications_dir).await {
+                     log::error!("Failed to create applications directory: {e}");
+                     return;
+                 }
 
-    if let Err(e) = tokio::fs::write(&desktop_file, &contents).await {
-        log::error!("Failed to write desktop file: {e}");
-        return;
-    }
+                 if let Err(e) = tokio::fs::write(&desktop_file, &contents).await {
+                     log::error!("Failed to write desktop file: {e}");
+                     return;
+                 }
 
-    log::info!("Desktop file created: {}", desktop_file.display());
+                 log::info!("Desktop file created: {}", desktop_file.display());
 
-    if let Err(e) = tokio::process::Command::new("update-desktop-database")
-        .arg(applications_dir)
-        .status()
-        .await
-    {
-        log::error!("Failed to call update-desktop-database: {e}");
-    }
+                 if let Err(e) = tokio::process::Command::new("update-desktop-database")
+                     .arg(applications_dir)
+                     .status()
+                     .await
+                 {
+                     log::error!("Failed to call update-desktop-database: {e}");
+                 }
 
-    fn escape(s: &str) -> String {
-        s.replace('\\', r#"\\\\"#)
-            .replace('`', r#"\\`"#)
-            .replace('$', r#"\\$"#)
-            .replace('"', r#"\\""#)
+                 fn escape(s: &str) -> String {
+                     s.replace('\\', r#"\\\\"#)
+                         .replace('`', r#"\\`"#)
+                         .replace('$', r#"\\$"#)
+                         .replace('"', r#"\\""#)
+                 }
+        }
     }
 }
 
 #[tauri::command]
 #[specta::specta]
-#[cfg(target_os = "macos")]
 pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
-    // for macos, nothing to do!
-    log::error!("deep_link_uninstall_vcc is not supported on macos");
-}
-
-#[tauri::command]
-#[specta::specta]
-#[cfg(windows)]
-pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
-    // for windows, install to registry
-    fn impl_() -> std::io::Result<()> {
-        winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
-            .delete_subkey_all("Software\\Classes\\vcc")?;
-        Ok(())
-    }
-
-    if let Err(e) = impl_() {
-        log::error!("Failed to install vcc deep link: {e}");
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-#[cfg(target_os = "linux")]
-pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
-    // for linux, create a desktop entry
-    // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
-
-    let Some(home_dir) = dirs_next::data_dir() else {
-        log::error!("Failed to get XDG_DATA_HOME");
-        return;
-    };
-    let applications_dir = home_dir.join("applications");
-    let desktop_file = applications_dir.join(format!(
-        "{app_id}.desktop",
-        app_id = "com.anatawa12.vrc_get"
-    ));
-
-    match tokio::fs::remove_file(&desktop_file).await {
-        Ok(()) => {
-            log::info!("Desktop file removed: {}", desktop_file.display());
+    cfg_select! {
+        target_os = "macos" => {
+            log::error!("deep_link_uninstall_vcc is not supported on macos");
         }
-        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => {
-            log::info!("Desktop file was not found: {}", desktop_file.display());
-            return;
-        }
-        Err(e) => {
-            log::error!("Failed to remove desktop file: {e}");
-            return;
-        }
-    }
+        target_os = "windows" => {
+            // for windows, install to registry
+            fn impl_() -> std::io::Result<()> {
+                winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
+                    .delete_subkey_all("Software\\Classes\\vcc")?;
+                Ok(())
+            }
 
-    if let Err(e) = tokio::process::Command::new("update-desktop-database")
-        .arg(applications_dir)
-        .status()
-        .await
-    {
-        log::error!("Failed to call update-desktop-database: {e}");
+            if let Err(e) = impl_() {
+                log::error!("Failed to install vcc deep link: {e}");
+            }
+        }
+        target_os = "linux" => {
+            // for linux, create a desktop entry
+            // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
+
+            let Some(home_dir) = dirs_next::data_dir() else {
+                log::error!("Failed to get XDG_DATA_HOME");
+                return;
+            };
+            let applications_dir = home_dir.join("applications");
+            let desktop_file = applications_dir.join(format!(
+                "{app_id}.desktop",
+                app_id = "com.anatawa12.vrc_get"
+            ));
+
+            match tokio::fs::remove_file(&desktop_file).await {
+                Ok(()) => {
+                    log::info!("Desktop file removed: {}", desktop_file.display());
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    log::info!("Desktop file was not found: {}", desktop_file.display());
+                    return;
+                }
+                Err(e) => {
+                    log::error!("Failed to remove desktop file: {e}");
+                    return;
+                }
+            }
+
+            if let Err(e) = tokio::process::Command::new("update-desktop-database")
+                .arg(applications_dir)
+                .status()
+                .await
+            {
+                log::error!("Failed to call update-desktop-database: {e}");
+            }
+        }
     }
 }
 

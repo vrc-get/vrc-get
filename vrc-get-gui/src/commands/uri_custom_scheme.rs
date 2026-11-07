@@ -54,17 +54,16 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
 
     let vpm_home_folder = io.inner().resolve("".as_ref());
 
-    #[cfg(target_os = "macos")]
-    let os_type = "Darwin";
-    #[cfg(target_os = "windows")]
-    let os_type = "WindowsNT";
-    #[cfg(target_os = "linux")]
-    let os_type = "Linux";
+    let os_type = cfg_select! {
+        target_os = "macos" => "Darwin",
+        target_os = "windows" => "WindowsNT",
+        target_os = "linux" => "Linux",
+    };
 
-    #[cfg(target_arch = "x86_64")]
-    let arch = "x86_64";
-    #[cfg(target_arch = "aarch64")]
-    let arch = "aarch64";
+    let arch = cfg_select! {
+        target_arch = "x86_64" => "x86_64",
+        target_arch = "aarch64" => "aarch64",
+    };
 
     let os_info = crate::os::os_info();
 
@@ -72,15 +71,16 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     let webview_version = webview_version.as_deref().unwrap_or("unknown");
 
     // we do not support updater with rpm or deb
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
-    let check_for_updates = true;
-    #[cfg(target_os = "linux")]
-    let check_for_updates = app.env().appimage.is_some();
+    let check_for_updates = cfg_select! {
+        target_os = "macos" => true,
+        target_os = "windows" => true,
+        target_os = "linux" => app.env().appimage.is_some(),
+    };
 
-    #[cfg(windows)]
-    let app_data = crate::os::app_data();
-    #[cfg(not(windows))]
-    let app_data = "";
+    let app_data = cfg_select! {
+        windows => crate::os::app_data(),
+        _ => "",
+    };
 
     let should_install_deep_link = crate::deep_link_support::should_install_deep_link(app);
 

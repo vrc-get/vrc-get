@@ -19,14 +19,11 @@ mod updater;
 mod utils;
 
 // for clippy compatibility
-#[cfg(not(clippy))]
 fn tauri_context() -> tauri::Context {
-    tauri::generate_context!()
-}
-
-#[cfg(clippy)]
-fn tauri_context() -> tauri::Context {
-    panic!()
+    cfg_select! {
+        clippy => panic!(),
+        not(clippy) => tauri::generate_context!()
+    }
 }
 
 fn main() {

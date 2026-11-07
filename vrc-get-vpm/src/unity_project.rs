@@ -19,10 +19,9 @@ use crate::{PackageManifest, io};
 use futures::future::try_join;
 use futures::prelude::*;
 use indexmap::IndexMap;
-use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-
+use std::sync::LazyLock;
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
@@ -317,9 +316,8 @@ impl<'a> LockedDependencyInfo<'a> {
         version: &'a Version,
         dependencies: Option<&'a IndexMap<Box<str>, VersionRange>>,
     ) -> Self {
-        lazy_static! {
-            static ref EMPTY_DEPENDENCIES: IndexMap<Box<str>, VersionRange> = IndexMap::new();
-        }
+        static EMPTY_DEPENDENCIES: LazyLock<IndexMap<Box<str>, VersionRange>> =
+            LazyLock::new(IndexMap::new);
         Self {
             name,
             version,
