@@ -1,6 +1,7 @@
 mod add_package;
 mod find_legacy_assets;
 mod migrate_unity_2022;
+#[cfg(not(r2cs))]
 mod migrate_vpm;
 mod package_resolution;
 pub mod pending_project_changes;

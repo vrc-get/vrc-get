@@ -60,7 +60,6 @@ pub trait IoTrait: Sync {
     fn open(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
 }
 
-#[cfg_attr(r2cs, r2cs_trait_first)]
 pub trait FileStream: AsyncRead + AsyncWrite + AsyncSeek + Unpin + Send {}
 
 #[derive(Debug, Copy, Clone)]
@@ -187,7 +186,6 @@ impl std::fmt::Display for ExitStatus {
 }
  */
 
-#[cfg_attr(r2cs, r2cs_trait_first)]
 pub trait DirEntry {
     fn file_name(&self) -> OsString;
     fn file_type(&self) -> impl Future<Output = Result<FileType>> + Send;

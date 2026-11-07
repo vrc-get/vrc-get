@@ -1,10 +1,11 @@
 use crate::io;
-use crate::io::{FileStream, FileType, IoTrait, Metadata};
+use crate::io::{AsyncRead, AsyncSeek, AsyncWrite, FileStream, FileType, IoTrait, Metadata};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 #[cfg(feature = "vrc-get-litedb")]
 use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::io::SeekFrom;
 use std::mem::forget;
 use std::path::Path;
 use std::path::PathBuf;
@@ -266,7 +267,7 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
         Ok(ReadDir::new(fs::read_dir(self.resolve(path)?).await?))
     }
 
-    type FileStream = tokio_util::compat::Compat<fs::File>;
+    type FileStream = File;
 
     async fn create_new(&self, path: &Path) -> io::Result<Self::FileStream> {
         fs::OpenOptions::new()
@@ -274,7 +275,7 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
             .write(true)
             .read(true)
             .open(self.resolve(path)?)
-            .map_ok(|file| file.compat())
+            .map_ok(File::new)
             .await
     }
 
@@ -285,18 +286,63 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
             .write(true)
             .read(true)
             .open(self.resolve(path)?)
-            .and_then(|file| async { Ok(file.compat()) })
+            .map_ok(File::new)
             .await
     }
 
     async fn open(&self, path: &Path) -> io::Result<Self::FileStream> {
-        Ok(fs::File::open(self.resolve(path)?).await?.compat())
+        fs::File::open(self.resolve(path)?).await?.map_ok(File::new)
     }
 }
 
-impl FileStream for tokio_util::compat::Compat<fs::File> {}
+#[cfg_attr(r2cs, r2cs_native)]
+pub struct File(tokio_util::compat::Compat<fs::File>);
 
-pub type File = tokio_util::compat::Compat<fs::File>;
+impl File {
+    fn new(file: fs::File) -> Self {
+        Self(file.compat())
+    }
+}
+
+impl AsyncRead for File {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<std::io::Result<usize>> {
+        self.0.poll_read(cx, buf)
+    }
+}
+
+impl AsyncWrite for File {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<std::io::Result<usize>> {
+        self.0.poll_write(cx, buf)
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        self.0.poll_flush(cx)
+    }
+
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        self.0.poll_close(cx)
+    }
+}
+
+impl AsyncSeek for File {
+    fn poll_seek(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        pos: SeekFrom,
+    ) -> Poll<std::io::Result<u64>> {
+        self.0.poll_seek(cx, pos)
+    }
+}
+
+impl FileStream for File {}
 
 #[cfg_attr(r2cs, r2cs_native)]
 pub struct ReadDir {
