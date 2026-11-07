@@ -178,34 +178,33 @@ pub async fn util_install_and_upgrade(
     .await
 }
 
-#[cfg(windows)]
 #[tauri::command]
 #[specta::specta]
 pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
-    unsafe {
-        use windows::Win32::NetworkManagement::IpHelper::{FIXED_INFO_W2KSP1, GetNetworkParams};
-        let mut len = 0;
-        // ignore error since expecting ERROR_BUFFER_OVERFLOW
-        GetNetworkParams(None, &mut len).ok().ok();
-        let memory = vec![0u8; len as usize];
-        let ptr = memory.as_ptr() as *mut FIXED_INFO_W2KSP1;
-        GetNetworkParams(Some(ptr), &mut len)
-            .ok()
-            .map_err(RustError::unrecoverable)?;
-        let info = &*ptr;
-        Ok(info
-            .HostName
-            .iter()
-            .take_while(|&&c| c != 0)
-            .any(|&c| c < 0))
+    cfg_select! {
+        target_os = "windows" => {
+            unsafe {
+                use windows::Win32::NetworkManagement::IpHelper::{FIXED_INFO_W2KSP1, GetNetworkParams};
+                let mut len = 0;
+                // ignore error since expecting ERROR_BUFFER_OVERFLOW
+                GetNetworkParams(None, &mut len).ok().ok();
+                let memory = vec![0u8; len as usize];
+                let ptr = memory.as_ptr() as *mut FIXED_INFO_W2KSP1;
+                GetNetworkParams(Some(ptr), &mut len)
+                    .ok()
+                    .map_err(RustError::unrecoverable)?;
+                let info = &*ptr;
+                Ok(info
+                    .HostName
+                    .iter()
+                    .take_while(|&&c| c != 0)
+                    .any(|&c| c < 0))
+            }
+        }
+        _ => {
+            Ok(false)
+        }
     }
-}
-
-#[cfg(not(windows))]
-#[tauri::command]
-#[specta::specta]
-pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
-    Ok(false)
 }
 
 #[tauri::command]

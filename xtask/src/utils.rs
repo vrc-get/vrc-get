@@ -93,16 +93,15 @@ impl BuildProfile {
 }
 
 /// Make a file executable (mode 755).
-#[cfg(unix)]
 pub fn make_executable(path: &Path) -> anyhow::Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-    fs::set_permissions(path, fs::Permissions::from_mode(0o755))
-        .with_context(|| format!("chmod 755 {}", path.display()))
-}
-
-#[cfg(not(unix))]
-pub fn make_executable(_path: &Path) -> anyhow::Result<()> {
-    Ok(())
+    cfg_select! {
+        unix => {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(path, fs::Permissions::from_mode(0o755))
+                .with_context(|| format!("chmod 755 {}", path.display()))
+        }
+        _ => Ok(())
+    }
 }
 
 pub fn estimated_dir_size(path: &Path) -> Option<u64> {
