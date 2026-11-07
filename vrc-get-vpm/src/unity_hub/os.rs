@@ -1,15 +1,29 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::unity_hub::find_unity_from_unity_hub_logic::*;
 use crate::utils::PathBufExt;
 use crate::version::UnityVersion;
 use std::path::{Path, PathBuf};
 use std::result;
 
-#[cfg(target_os = "macos")]
-pub use darwin::*;
-#[cfg(target_os = "linux")]
-pub use linux::*;
-#[cfg(target_os = "windows")]
-pub use windows::*;
+cfg_select! {
+    target_os = "macos" => {
+        pub use darwin::*;
+    }
+    target_os = "linux" => {
+        pub use linux::*;
+    }
+    target_os = "windows" => {
+        pub use windows::*;
+    }
+}
 
 type Result<T> = result::Result<T, std::io::Error>;
 

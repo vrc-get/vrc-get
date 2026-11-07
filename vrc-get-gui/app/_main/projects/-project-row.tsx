@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import {
 	queryOptions,
 	useMutation,
@@ -10,8 +19,12 @@ import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
-import { OpenUnityButton } from "@/components/OpenUnityButton";
+import {
+	OpenUnityButton,
+	OpenUnityButtonWidthSizer,
+} from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -133,7 +146,9 @@ export function ProjectRow({
 									<TooltipTriggerIfValid
 										className={"text-left select-text cursor-auto w-full"}
 									>
-										<p className="font-normal whitespace-pre">{project.name}</p>
+										<p className="font-normal whitespace-pre">
+											{project.display_name || project.name}
+										</p>
 										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
 											{project.path}
 										</p>
@@ -208,8 +223,8 @@ export function ProjectRow({
 					</Tooltip>
 				</td>
 				<td className={noGrowCellClass}>
-					<div className="flex flex-row gap-2 max-w-min items-center">
-						<ButtonDisabledIfInvalid asChild>
+					<div className="flex flex-row gap-2 items-center">
+						<ButtonDisabledIfInvalid asChild className="flex-1">
 							<OpenUnityButton
 								projectPath={project.path}
 								unityVersion={project.unity}
@@ -259,6 +274,14 @@ export function ProjectRow({
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() =>
+										openSingleDialog(SetProjectDisplayNameDialog, { project })
+									}
+									disabled={removed || !(is_valid ?? true)}
+								>
+									{tc("projects:set project display name")}
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() =>
 										openSingleDialog(RemoveProjectDialog, { project })
 									}
 									disabled={loading}
@@ -272,6 +295,35 @@ export function ProjectRow({
 				</td>
 			</tr>
 		</ProjectContext.Provider>
+	);
+}
+
+// A row that takes no vertical space but still feeds the table's column width
+// calculation, which is exactly what `visibility: collapse` is specified to do.
+// It carries the widest possible button group, so the button column no longer
+// resizes when OpenUnityButton switches between "Open Unity", "Opening Unity",
+// "Bring Unity to Front" and "Unity Is Open".
+// Keep in sync with the button cell of ProjectRow above.
+export function ProjectRowWidthSizer() {
+	return (
+		<tr className="collapse" inert>
+			<td />
+			<td />
+			<td />
+			<td />
+			<td />
+			<td />
+			<td className="p-2.5 compact:py-1 w-1">
+				<div className="flex flex-row gap-2 items-center">
+					<OpenUnityButtonWidthSizer className="flex-1" />
+					<Button variant="info">{tc("projects:button:manage")}</Button>
+					<Button variant="success">{tc("projects:backup")}</Button>
+					<Button variant="ghost" size="icon">
+						<Ellipsis className="size-5" />
+					</Button>
+				</div>
+			</td>
+		</tr>
 	);
 }
 
@@ -543,17 +595,17 @@ export function useSetProjectFavoriteMutation() {
 		onMutate: async (project) => {
 			await queryClient.cancelQueries(environmentProjects);
 
-			const previousData = queryClient.getQueryData<TauriProject[]>(
+			const previousData = queryClient.getQueryData(
 				environmentProjects.queryKey,
 			);
 
 			if (previousData !== undefined) {
-				queryClient.setQueryData<TauriProject[]>(
-					environmentProjects.queryKey,
-					previousData.map((v) =>
+				queryClient.setQueryData(environmentProjects.queryKey, {
+					...previousData,
+					projects: previousData.projects.map((v) =>
 						v.path === project.path ? { ...v, favorite: project.favorite } : v,
 					),
-				);
+				});
 			}
 
 			return previousData;

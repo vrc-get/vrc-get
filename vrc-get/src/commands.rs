@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use clap::{Args, Parser, Subcommand};
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -136,11 +145,16 @@ fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
 
 #[cfg(feature = "experimental-vcc")]
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
-    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), std::io::Error> {
-        let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io).await?;
+    use vrc_get_vpm::environment::{ProjectManagement, ProjectManagementError};
+    async fn inner(
+        io: &DefaultEnvironmentIo,
+        project_dir: &Path,
+    ) -> Result<(), ProjectManagementError> {
+        let mut projects = ProjectManagement::start_no_migration(io).await?;
         let project_dir = absolute_path(project_dir);
-        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
-        connection.save(io).await?;
+        projects
+            .update_project_last_modified(&project_dir.to_string_lossy())
+            .await?;
         Ok(())
     }
 

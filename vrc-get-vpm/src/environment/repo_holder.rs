@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::environment::repo_source::RepoSource;
 use crate::environment::{
     CURATED_URL_STR, LOCAL_CURATED_PATH, LOCAL_OFFICIAL_PATH, OFFICIAL_URL_STR, Settings,
@@ -10,10 +19,10 @@ use crate::utils::json::{load_json, to_vec_pretty_os_eol, try_load_json};
 use crate::{UserRepoSetting, io};
 use futures::future::join_all;
 use indexmap::IndexMap;
-use lazy_static::lazy_static;
 use log::{error, warn};
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::LazyLock;
 use url::Url;
 
 #[derive(Debug, Clone)]
@@ -123,11 +132,10 @@ impl RepoHolder {
     }
 
     fn get_predefined_repos(settings: &Settings) -> Vec<RepoSource<'static>> {
-        lazy_static! {
-            static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
-            static ref OFFICIAL_URL: Url = Url::parse(OFFICIAL_URL_STR).unwrap();
-            static ref CURATED_URL: Url = Url::parse(CURATED_URL_STR).unwrap();
-        }
+        static EMPTY_HEADERS: LazyLock<IndexMap<Box<str>, Box<str>>> = LazyLock::new(IndexMap::new);
+        static OFFICIAL_URL: LazyLock<Url> =
+            LazyLock::new(|| Url::parse(OFFICIAL_URL_STR).unwrap());
+        static CURATED_URL: LazyLock<Url> = LazyLock::new(|| Url::parse(CURATED_URL_STR).unwrap());
 
         let mut repositories = Vec::with_capacity(2);
 

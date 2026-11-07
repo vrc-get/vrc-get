@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::io;
 use crate::io::{AsyncRead, AsyncSeek, AsyncWrite, FileStream, FileType, IoTrait, Metadata};
 use futures::{Stream, TryFutureExt};
@@ -38,27 +47,27 @@ impl DefaultEnvironmentIo {
         DefaultEnvironmentIo::new(folder.clone().into_boxed_path())
     }
 
-    #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
-        dirs_sys::known_folder_local_app_data().expect("LocalAppData not found")
-    }
+        cfg_select! {
+            windows => {
+                dirs_sys::known_folder_local_app_data().expect("LocalAppData not found")
+            }
+            unix => {
+                if let Some(data_home) = std::env::var_os("XDG_DATA_HOME") {
+                    debug!("XDG_DATA_HOME found {data_home:?}");
+                    return data_home.into();
+                }
 
-    #[cfg(not(windows))]
-    fn get_local_config_folder() -> PathBuf {
-        if let Some(data_home) = std::env::var_os("XDG_DATA_HOME") {
-            debug!("XDG_DATA_HOME found {data_home:?}");
-            return data_home.into();
+                // fallback: use HOME
+                if let Some(home_folder) = std::env::var_os("HOME") {
+                    debug!("HOME found {home_folder:?}");
+                    let mut path = PathBuf::from(home_folder);
+                    path.push(".local/share");
+                    return path;
+                }
+                panic!("no XDG_DATA_HOME nor HOME are set!")
+            }
         }
-
-        // fallback: use HOME
-        if let Some(home_folder) = std::env::var_os("HOME") {
-            debug!("HOME found {home_folder:?}");
-            let mut path = PathBuf::from(home_folder);
-            path.push(".local/share");
-            return path;
-        }
-
-        panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 
     #[inline]
@@ -74,17 +83,17 @@ impl DefaultEnvironmentIo {
     #[cfg(feature = "vrc-get-litedb")]
     #[allow(unused_variables)]
     pub async fn new_mutex(&self, lock_name: &OsStr) -> io::Result<impl Send + Sync + 'static> {
-        #[cfg(not(windows))]
-        {
-            static SHARED_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
-            Ok(SHARED_LOCK.lock().await)
-        }
-        #[cfg(windows)]
-        {
-            Ok(vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
-                .await?
-                .lock_owned()
-                .await?)
+        cfg_select! {
+            windows => {
+                Ok(vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
+                    .await?
+                    .lock_owned()
+                    .await?)
+            }
+            _ => {
+                static SHARED_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+                Ok(SHARED_LOCK.lock().await)
+            }
         }
     }
 }

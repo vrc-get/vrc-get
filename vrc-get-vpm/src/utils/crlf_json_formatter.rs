@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use serde::Serialize as _;
 use serde_json::Value;
 use serde_json::ser::Formatter;
@@ -17,31 +26,29 @@ struct OsEolJsonPrettyFormatter<'a> {
     indent: &'a [u8],
 }
 
-#[cfg(windows)]
 macro_rules! eol {
     () => {
-        b"\r\n"
+        cfg_select! {
+            windows => {
+                b"\r\n"
+            }
+            _ => {
+                b"\n"
+            }
+        }
     };
 }
 
-#[cfg(windows)]
 macro_rules! comma_eol {
     () => {
-        b",\r\n"
-    };
-}
-
-#[cfg(not(windows))]
-macro_rules! eol {
-    () => {
-        b"\n"
-    };
-}
-
-#[cfg(not(windows))]
-macro_rules! comma_eol {
-    () => {
-        b",\n"
+        cfg_select! {
+            windows => {
+                b",\r\n"
+            }
+            _ => {
+                b",\n"
+            }
+        }
     };
 }
 

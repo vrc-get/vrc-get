@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
@@ -18,12 +27,9 @@ export const Route = createFileRoute("/_setup/setup/appearance/")({
 function Page() {
 	return (
 		<SetupPageBase
-			heading={tc("setup:entry:welcome")}
+			heading={tc("setup:appearance:heading")}
 			Body={Body}
-			nextPage={"/setup/unity-hub"}
-			prevPage={null}
 			pageId={"Appearance"}
-			withoutSteps
 		/>
 	);
 }
@@ -31,10 +37,6 @@ function Page() {
 function Body() {
 	return (
 		<>
-			<CardDescription className={"whitespace-normal text-lg text-center"}>
-				{tc("setup:entry:welcome description")}
-			</CardDescription>
-			<div className={"pb-3"} />
 			<CardDescription className={"whitespace-normal"}>
 				{tc("setup:appearance:description")}
 			</CardDescription>

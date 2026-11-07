@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import type React from "react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +17,7 @@ import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import type { DialogContext } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
+import { nameFromPath } from "@/lib/os";
 import { toastNormal, toastSuccess } from "@/lib/toast";
 
 export function BackupProjectDialog({
@@ -48,10 +58,14 @@ export function BackupProjectDialog({
 						if (x === "cancelled") {
 							toastNormal(tc("projects:toast:backup canceled"));
 						} else {
-							toastSuccess(tc("projects:toast:backup succeeded"));
+							toastSuccess(
+								tc("projects:toast:backup succeeded with name", {
+									name: nameFromPath(x.backup_path),
+								}),
+							);
 						}
 					}
-					return x;
+					return x === "cancelled" ? x : null;
 				})
 				.then(dialog.close, dialog.error);
 		},
@@ -65,7 +79,11 @@ export function BackupProjectDialog({
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{header ?? tc("projects:dialog:backup header")}</DialogTitle>
 			<div>
-				<p>{tc("projects:dialog:creating backup...")}</p>
+				<p>
+					{tc("projects:dialog:creating backup of...", {
+						name: nameFromPath(projectPath),
+					})}
+				</p>
 				<p>
 					{tc("projects:dialog:proceed k/n", {
 						count: progress.proceed,

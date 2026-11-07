@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 //! Updater module
 //!
 //! This module reimplements the auto-update logic previously provided by
@@ -256,13 +265,9 @@ fn updater_information(
         extract_path_from_executable(&executable_path).ok_or(UpdaterStatus::NotUpdatable)?;
 
     fn current_exe(_env: &Env) -> Option<PathBuf> {
-        #[cfg(target_os = "linux")]
-        {
-            _env.appimage.as_ref().map(PathBuf::from)
-        }
-        #[cfg(not(target_os = "linux"))]
-        {
-            std::env::current_exe().ok()
+        cfg_select! {
+            target_os = "linux" => _env.appimage.as_ref().map(PathBuf::from),
+            _ => std::env::current_exe().ok()
         }
     }
 
@@ -283,30 +288,32 @@ fn updater_information(
             return Err(UpdaterStatus::NotUpdatable);
         }
 
-        #[cfg(not(windows))]
-        fn find_install(_is_user: bool) -> Option<OsString> {
-            None
-        }
-
-        #[cfg(windows)]
         fn find_install(is_user: bool) -> Option<OsString> {
-            use winreg::enums::HKEY_CURRENT_USER;
-            use winreg::enums::HKEY_LOCAL_MACHINE;
+            cfg_select! {
+                windows => {
+                    use winreg::enums::HKEY_CURRENT_USER;
+                    use winreg::enums::HKEY_LOCAL_MACHINE;
 
-            static REG_KEY: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4C3D0631-AE29-4D20-A231-678D9CF8D6DB}_is1";
-            static REG_VALUE: &str = "Inno Setup: App Path";
+                    static REG_KEY: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4C3D0631-AE29-4D20-A231-678D9CF8D6DB}_is1";
+                    static REG_VALUE: &str = "Inno Setup: App Path";
 
-            let root = if is_user {
-                HKEY_CURRENT_USER
-            } else {
-                HKEY_LOCAL_MACHINE
-            };
+                    let root = if is_user {
+                        HKEY_CURRENT_USER
+                    } else {
+                        HKEY_LOCAL_MACHINE
+                    };
 
-            winreg::RegKey::predef(root)
-                .open_subkey(REG_KEY)
-                .ok()?
-                .get_value(REG_VALUE)
-                .ok()
+                    winreg::RegKey::predef(root)
+                        .open_subkey(REG_KEY)
+                        .ok()?
+                        .get_value(REG_VALUE)
+                        .ok()
+                }
+                _ => {
+                    let _ = is_user;
+                    None
+                }
+            }
         }
     }
 
@@ -834,36 +841,38 @@ mod windows {
     }
 
     // os specific call
-    #[cfg(windows)]
     fn start_installer(op: Vec<u16>, file: Vec<u16>, params: Vec<u16>) -> Result<()> {
-        use ::windows::Win32::UI::Shell::ShellExecuteW;
-        use ::windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
-        use ::windows::core::PCWSTR;
+        cfg_select! {
+            windows => {
+                use ::windows::Win32::UI::Shell::ShellExecuteW;
+                use ::windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+                use ::windows::core::PCWSTR;
 
-        unsafe {
-            // SAFETY: all pointers remain valid for the duration of the call, since owned vec is passed
-            let response = ShellExecuteW(
-                None,
-                PCWSTR(op.as_ptr()),
-                PCWSTR(file.as_ptr()),
-                PCWSTR(params.as_ptr()),
-                PCWSTR(std::ptr::null()),
-                SW_SHOW,
-            );
+                unsafe {
+                    // SAFETY: all pointers remain valid for the duration of the call, since owned vec is passed
+                    let response = ShellExecuteW(
+                        None,
+                        PCWSTR(op.as_ptr()),
+                        PCWSTR(file.as_ptr()),
+                        PCWSTR(params.as_ptr()),
+                        PCWSTR(std::ptr::null()),
+                        SW_SHOW,
+                    );
 
-            let response = response.0 as u32;
-            if response > 32 {
-                Ok(())
-            } else {
-                // Map the error code (<= 32) to an IO Error
-                Err(std::io::Error::from_raw_os_error(response as i32).into())
+                    let response = response.0 as u32;
+                    if response > 32 {
+                        Ok(())
+                    } else {
+                        // Map the error code (<= 32) to an IO Error
+                        Err(std::io::Error::from_raw_os_error(response as i32).into())
+                    }
+                }
+            }
+            _ => {
+                let _ = (op, file, params);
+                unreachable!("install_windows_impl called on a non-Windows platform")
             }
         }
-    }
-
-    #[cfg(not(windows))]
-    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) -> Result<()> {
-        unreachable!("install_windows_impl called on a non-Windows platform")
     }
 }
 
@@ -1019,60 +1028,60 @@ mod unix {
     use std::path::Path;
 
     pub(super) fn same_device(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::MetadataExt as _;
-            a.dev() == b.dev()
-        }
-        #[cfg(not(unix))]
-        {
-            let (_, _) = (a, b);
-            false
+        cfg_select! {
+            unix => {
+                use std::os::unix::fs::MetadataExt as _;
+                a.dev() == b.dev()
+            }
+            _ => {
+                let (_, _) = (a, b);
+                false
+            }
         }
     }
 
     pub(super) fn set_temp_dir_permissions(path: &Path) -> crate::updater::Result<()> {
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt as _;
-            let mut perms = path.metadata()?.permissions();
-            perms.set_mode(0o700);
-            std::fs::set_permissions(path, perms)?;
-        }
-        #[cfg(not(unix))]
-        {
-            let _ = path;
+        cfg_select! {
+            unix => {
+                use std::os::unix::fs::PermissionsExt as _;
+                let mut perms = path.metadata()?.permissions();
+                perms.set_mode(0o700);
+                std::fs::set_permissions(path, perms)?;
+            }
+            _ => {
+                let _ = path;
+            }
         }
         Ok(())
     }
 
     // returns false for unsupported platforms or filesystem
     pub(super) fn swap_fs_entry(file1: &Path, file2: &Path) -> io::Result<bool> {
-        #[cfg(target_os = "macos")]
-        {
-            use std::ffi::CString;
+        cfg_select! {
+            target_os = "macos" => {
+                use std::ffi::CString;
 
-            let file1 = CString::new(file1.as_os_str().as_encoded_bytes())
-                .map_err(|_| io::ErrorKind::InvalidInput)?;
-            let file2 = CString::new(file2.as_os_str().as_encoded_bytes())
-                .map_err(|_| io::ErrorKind::InvalidInput)?;
-            let result = unsafe {
-                nix::libc::renamex_np(file1.as_ptr(), file2.as_ptr(), nix::libc::RENAME_SWAP)
-            };
-            if result == 0 {
-                return Ok(true);
+                let file1 = CString::new(file1.as_os_str().as_encoded_bytes())
+                    .map_err(|_| io::ErrorKind::InvalidInput)?;
+                let file2 = CString::new(file2.as_os_str().as_encoded_bytes())
+                    .map_err(|_| io::ErrorKind::InvalidInput)?;
+                let result = unsafe {
+                    nix::libc::renamex_np(file1.as_ptr(), file2.as_ptr(), nix::libc::RENAME_SWAP)
+                };
+                if result == 0 {
+                    return Ok(true);
+                }
+                let last_err = io::Error::last_os_error();
+                if last_err.raw_os_error() == Some(nix::libc::ENOTSUP) {
+                    return Ok(false);
+                }
+                Err(last_err)
             }
-            let last_err = io::Error::last_os_error();
-            if last_err.raw_os_error() == Some(nix::libc::ENOTSUP) {
-                return Ok(false);
+            _ => {
+                let _ = file1;
+                let _ = file2;
+                Ok(false)
             }
-            Err(last_err)
-        }
-        #[cfg(not(target_os = "macos"))]
-        {
-            let _ = file1;
-            let _ = file2;
-            Ok(false)
         }
     }
 }

@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import { type DependencyList, useCallback, useEffect } from "react";
 import globalInfo from "@/lib/global-info";
 
@@ -31,4 +40,14 @@ export function isFindKey(
 	if (e.key === "F3Key") return true;
 	if ((globalInfo.osType === "Darwin" ? e.metaKey : e.ctrlKey) && e.key === "f")
 		return true;
+}
+
+// dev-only: Ctrl+L (Cmd+L on macOS) cycles the language, Shift reverses it.
+export function isLanguageCycleKey(
+	e: Pick<KeyboardEvent, "code" | "metaKey" | "ctrlKey">,
+) {
+	return (
+		(globalInfo.osType === "Darwin" ? e.metaKey : e.ctrlKey) &&
+		e.code === "KeyL"
+	);
 }

@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 "use client"; // Error components must be Client Components
 import { useEffect } from "react";
 import { commands } from "@/lib/bindings";
@@ -6,7 +15,7 @@ import globalInfo from "@/lib/global-info";
 export default function ErrorPage({
 	error,
 }: {
-	error: object;
+	error: unknown;
 	reset?: () => void;
 }) {
 	useEffect(() => {
@@ -15,11 +24,15 @@ export default function ErrorPage({
 
 	// When there is overridden toString, use it. if not, use stringify
 	const errorMessage =
-		error.toString === Object.prototype.toString
-			? JSON.stringify(error)
-			: error.toString();
+		typeof error !== "object" || error === null
+			? `${error}`
+			: error.toString === Object.prototype.toString
+				? JSON.stringify(error)
+				: error.toString();
 	const errorStack =
-		"stack" in error ? `${error.stack}` : "No stacktrace provided";
+		error != null && typeof error === "object" && "stack" in error
+			? `${error.stack}`
+			: "No stacktrace provided";
 
 	const openIssue = () => {
 		try {

@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use super::{BundleContext, create_tar_gz};
 use crate::utils::{make_executable, target_arch};
 use anyhow::{Context, Result};
@@ -70,16 +79,12 @@ fn generate_info_plist(ctx: &BundleContext<'_>) -> Result<plist::Value> {
 
     // Start with the custom Info.plist if present (provides URL types, file associations, etc.)
     let mut dict: plist::Dictionary = {
-        let custom_plist_path = ctx.bundle_dir.join("Info.plist");
-        if custom_plist_path.exists() {
-            let val: Value = plist::from_file(&custom_plist_path)
-                .with_context(|| format!("reading {}", custom_plist_path.display()))?;
-            match val {
-                Value::Dictionary(d) => d,
-                _ => plist::Dictionary::new(),
-            }
-        } else {
-            plist::Dictionary::new()
+        let custom_plist_path = ctx.gui_dir.join("bundle/Info.plist");
+        let val: Value = plist::from_file(&custom_plist_path)
+            .with_context(|| format!("reading {}", custom_plist_path.display()))?;
+        match val {
+            Value::Dictionary(d) => d,
+            _ => plist::Dictionary::new(),
         }
     };
 
