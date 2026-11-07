@@ -47,6 +47,7 @@ impl DefaultEnvironmentIo {
         DefaultEnvironmentIo::new(folder.clone().into_boxed_path())
     }
 
+    #[cfg_attr(r2cs, r2cs_native)]
     fn get_local_config_folder() -> PathBuf {
         cfg_select! {
             windows => {

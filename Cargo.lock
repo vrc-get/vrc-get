@@ -5840,7 +5840,6 @@ dependencies = [
  "async_zip",
  "dirs-sys",
  "either",
- "env_logger",
  "futures",
  "hex",
  "indexmap 2.14.2",

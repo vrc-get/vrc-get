@@ -741,7 +741,7 @@ impl PartialVersion {
         if bytes.buf.is_empty() {
             Ok(buf)
         } else {
-            let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;
+            let len = buf.substr_range(bytes.buf).unwrap().start;
             Ok(&buf[..len])
         }
     }
