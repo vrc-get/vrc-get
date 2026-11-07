@@ -17,6 +17,7 @@ use log::info;
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use vrc_get_litedb::bson::Document;
 use vrc_get_litedb::document;
 use vrc_get_litedb::file_io::{BsonAutoId, LiteDBFile};
@@ -204,60 +205,59 @@ pub async fn find_unity_hub(
 
 fn default_unity_hub_path() -> &'static [&'static str] {
     // https://docs.unity3d.com/hub/manual/HubCLI.html
-    #[cfg(windows)]
     {
-        lazy_static::lazy_static! {
-            static ref INSTALLATIONS: &'static [&'static str] = {
-                // https://github.com/vrc-get/vrc-get/issues/579
-                if let Some(unity_hub_from_regi) =
-                    winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
-                        .open_subkey(r"Software\Unity Technologies\Hub")
-                        .ok()
-                        .and_then(|key| key.get_value("InstallLocation").ok())
-                        .and_then(|str: std::ffi::OsString| str.into_string().ok())
-                        .map(PathBuf::from)
-                        .map(|mut p| {
-                            p.push("Unity Hub.exe");
-                            p
-                        })
-                        .map(|p| p.into_os_string().into_string().unwrap()) {
-                    vec![unity_hub_from_regi.leak(), "C:\\Program Files\\Unity Hub\\Unity Hub.exe"].leak()
-                } else {
-                    &["C:\\Program Files\\Unity Hub\\Unity Hub.exe"]
+        static INSTALLATIONS: LazyLock<&'static [&'static str]> = LazyLock::new(|| {
+            cfg_select! {
+                target_os = "windows" => {
+                    // https://github.com/vrc-get/vrc-get/issues/579
+                    if let Some(unity_hub_from_regi) =
+                        winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
+                            .open_subkey(r"Software\Unity Technologies\Hub")
+                            .ok()
+                            .and_then(|key| key.get_value("InstallLocation").ok())
+                            .and_then(|str: std::ffi::OsString| str.into_string().ok())
+                            .map(PathBuf::from)
+                            .map(|mut p| {
+                                p.push("Unity Hub.exe");
+                                p
+                            })
+                            .map(|p| p.into_os_string().into_string().unwrap())
+                    {
+                        vec![
+                            unity_hub_from_regi.leak(),
+                            "C:\\Program Files\\Unity Hub\\Unity Hub.exe",
+                        ]
+                        .leak()
+                    } else {
+                        &["C:\\Program Files\\Unity Hub\\Unity Hub.exe"]
+                    }
+                },
+                target_os = "macos" => {
+                    &["/Applications/Unity Hub.app/Contents/MacOS/Unity Hub"]
                 }
-            };
-        }
-
-        INSTALLATIONS.as_ref()
-    }
-    #[cfg(target_os = "macos")]
-    {
-        &["/Applications/Unity Hub.app/Contents/MacOS/Unity Hub"]
-    }
-    #[cfg(target_os = "linux")]
-    {
-        // for linux,
-        lazy_static::lazy_static! {
-            static ref USER_INSTALLATION: String = {
-                let home = std::env::var("HOME").expect("HOME not set");
-                format!("{home}/Applications/Unity Hub.AppImage")
-            };
-            static ref FLATPAK_USER_INSTALLATION: String = {
-                let data_home = std::env::var("XDG_DATA_HOME")
-                    .unwrap_or_else(|_| format!("{}/.local/share", std::env::var("HOME").expect("HOME not set")));
-                format!("{data_home}/flatpak/exports/bin/com.unity.UnityHub")
-            };
-            static ref INSTALLATIONS: [&'static str; 5] =
-                [
-                    &USER_INSTALLATION,
-                    "/usr/bin/unity-hub",
-                    // apt package
-                    "/opt/unityhub/unityhub",
-                    // flatpak
-                    &FLATPAK_USER_INSTALLATION,
-                    "/var/lib/flatpak/exports/bin/com.unity.UnityHub",
-                ];
-        }
+                target_os = "linux" => {
+                    static USER_INSTALLATION: LazyLock<String> = LazyLock::new(|| {
+                        let home = std::env::var("HOME").expect("HOME not set");
+                        format!("{home}/Applications/Unity Hub.AppImage")
+                    });
+                    static FLATPAK_USER_INSTALLATION: LazyLock<String> = LazyLock::new(|| {
+                        let data_home = std::env::var("XDG_DATA_HOME")
+                            .unwrap_or_else(|_| format!("{}/.local/share", std::env::var("HOME").expect("HOME not set")));
+                        format!("{data_home}/flatpak/exports/bin/com.unity.UnityHub")
+                    });
+                    vec![
+                        &USER_INSTALLATION,
+                        "/usr/bin/unity-hub",
+                        // apt package
+                        "/opt/unityhub/unityhub",
+                        // flatpak
+                        &FLATPAK_USER_INSTALLATION,
+                        "/var/lib/flatpak/exports/bin/com.unity.UnityHub",
+                    ]
+                    .leak()
+                }
+            }
+        });
 
         INSTALLATIONS.as_ref()
     }
