@@ -493,8 +493,8 @@
     "settings:unity hub access method:read config": "Read Unity Hub configuration files",
     "settings:unity hub access method:call hub": "Launch Unity Hub in background",
     "settings:unity hub access method:call cli": "Call Unity CLI",
-    "settings:unity hub access method:warning:call hub": "Launching Unity Hub takes much time, and this method will be removed in future.<br/>If there is some problems with reading configuration files, please report developer from section below.",
-    "settings:unity hub access method:warning:call cli": "Calling Unity CLI requires Unity CLI to be installed in addition to Unity Hub, and this method might also be removed in future.<br/>If there is some problems with reading configuration files, please report developer from section below.",
+    "settings:unity hub access method:warning:call hub": "Launching Unity Hub takes much time, and this method will be removed in future.<br/>If you use this method because of problems with reading configuration files, please report developer from section below.",
+    "settings:unity hub access method:warning:call cli": "Calling Unity CLI requires Unity CLI to be installed in addition to Unity Hub, and this method might be removed in future.<br/>If you use this method because of problems with reading configuration files, please report developer from section below.",
     "settings:unity cli path": "Unity CLI Path",
     "settings:unity cli not found": "Unity CLI Not Found",
 

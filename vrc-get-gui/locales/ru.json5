@@ -491,8 +491,8 @@
     "settings:unity hub access method:read config": "Читать конфигурационные файлы Unity Hub",
     "settings:unity hub access method:call hub": "Запускать Unity Hub в фоновом режиме",
     "settings:unity hub access method:call cli": "Вызывать Unity CLI",
-    "settings:unity hub access method:warning:call hub": "Запуск Unity Hub занимает много времени, и в будущем этот способ будет удалён.<br/>Если возникнут проблемы с чтением конфигурационных файлов, сообщите разработчикам в разделе ниже.",
-    "settings:unity hub access method:warning:call cli": "Для вызова Unity CLI требуется установить Unity CLI в дополнение к Unity Hub, и в будущем этот способ тоже может быть удалён.<br/>Если возникнут проблемы с чтением конфигурационных файлов, сообщите разработчикам в разделе ниже.",
+    "settings:unity hub access method:warning:call hub": "Запуск Unity Hub занимает много времени, и в будущем этот способ будет удалён.<br/>Если вы используете этот способ из-за проблем с чтением конфигурационных файлов, сообщите разработчикам в разделе ниже.",
+    "settings:unity hub access method:warning:call cli": "Для вызова Unity CLI требуется установить Unity CLI в дополнение к Unity Hub, и в будущем этот способ может быть удалён.<br/>Если вы используете этот способ из-за проблем с чтением конфигурационных файлов, сообщите разработчикам в разделе ниже.",
     "settings:unity cli path": "Путь к Unity CLI",
     "settings:unity cli not found": "Unity CLI не найден",
 
