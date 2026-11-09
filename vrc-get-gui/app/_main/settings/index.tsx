@@ -31,6 +31,7 @@ import {
 	ProjectSyncModeSelect,
 	ProjectSyncModeWarning,
 	ThemeSelector,
+	WarningMessage,
 } from "@/components/common-setting-parts";
 import { HNavBar, HNavBarText, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
@@ -389,11 +390,25 @@ function UnityInstallationsCard({
 						</SelectGroup>
 					</SelectContent>
 				</Select>
-				<p className={"text-sm whitespace-normal"}>
-					{unityCli
-						? tc("settings:unity cli found", { path: unityCli })
-						: tc("settings:unity cli not found")}
-				</p>
+				<div className="mb-2" />
+				{unityHubAccessMethod === "CallHub" && (
+					<WarningMessage>
+						{tc("settings:unity hub access method:warning:call hub")}
+					</WarningMessage>
+				)}
+				{unityHubAccessMethod === "CallCli" && (
+					<>
+						<WarningMessage>
+							{tc("settings:unity hub access method:warning:call cli")}
+						</WarningMessage>
+						<h3 className="mt-2">{tc("settings:unity cli path")}</h3>
+						<FilePathRow
+							path={unityCli ?? ""}
+							notFoundMessage={tt("settings:unity cli not found")}
+							withOpen={false}
+						/>
+					</>
+				)}
 			</div>
 		</SettingsCard>
 	);
