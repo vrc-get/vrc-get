@@ -255,7 +255,7 @@ export function FilePathRow({
 }: {
 	path: string;
 	notFoundMessage?: string;
-	pick: () => void;
+	pick?: () => void;
 	withOpen?: boolean;
 }) {
 	const openFolder = async () => {
@@ -278,9 +278,11 @@ export function FilePathRow({
 			) : (
 				<Input className="flex-auto" value={path} disabled />
 			)}
-			<Button className={"flex-none px-4"} onClick={pick}>
-				{tc("general:button:select")}
-			</Button>
+			{pick && (
+				<Button className={"flex-none px-4"} onClick={pick}>
+					{tc("general:button:select")}
+				</Button>
+			)}
 			{withOpen && (
 				<Button className={"flex-none px-4"} onClick={openFolder}>
 					{tc("general:button:open location")}

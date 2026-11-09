@@ -26,6 +26,10 @@ pub(crate) static COLLECTION: &str = "unityVersions";
 static PATH: &str = "Path";
 static VERSION: &str = "Version";
 static LOADED_FROM_HUB: &str = "LoadedFromHub";
+#[cfg(windows)]
+static UNITY_CLI_FILE_NAME: &str = "unity.exe";
+#[cfg(not(windows))]
+static UNITY_CLI_FILE_NAME: &str = "unity";
 
 impl VccDatabaseConnection {
     pub fn get_unity_installations(&self) -> Vec<UnityInstallation> {
@@ -261,6 +265,72 @@ fn default_unity_hub_path() -> &'static [&'static str] {
 
         INSTALLATIONS.as_ref()
     }
+}
+
+pub async fn find_unity_cli(io: &DefaultEnvironmentIo) -> io::Result<Option<String>> {
+    if let Some(path_env) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path_env) {
+            let path = dir.join(UNITY_CLI_FILE_NAME);
+            if io.is_file(&path).await
+                && let Ok(path) = path.into_os_string().into_string()
+            {
+                return Ok(Some(path));
+            }
+        }
+    }
+
+    // if not, try default paths
+
+    for &path in default_unity_cli_path() {
+        if io.is_file(path.as_ref()).await {
+            return Ok(Some(path.to_string()));
+        }
+    }
+
+    Ok(None)
+}
+
+fn default_unity_cli_path() -> &'static [&'static str] {
+    static INSTALLATIONS: LazyLock<&'static [&'static str]> = LazyLock::new(|| {
+        cfg_select! {
+            target_os = "windows" => {
+                static USER_INSTALLATION: LazyLock<String> = LazyLock::new(|| {
+                    let local_app_data = std::env::var("LOCALAPPDATA").expect("LOCALAPPDATA not set");
+                    format!("{local_app_data}\\Unity\\bin\\unity.exe")
+                });
+                vec![USER_INSTALLATION.as_str()].leak()
+            }
+            target_os = "macos" => {
+                static USER_INSTALLATION: LazyLock<String> = LazyLock::new(|| {
+                    let home = std::env::var("HOME").expect("HOME not set");
+                    format!("{home}/.unity/bin/unity")
+                });
+                vec![
+                    &USER_INSTALLATION,
+                    // homebrew
+                    "/opt/homebrew/bin/unity",
+                    "/usr/local/bin/unity",
+                ]
+                .leak()
+            }
+            target_os = "linux" => {
+                static USER_INSTALLATION: LazyLock<String> = LazyLock::new(|| {
+                    let home = std::env::var("HOME").expect("HOME not set");
+                    format!("{home}/.local/bin/unity")
+                });
+                vec![
+                    &USER_INSTALLATION,
+                    // linuxbrew
+                    "/home/linuxbrew/.linuxbrew/bin/unity",
+                    // aur package
+                    "/usr/bin/unity",
+                ]
+                .leak()
+            }
+        }
+    });
+
+    INSTALLATIONS.as_ref()
 }
 
 pub struct UnityInstallation {
