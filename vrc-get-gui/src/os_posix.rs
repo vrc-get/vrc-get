@@ -22,13 +22,13 @@ use nix::fcntl::{Flock, FlockArg};
 pub(crate) use os_more::{CAN_DETECT_UNITY_EDITOR_READY, start_command};
 
 pub(crate) fn can_bring_unity_to_front() -> bool {
-    #[cfg(target_os = "linux")]
-    {
-        std::env::var_os("WAYLAND_DISPLAY").is_some() || std::env::var_os("DISPLAY").is_some()
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        os_more::CAN_BRING_UNITY_TO_FRONT
+    cfg_select! {
+        target_os = "linux" => {
+            std::env::var_os("WAYLAND_DISPLAY").is_some() || std::env::var_os("DISPLAY").is_some()
+        }
+        _ => {
+            os_more::CAN_BRING_UNITY_TO_FRONT
+        }
     }
 }
 
@@ -73,13 +73,16 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
     }
 }
 
-#[cfg(target_os = "macos")]
-#[path = "os_macos.rs"]
-mod os_more;
-
-#[cfg(target_os = "linux")]
-#[path = "os_linux.rs"]
-mod os_more;
+cfg_select! {
+    target_os = "macos" => {
+        #[path = "os_macos.rs"]
+        mod os_more;
+    }
+    target_os = "linux" => {
+        #[path = "os_linux.rs"]
+        mod os_more;
+    }
+}
 
 pub fn os_info() -> &'static str {
     static OS_INFO: OnceLock<String> = OnceLock::new();

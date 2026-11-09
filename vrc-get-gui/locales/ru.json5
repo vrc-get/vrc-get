@@ -8,6 +8,7 @@
     "general:version": "Версия",
     "general:packages": "Пакеты",
     "general:source": "Источник",
+    "general:project-path": "Путь проекта",
 
     "general:button:add": "Добавить",
     "general:button:edit": "Редактировать",
@@ -37,8 +38,8 @@
     "general:error:failed to create dir": "Не удалось создать каталог (нет прав?): {{err}}",
     "general:error:failed to create dir missing drive": "Не удалось создать каталог. Возможно, диск не подключен.",
 
-    "general:last modified": "Последнее изменение",
     "general:created at": "Добавлено",
+    "general:last modified": "Последнее изменение",
     "general:last modified:moments": "Только что",
     "general:last modified:minutes_one": "{{count}} минуту назад",
     "general:last modified:minutes_other": "{{count}} минут назад",
@@ -126,6 +127,9 @@
     "projects:type:avatars": "Аватары",
     "projects:type:legacy": "Устаревший",
     "projects:button:open unity": "Открыть Unity",
+    "projects:button:opening unity": "Открытие...",
+    "projects:button:bring unity to front": "Вынести Unity на передний план",
+    "projects:button:unity is open": "Уже открыта",
     "projects:button:manage": "Управление",
     "projects:backup": "Резервная копия",
     "projects:menuitem:open directory": "Открыть каталог проекта",
@@ -156,6 +160,9 @@
     "projects:toast:project created": "Проект успешно создан.",
 
     "projects:toast:opening unity...": "Открытие Unity...",
+    "projects:toast:bring unity to front failed": "ALCOM не удалось вывести Unity на передний план.",
+    "projects:toast:unity window not found": "Окно Unity не найдено.",
+    "projects:toast:bring unity to front unsupported": "Выведение Unity на передний план не поддерживается на вашей платформе.",
     "projects:dialog:unity not found": "Unity не найден",
     "projects:dialog:unity version of the project not found": "Проект использует Unity {{unity}}, но она не найдена.<br>Установите Unity {{unity}} через Unity Hub и перезапустите ALCOM.",
     "projects:dialog:open unity hub": "Открыть Unity Hub",
@@ -190,16 +197,29 @@
     "projects:toast:project migrated": "Проект успешно мигрирован.",
 
     "projects:dialog:backup header": "Резервное копирование проекта",
-    "projects:dialog:creating backup...": "Создание резервной копии...",
+    "projects:dialog:creating backup of...": "Создание резервной копии {{name}}...",
     "projects:dialog:proceed k/n": "Обработка {{count}}/{{total}} записей",
     "projects:toast:backup canceled": "Резервное копирование отменено.",
-    "projects:toast:backup succeeded": "Резервная копия успешно создана.",
+    "projects:toast:backup succeeded with name": "Резервная копия {{name}} успешно создана.",
 
     "projects:dialog:warn removing project": "Вы собираетесь удалить проект <strong>{{name}}</strong>. Продолжить?",
     "projects:button:remove from list": "Удалить из списка",
     "projects:button:remove directory": "Удалить каталог",
-    "projects:dialog:removing...": "Удаление проекта...",
+    "projects:dialog:removing project...": "Удаление проекта {{name}}...",
     "projects:toast:project removed": "Проект успешно удален.",
+
+    "projects:set project display name": "Изменить отображаемое имя проекта",
+    "projects:warn set project display name": "Укажите отображаемое имя проекта.<br>Это не изменит имя каталога.",
+    "projects:toast:project display name changed": "Отображаемое имя проекта успешно изменено.",
+
+    "projects:dialog:mismatch-found": "Списки проектов в VCC и ALCOM не совпадают",
+    "projects:dialog:mismatch-found:description": "{{only_in_vcc}} проектов есть в VCC, но отсутствуют в ALCOM, а {{only_in_vrc_get}} проектов есть в ALCOM, но отсутствуют в VCC.<br/>Выберите, какие проекты оставить или удалить.",
+    "projects:dialog:mismatch-project-table:keep": "Оставить",
+    "projects:dialog:mismatch-project-table:remove": "Удалить",
+    "projects:dialog:mismatch-project-table:only in vcc": "Только в VCC",
+    "projects:dialog:mismatch-project-table:only in alcom": "Только в ALCOM",
+    "projects:dialog:apply changes": "Применить изменения",
+    "projects:dialog:check later": "Проверить позже",
 
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Назад к проектам",
@@ -478,9 +498,19 @@
     "settings:default unity arguments description": "Эти аргументы командной строки будут использоваться при открытии Unity из ALCOM.",
     "settings:dialog:default launch arguments": "Аргументы командной строки Unity по умолчанию",
 
+    "settings:project management": "Управление проектами",
+
     "settings:default project path": "Путь проекта по умолчанию",
     "settings:default project path description": "Путь проекта по умолчанию - каталог, где создаются новые проекты.",
     "settings:toast:default project path updated": "Путь проекта по умолчанию успешно обновлен!",
+
+    "settings:projects:sync-mode": "Режим синхронизации списка проектов",
+    "settings:projects:sync-mode:description": "ALCOM и VCC поддерживают отдельные списки проектов.<br>Этот параметр управляет синхронизацией списков.",
+    "settings:projects:sync-mode:ProjectsUnion": "Сохранять проекты, удалённые в VCC",
+    "settings:projects:sync-mode:AskForUser": "Спрашивать при обнаружении несоответствия (по умолчанию)",
+    "settings:projects:sync-mode:TrustLitedb": "Использовать список проектов из VCC",
+    "settings:projects:sync-mode:warning:ProjectsUnion": "В отличие от VCC, ALCOM сохраняет проекты, к которым нельзя получить доступ, например, расположенные на недоступных внешних или сетевых дисках.<br>Однако проекты, удалённые вручную в VCC, также будут восстановлены.",
+    "settings:projects:sync-mode:warning:TrustLitedb": "Когда VCC автоматически удаляет проекты, к которым нельзя получить доступ, например, расположенные на недоступных внешних или сетевых дисках, ALCOM также потеряет их.",
 
     "settings:backup:path": "Путь резервных копий",
     "settings:backup:path description": "Путь резервных копий - это каталог, где ALCOM будет создавать zip-архивы резервных копий проектов.",

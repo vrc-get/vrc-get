@@ -27,15 +27,15 @@ pub use os::load_unity_version;
 /// On macOS, this function expects Path to .app file and returns binary file.
 /// On other platforms, does nothing
 pub fn get_executable_path(path: &Path) -> Cow<'_, Path> {
-    #[cfg(not(target_os = "macos"))]
-    {
-        Cow::Borrowed(path)
-    }
-    #[cfg(target_os = "macos")]
-    {
-        if path.extension() == Some(OsStr::new("app")) {
-            Cow::Owned(path.join("Contents/MacOS/Unity"))
-        } else {
+    cfg_select! {
+        target_os = "macos" => {
+            if path.extension() == Some(OsStr::new("app")) {
+                Cow::Owned(path.join("Contents/MacOS/Unity"))
+            } else {
+                Cow::Borrowed(path)
+            }
+        }
+        _ => {
             Cow::Borrowed(path)
         }
     }
@@ -46,19 +46,19 @@ pub fn get_executable_path(path: &Path) -> Cow<'_, Path> {
 /// On macOS, this function converts an executable file path to .app path.
 /// On other platforms, does nothing.
 pub fn get_app_path(path: &Path) -> Option<&Path> {
-    #[cfg(not(target_os = "macos"))]
-    {
-        Some(path)
-    }
-    #[cfg(target_os = "macos")]
-    {
-        if path.ends_with("Contents/MacOS/Unity") {
-            Some(path.parent().unwrap().parent().unwrap().parent().unwrap())
-        } else if path.extension() == Some(OsStr::new("app")) {
+    cfg_select! {
+        target_os = "macos" => {
+            if path.ends_with("Contents/MacOS/Unity") {
+                Some(path.parent().unwrap().parent().unwrap().parent().unwrap())
+            } else if path.extension() == Some(OsStr::new("app")) {
+                Some(path)
+            } else {
+                // It looks the path is not path to executable nor app bundle so return none
+                None
+            }
+        }
+        _ => {
             Some(path)
-        } else {
-            // It looks the path is not path to executable nor app bundle so return none
-            None
         }
     }
 }

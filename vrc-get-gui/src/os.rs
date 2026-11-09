@@ -18,12 +18,15 @@ pub(crate) enum BringUnityToFrontResult {
     Unsupported,
 }
 
-#[cfg(windows)]
-#[path = "os_windows.rs"]
-mod platform;
-
-#[cfg(not(windows))]
-#[path = "os_posix.rs"]
-mod platform;
+cfg_select! {
+    windows => {
+        #[path = "os_windows.rs"]
+        mod platform;
+    }
+    unix => {
+        #[path = "os_posix.rs"]
+        mod platform;
+    }
+}
 
 pub(crate) use platform::*;

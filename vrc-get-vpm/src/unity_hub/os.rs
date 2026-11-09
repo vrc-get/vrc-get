@@ -13,12 +13,17 @@ use crate::version::UnityVersion;
 use std::path::{Path, PathBuf};
 use std::result;
 
-#[cfg(target_os = "macos")]
-pub use darwin::*;
-#[cfg(target_os = "linux")]
-pub use linux::*;
-#[cfg(target_os = "windows")]
-pub use windows::*;
+cfg_select! {
+    target_os = "macos" => {
+        pub use darwin::*;
+    }
+    target_os = "linux" => {
+        pub use linux::*;
+    }
+    target_os = "windows" => {
+        pub use windows::*;
+    }
+}
 
 type Result<T> = result::Result<T, std::io::Error>;
 

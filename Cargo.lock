@@ -2618,12 +2618,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lazy_static"
-version = "1.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
-
-[[package]]
 name = "libappindicator"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5873,7 +5867,6 @@ dependencies = [
  "hex",
  "indexmap 2.14.2",
  "itertools 0.15.0",
- "lazy_static",
  "log",
  "parking_lot",
  "pin-project-lite",
