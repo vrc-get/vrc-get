@@ -181,7 +181,6 @@ mod windows {
 
     pub fn user_data_paths() -> Vec<PathBuf> {
         vec![
-            #[cfg(target_os = "windows")]
             user_data_path_for_appx_distribution(),
             std::env::var_os("APPDATA")
                 .map(PathBuf::from)
@@ -189,13 +188,13 @@ mod windows {
                 .joined("UnityHub"),
         ]
     }
-
-    #[cfg(target_os = "windows")]
     pub fn user_data_path_for_appx_distribution() -> PathBuf {
         std::env::var_os("LOCALAPPDATA")
             .map(PathBuf::from)
             .expect("APPDATA environment variable is not set")
-            .joined(r#"Packages\UnityTechnologies.UnityHub_2vrhnee42bhxm\LocalCache\Roaming"#)
+            .joined(
+                r#"Packages\UnityTechnologies.UnityHub_2vrhnee42bhxm\LocalCache\Roaming\UnityHub"#,
+            )
     }
 
     pub fn global_config_folder() -> PathBuf {
