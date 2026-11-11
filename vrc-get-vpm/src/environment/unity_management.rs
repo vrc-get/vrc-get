@@ -265,6 +265,7 @@ fn default_unity_hub_path() -> &'static [&'static str] {
 }
 
 #[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
 mod find_appx_path {
     use std::{ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf};
     use windows::{
