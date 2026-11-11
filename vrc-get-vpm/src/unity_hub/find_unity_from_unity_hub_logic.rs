@@ -249,15 +249,15 @@ fn load_json_or_none<T: DeserializeOwned>(path: &Path) -> Option<T> {
 }
 
 struct LocalSettings {
-    user_data_path: PathBuf,
+    user_data_paths: Vec<PathBuf>,
     machine_wide_install_location: Option<PathBuf>,
 }
 
 impl LocalSettings {
     pub async fn new() -> Self {
-        let user_data_path = os::user_data_path();
+        let user_data_paths = os::user_data_paths();
         let mut result = Self {
-            user_data_path,
+            user_data_paths,
             machine_wide_install_location: None,
         };
 
@@ -290,6 +290,11 @@ impl LocalSettings {
     }
 
     pub async fn load_setting_file<T: DeserializeOwned>(&self, name: &str) -> Option<T> {
-        load_json_or_none(&self.user_data_path.join(name))
+        for user_data_path in &self.user_data_paths {
+            if let Some(x) = load_json_or_none(&user_data_path.join(name)) {
+                return Some(x);
+            }
+        }
+        None
     }
 }

@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Compatibility with the MSIX version of Unity Hub `#3298` (Backported)
+    - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
 
 ### Security
 
