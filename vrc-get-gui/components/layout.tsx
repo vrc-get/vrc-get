@@ -74,7 +74,7 @@ export function HNavBar({
 
 export function HNavBarText({ children }: { children?: React.ReactNode }) {
 	return (
-		<div className="-me-2 h-10 px-3 flex items-center grow-0">
+		<div className="-me-2 h-9 px-3 flex items-center grow-0">
 			<p className="cursor-pointer font-bold">{children}</p>
 		</div>
 	);

@@ -81,9 +81,9 @@ export function SideBar({ className }: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto compact:p-0 compact:ml-2 compact:my-2`}
+			className={`${className} flex w-auto max-w-80 p-3 shadow-xl shadow-primary/5 ml-3 my-3 shrink-0 overflow-auto compact:p-2 compact:ml-2 compact:my-2`}
 		>
-			<div className="flex flex-col gap-1 p-2 min-w-40 grow compact:min-w-0">
+			<div className="flex flex-col gap-1 min-w-40 grow compact:min-w-0">
 				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
 				<SideBarItem
 					href={"/packages/repositories"}
@@ -206,13 +206,13 @@ function SideBarButton({
 			<TooltipTrigger asChild>
 				<Button
 					variant="ghost"
-					className={`justify-start ${className} compact:justify-center compact:px-3 compact:size-10`}
+					className={`justify-start ${className} compact:justify-center px-2 compact:px- compact:size-10`}
 					{...props}
 				>
 					<div
-						className={`mr-4 compact:mr-0 ${showIconOnlyWhenCompact ? "hidden compact:block" : ""}`}
+						className={`${showIconOnlyWhenCompact ? "hidden compact:block" : ""}`}
 					>
-						<IconElement className="h-5 w-5" />
+						<IconElement className="size-5 m-1" />
 					</div>
 					<span className="compact:hidden">{children}</span>
 				</Button>

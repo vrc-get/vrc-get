@@ -263,7 +263,7 @@ function TemplateRow({
 	duplicate?: (id: string) => void;
 	favorite: boolean;
 }) {
-	const cellClass = "p-2.5 compact:py-1";
+	const cellClass = "p-1.5 compact:py-1";
 	const id = useId();
 
 	const category = projectTemplateCategory(template.id);

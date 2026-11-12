@@ -548,7 +548,7 @@ function ProjectViewHeader({
 						</TooltipContent>
 					</Tooltip>
 
-					<div className={"pl-2 space-y-0 shrink min-w-0 compact:pl-0"}>
+					<div className={"pl-2 space-y-0 shrink min-w-0 compact:pl-0 -my-0.5"}>
 						<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">
 							{projectName}
 						</p>
