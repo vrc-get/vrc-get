@@ -47,7 +47,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { HNavBar, VStack } from "@/components/layout";
+import { HNavBar, HNavBarButton, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -439,19 +439,16 @@ function PageBody() {
 						trailing={
 							<DropdownMenu>
 								<div className={"flex divide-x"}>
-									<Button
-										className={"rounded-r-none compact:h-10"}
+									<HNavBarButton
+										className={"rounded-r-none"}
 										onClick={() => openAddRepositoryDialog()}
 									>
 										{tc("vpm repositories:button:add repository")}
-									</Button>
-									<DropdownMenuTrigger
-										asChild
-										className={"rounded-l-none pl-2 pr-2 compact:h-10"}
-									>
-										<Button>
+									</HNavBarButton>
+									<DropdownMenuTrigger asChild>
+										<HNavBarButton className={"rounded-l-none pl-2 pr-2"}>
 											<ChevronDown className={"w-4 h-4"} />
-										</Button>
+										</HNavBarButton>
 									</DropdownMenuTrigger>
 								</div>
 								<DropdownMenuContent>
