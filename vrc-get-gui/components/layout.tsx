@@ -81,7 +81,7 @@ export function HNavBarText({ children }: { children?: React.ReactNode }) {
 }
 
 export function HNavBarElementSlot({ className, ...props }: Slot.SlotProps) {
-	return <Slot.Root className={`compact:h-10 ${className}`} {...props} />;
+	return <Slot.Root className={`compact:h-9 ${className}`} {...props} />;
 }
 
 export function HNavBarButton({
@@ -90,8 +90,8 @@ export function HNavBarButton({
 	...props
 }: React.ComponentProps<typeof Button> & { size?: "default" | "icon" }) {
 	const sizeOverride = {
-		default: "compact:h-10",
-		icon: "compact:size-10",
+		default: "compact:h-9",
+		icon: "compact:size-9",
 	}[size ?? "default"];
 	return (
 		<Button className={`${sizeOverride} ${className}`} size={size} {...props} />
