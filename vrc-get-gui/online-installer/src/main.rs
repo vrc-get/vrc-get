@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 #![windows_subsystem = "windows"]
 
 use crate::common::{RemoteRelease, VerifySignatureError, get_updater_url};
@@ -162,7 +171,7 @@ fn main() {
             windows_sys::Win32::System::Threading::PROCESS_INFORMATION::default();
         let startup_info = windows_sys::Win32::System::Threading::STARTUPINFOW::default();
 
-        eprintln!("starting instlaler with command line: '{path}'",);
+        eprintln!("starting instlaler with command line: '{}'", path.display());
 
         let ok = windows_sys::Win32::System::Threading::CreateProcessW(
             windows_sys::core::PCWSTR::default(),

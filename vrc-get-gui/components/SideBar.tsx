@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +28,7 @@ import type React from "react";
 import {
 	GuiAnimationSwitch,
 	GuiCompactSwitch,
+	LanguageSelector,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { Button } from "@/components/ui/button";
@@ -220,7 +230,8 @@ export function StyleQuickAccess() {
 					Style Settings (dev only)
 				</SideBarButton>
 			</PopoverTrigger>
-			<PopoverContent>
+			<PopoverContent className="w-96 flex flex-col gap-3 [&>label]:flex-col [&>label]:items-start [&>div]:space-y-1">
+				<LanguageSelector />
 				<ThemeSelector />
 				<GuiAnimationSwitch />
 				<GuiCompactSwitch />

@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import { CircleHelp, CircleUserRound, Ellipsis, Globe } from "lucide-react";
 import {
 	ButtonDisabledIfInvalid,
@@ -13,6 +22,7 @@ import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -103,6 +113,14 @@ export function ProjectGridItem({
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() =>
+									openSingleDialog(SetProjectDisplayNameDialog, { project })
+								}
+								disabled={removed || !(is_valid ?? true)}
+							>
+								{tc("projects:set project display name")}
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={() =>
 									openSingleDialog(RemoveProjectDialog, { project })
 								}
 								disabled={loading}
@@ -124,7 +142,7 @@ export function ProjectGridItem({
 									className={"text-left select-text cursor-auto w-full"}
 								>
 									<p className="font-normal whitespace-pre overflow-ellipsis overflow-hidden">
-										{project.name}
+										{project.display_name || project.name}
 									</p>
 									<p className="font-normal opacity-50 text-sm whitespace-pre overflow-ellipsis overflow-hidden compact:hidden">
 										{project.path}

@@ -1,4 +1,13 @@
-use crate::commands::import_templates;
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
+use crate::commands::{TauriParsedRepositories, import_templates};
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
 use std::path::PathBuf;
@@ -7,6 +16,7 @@ use std::sync::{Arc, Mutex};
 #[allow(unused_imports)] // Manager is used only on linux
 use tauri::{AppHandle, Emitter, Manager};
 use url::{Host, Url};
+use vrc_get_vpm::repositories_file::{RepositoriesFile, RepositoriesFileParseResult};
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
 
@@ -117,16 +127,54 @@ pub fn process_files(app: &AppHandle, files: Vec<PathBuf>) {
     });
 }
 
+static PENDING_IMPORT_REPOSITORIES: Mutex<Vec<TauriParsedRepositories>> = Mutex::new(Vec::new());
+
+pub(crate) fn import_alcom_repositories(app: &AppHandle, files: Vec<PathBuf>) {
+    if files.is_empty() {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut combined = RepositoriesFileParseResult::empty();
+
+        for file in files {
+            let repositories_file = match tokio::fs::read_to_string(&file).await {
+                Ok(json) => json,
+                Err(e) => {
+                    log::error!(
+                        "failed to load file: {}: {e}",
+                        file.file_name().unwrap().to_string_lossy()
+                    );
+                    continue;
+                }
+            };
+
+            combined += RepositoriesFile::parse(&repositories_file);
+        }
+
+        let combined = TauriParsedRepositories::from(combined);
+        PENDING_IMPORT_REPOSITORIES.lock().unwrap().push(combined);
+        app.emit("deep-link-add-repository", ()).ok();
+    });
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn deep_link_has_add_repository() -> bool {
     !PENDING_ADD_REPOSITORY.lock().unwrap().is_empty()
+        || !PENDING_IMPORT_REPOSITORIES.lock().unwrap().is_empty()
 }
 
 #[tauri::command]
 #[specta::specta]
 pub fn deep_link_take_add_repository() -> Option<AddRepositoryInfo> {
     PENDING_ADD_REPOSITORY.lock().unwrap().pop()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn deep_link_take_import_repositories() -> Option<TauriParsedRepositories> {
+    PENDING_IMPORT_REPOSITORIES.lock().unwrap().pop()
 }
 
 #[tauri::command]

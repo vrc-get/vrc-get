@@ -79,3 +79,143 @@ jobs:
       - name: run Type Check
         working-directory: vrc-get-gui
         run: npm ci && npx tsc
+
+  license:
+    permissions:
+      contents: read
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const { spawn } = await import('node:child_process');
+            const { Readable } = await import('node:stream');
+            const fs = await import('node:fs/promises');
+            const path = await import('node:path');
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                per_page: 100,
+            }, (map) => (map.data.map(data => ({
+                filename: data.filename,
+                status: data.status,
+            }))));
+
+            const filtered = files.filter(file => [
+                "added",
+                //"removed",
+                "modified",
+                "renamed",
+                //"copied",
+                "changed",
+                //"unchanged"
+            ].includes(file.status));
+
+            const extracted = "extracted";
+            // download and extract archive
+            {
+                await fs.mkdir(extracted);
+
+                const requestOptions = github.rest.repos.downloadTarballArchive.endpoint({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: context.sha,
+                })
+                const response = await fetch(requestOptions.url);
+
+                if (!response.ok) {
+                    throw new Error(`failed to download ${response.statusText}`);
+                }
+
+                const tarProcess = spawn('tar', ['-xz', '--strip-components=1', '-C', extracted]);
+
+                Readable.fromWeb(response.body).pipe(tarProcess.stdin);
+
+                await  new Promise((resolve, reject) => {
+                    // tar コマンドのエラーハンドリング
+                    tarProcess.on('error', (err) => reject(new Error(`starting tar command failed: ${err.message}`)));
+                    tarProcess.stderr.on('data', (data) => console.error(`tar: ${data}`));
+
+                    // 展開が正常に完了した場合
+                    tarProcess.on('close', (code) => {
+                        if (code === 0) {
+                            resolve();
+                        } else {
+                            reject(new Error(`tar exits with ${code}`));
+                        }
+                    });
+                });
+            }
+
+            const licenseLines = `Copyright (c) 2023 anatawa12 and other contributors
+            SPDX-License-Identifier: MPL-2.0
+
+            This Source Code Form is subject to the terms of the Mozilla Public
+            License, v. 2.0. If a copy of the MPL was not distributed with this
+            file, You can obtain one at http://mozilla.org.`.trim().split('\n');
+
+            const licenseHeaders = {
+                clang: '/*\n' + licenseLines.map(l => ` * ${l}`.trimEnd()).join('\n') + '\n */\n',
+                xml: '<!--\n' + licenseLines.map(l => `  - ${l}`.trimEnd()).join('\n') + '\n  -->\n',
+                html: '<!--\n' + licenseLines.map(l => `  ~ ${l}`.trimEnd()).join('\n') + '\n  -->\n',
+                sh: '' + licenseLines.map(l => `# ${l}`.trimEnd()).join('\n') + '',
+            }
+
+            let allGood = true;
+            for (let file of filtered) {
+                const contents = await fs.readFile(`${extracted}/${file.filename}`, { encoding: 'utf8' });
+                const type = fileType(file.filename, contents);
+                let good, header
+                if (type == null) {
+                    good = true
+                } else {
+                    header = licenseHeaders[type];
+                    if (!header) throw new Error(`Unknown type "${type}"`);
+                    good = contents.includes(header);
+                }
+                if (good) {
+                    core.info(`${file.filename}: ${type}: passed`);
+                } else {
+                    core.error(`${file.filename}: ${type}: missing license header. We expect to have\n${header}`, {
+                        title: 'Missing License Header',
+                        file: file.filename,
+                        startLine: 1,
+                    });
+                }
+                allGood = allGood & good;
+            }
+
+            if (!allGood) {
+                throw new Error("Some file missing license header");
+            }
+
+            function fileType(relative, contents) {
+                // excludes
+                if (relative.startsWith("vrc-get-gui/project-templates/")) return null;
+                if (relative == 'vrc-get-gui/lib/bindings.ts') return null; // generated
+
+                // general cases
+                switch (path.basename(relative)) {
+                }
+                switch (path.extname(relative)) {
+                    case '.js':
+                    case '.rs':
+                    case '.ts':
+                    case '.tsx':
+                    case '.css':
+                        return 'clang';
+                    case '.svg':
+                        return 'xml';
+                    case '.html':
+                        return 'html';
+                    case '.sh':
+                        return 'sh';
+                }
+                if (contents.match(/^#!\/bin\/(sh|bash)/g)) {
+                    return 'sh';
+                }
+                return null
+            }

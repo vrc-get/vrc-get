@@ -8,14 +8,35 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Spanish localization [`#3099`](https://github.com/vrc-get/vrc-get/pull/3099)
+- Added Russian localization `#3120`
+- Project launch buttons now show when Unity is opening or running and can bring open Unity Editor windows to the foreground on Windows, macOS, and Linux. [`#3109`](https://github.com/vrc-get/vrc-get/pull/3109) `#3153`
+- `.alcomrepositories` file extension for list of repositories `#3275`
+  - This is exactly same as previous `repositories.txt` file, but with a distinct file extension for importing with double click.
+  - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
 
 ### Changed
+- Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
+- Changed license of this project to MPL-2.0 `#3231`
+- Changed how the Project List is managed `#3184`
+  - Added a project list for ALCOM and logic to sync it with VCC's project list.
+  - Added a configuration option for the project list syncing mode.
+- Use display name from Unity Hub on the Project List `#2657`
+- Show the project name in the backup progress dialog and the remove project dialog `#3278`
+- Show the backup file name in the toast shown after creating a backup `#3279`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Alternating row backgrounds in Manage Packages are broken when filtering with search `#3058`
+- Improved compatibility with better compatibility with tools resizes window on launch `#3157`
+- Adjust button layout in Project Row `#3158`
+- The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
+- Open Unity Hub in some places does not work `#3274`
+- Compatibility with the MSIX version of Unity Hub `#3298`
+  - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
 
 ### Security
 
@@ -30,8 +51,8 @@ The format is based on [Keep a Changelog].
   - Addresses recent eMudhra intermediate CA key compromise (No single CVE number)
 
 ### Fixed
-- `vcc:` Deep Linking not working on macOS (backports `#3211`)
-- Creating project mignt fail without any dialog (backports `#3232`)
+- `vcc:` Deep Linking not working on macOS (backports [`#3211`](https://github.com/vrc-get/vrc-get/pull/3211))
+- Creating project mignt fail without any dialog (backports [`#3232`](https://github.com/vrc-get/vrc-get/pull/3232))
 
 ## [1.1.8] - 2026-07-11
 ### Fixed

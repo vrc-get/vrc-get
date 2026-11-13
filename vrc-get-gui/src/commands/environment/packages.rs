@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::commands::async_command::{AsyncCallResult, With, async_command};
 use crate::commands::prelude::*;
 use futures::future::try_join_all;
@@ -16,7 +25,7 @@ use vrc_get_vpm::environment::{
     AddUserPackageResult, Settings, UserPackageCollection, add_remote_repo, clear_package_cache,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
-use vrc_get_vpm::repositories_file::RepositoriesFile;
+use vrc_get_vpm::repositories_file::{RepositoriesFile, RepositoriesFileParseResult};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::{HttpClient, UserRepoSetting, VersionSelector};
 
@@ -403,10 +412,30 @@ pub async fn environment_remove_repository(
 #[serde(tag = "type")]
 pub enum TauriImportRepositoryPickResult {
     NoFilePicked,
-    ParsedRepositories {
-        repositories: Vec<TauriRepositoryDescriptor>,
-        unparsable_lines: Vec<String>,
-    },
+    ParsedRepositories(TauriParsedRepositories),
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+pub struct TauriParsedRepositories {
+    repositories: Vec<TauriRepositoryDescriptor>,
+    unparsable_lines: Vec<String>,
+}
+
+impl From<RepositoriesFileParseResult> for TauriParsedRepositories {
+    fn from(result: RepositoriesFileParseResult) -> Self {
+        Self {
+            repositories: result
+                .parsed()
+                .repositories()
+                .iter()
+                .map(|x| TauriRepositoryDescriptor {
+                    url: x.url().clone(),
+                    headers: x.headers().clone(),
+                })
+                .collect(),
+            unparsable_lines: result.unparseable_lines().to_vec(),
+        }
+    }
 }
 
 // workaround bug in specta::Type derive macro
@@ -466,18 +495,9 @@ pub async fn environment_import_repository_pick(
 
     let result = RepositoriesFile::parse(&repositories_file);
 
-    Ok(TauriImportRepositoryPickResult::ParsedRepositories {
-        repositories: result
-            .parsed()
-            .repositories()
-            .iter()
-            .map(|x| TauriRepositoryDescriptor {
-                url: x.url().clone(),
-                headers: x.headers().clone(),
-            })
-            .collect(),
-        unparsable_lines: result.unparseable_lines().to_vec(),
-    })
+    Ok(TauriImportRepositoryPickResult::ParsedRepositories(
+        result.into(),
+    ))
 }
 
 #[tauri::command]
@@ -593,8 +613,9 @@ pub async fn environment_export_repositories(
         .dialog()
         .file()
         .set_parent(&window)
+        .add_filter("ALCOM Repositories", &["alcomrepositories"])
         .add_filter("Text", &["txt"])
-        .set_file_name("repositories.txt")
+        .set_file_name("repositories.alcomrepositories")
         .blocking_save_file()
         .map(|x| x.into_path_buf())
         .transpose()?

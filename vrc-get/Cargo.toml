@@ -15,10 +15,8 @@ categories = ["command-line-utilities"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anstyle = "1"
 clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
-color-print = "0.3"
 env_logger = "0.11"
 futures = "0.3"
 indexmap = { version = "2", features = ["serde"] }
@@ -35,7 +33,6 @@ path = "../vrc-get-vpm"
 default-features = false
 
 [build-dependencies]
-home = "0.5"
 
 [features]
 default = ["rustls"]

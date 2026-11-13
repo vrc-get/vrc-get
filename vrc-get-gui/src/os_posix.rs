@@ -1,16 +1,57 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 //! OS-specific functionality.
 
 use std::ffi::OsStr;
 use std::fs::OpenOptions;
 use std::io;
-use std::os::unix::prelude::*;
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
-use nix::libc::{F_UNLCK, c_short, flock};
+use nix::fcntl::{Flock, FlockArg};
 
-pub(crate) use os_more::start_command;
+pub(crate) use os_more::{CAN_DETECT_UNITY_EDITOR_READY, start_command};
+
+pub(crate) fn can_bring_unity_to_front() -> bool {
+    cfg_select! {
+        target_os = "linux" => {
+            std::env::var_os("WAYLAND_DISPLAY").is_some() || std::env::var_os("DISPLAY").is_some()
+        }
+        _ => {
+            os_more::CAN_BRING_UNITY_TO_FRONT
+        }
+    }
+}
+
+pub(crate) struct UnityRuntimeCache;
+
+impl UnityRuntimeCache {
+    pub(crate) fn new() -> Self {
+        Self
+    }
+
+    pub(crate) fn is_editor_ready(&mut self, _project_path: &Path) -> bool {
+        false
+    }
+
+    pub(crate) fn bring_unity_to_front(
+        &mut self,
+        project_path: &Path,
+    ) -> io::Result<super::BringUnityToFrontResult> {
+        os_more::bring_unity_to_front(project_path)
+    }
+
+    pub(crate) fn invalidate(&mut self) {}
+}
 
 async fn start_command_posix(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
     let mut command = Command::new(path);
@@ -23,18 +64,13 @@ async fn start_command_posix(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::i
 }
 
 pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
-    let mut lock = flock {
-        l_start: 0,
-        l_len: 0,
-        l_pid: 0,
-        l_type: F_UNLCK as c_short, // macOS denies l_type: 0
-        l_whence: 0,
-    };
     let file = OpenOptions::new().read(true).open(path)?;
 
-    nix::fcntl::fcntl(file, nix::fcntl::F_GETLK(&mut lock))?;
-
-    Ok(lock.l_type != F_UNLCK as c_short)
+    match Flock::lock(file, FlockArg::LockExclusiveNonblock) {
+        Ok(_flock) => Ok(false), // acquired lock → not locked by Unity
+        Err((_file, errno)) if errno == nix::errno::Errno::EWOULDBLOCK => Ok(true),
+        Err((_file, errno)) => Err(errno.into()),
+    }
 }
 
 cfg_select! {

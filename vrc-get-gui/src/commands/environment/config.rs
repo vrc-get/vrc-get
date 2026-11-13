@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
@@ -105,6 +114,16 @@ impl SetupPages {
         }
     }
 
+    pub fn all_pages() -> &'static [SetupPages] {
+        &[
+            SetupPages::Appearance,
+            SetupPages::UnityHub,
+            SetupPages::ProjectPath,
+            SetupPages::Backups,
+            SetupPages::SystemSetting,
+        ]
+    }
+
     pub fn path(self) -> &'static str {
         match self {
             SetupPages::Appearance => "/setup/appearance/",
@@ -119,12 +138,11 @@ impl SetupPages {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_get_finished_setup_pages(
-    app: AppHandle,
     config: State<'_, GuiConfigState>,
 ) -> Result<Vec<SetupPages>, RustError> {
     let setup_process_progress = config.get().setup_process_progress;
 
-    Ok(SetupPages::pages(&app)
+    Ok(SetupPages::all_pages()
         .iter()
         .copied()
         .filter(|page| page.is_finished(setup_process_progress))
