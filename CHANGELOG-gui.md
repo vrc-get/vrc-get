@@ -35,8 +35,6 @@ The format is based on [Keep a Changelog].
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
 - Open Unity Hub in some places does not work `#3274`
-- Compatibility with the MSIX version of Unity Hub `#3298`
-  - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
 
 ### Security
 
