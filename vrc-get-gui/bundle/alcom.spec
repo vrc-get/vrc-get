@@ -1,5 +1,5 @@
 Name:           alcom
-Version:        1.1.10~rc.0
+Version:        1.1.10
 Release:        1%{?dist}
 Summary:        A short description of my custom application
 
