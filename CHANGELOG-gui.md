@@ -35,10 +35,13 @@ The format is based on [Keep a Changelog].
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
 - Open Unity Hub in some places does not work `#3274`
-- Compatibility with the MSIX version of Unity Hub `#3298`
-  - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
 
 ### Security
+
+## [1.1.10] - 2026-11-13
+### Fixed
+- Compatibility with the MSIX version of Unity Hub [`#3298`](https://github.com/vrc-get/vrc-get/pull/3298) (Backported)
+    - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
 
 ## [1.1.9] - 2026-10-23
 ### Changed
@@ -762,7 +765,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.9...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.10...HEAD
+[1.1.10]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.9...gui-v1.1.10
 [1.1.9]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.8...gui-v1.1.9
 [1.1.8]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.7...gui-v1.1.8
 [1.1.7]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.6...gui-v1.1.7
