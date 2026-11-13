@@ -18,7 +18,7 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { CircleX } from "lucide-react";
 import { Suspense, useId } from "react";
-import { HNavBar, VStack } from "@/components/layout";
+import { HNavBar, HNavBarButton, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,12 +98,9 @@ function PageBody() {
 				className="shrink-0"
 				leading={<HeadingPageName pageType={"/packages/user-packages"} />}
 				trailing={
-					<Button
-						className={"compact:h-10"}
-						onClick={() => addUserPackageWithPicker.mutate()}
-					>
+					<HNavBarButton onClick={() => addUserPackageWithPicker.mutate()}>
 						{tc("user packages:button:add package")}
-					</Button>
+					</HNavBarButton>
 				}
 			/>
 			<main
@@ -193,7 +190,7 @@ function PackageRow({
 	pkg: TauriUserPackage;
 	remove: () => void;
 }) {
-	const cellClass = "p-2.5 compact:py-1";
+	const cellClass = "p-1.5 compact:py-1";
 	const id = useId();
 
 	const pkgDisplayNames = pkg.package.display_name ?? pkg.package.name;

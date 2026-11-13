@@ -144,7 +144,7 @@ export function ProjectRow({
 							<div className="flex flex-col">
 								<Tooltip>
 									<TooltipTriggerIfValid
-										className={"text-left select-text cursor-auto w-full"}
+										className={"text-left select-text cursor-auto w-full -my-1"}
 									>
 										<p className="font-normal whitespace-pre">
 											{project.display_name || project.name}
@@ -563,7 +563,7 @@ export const TooltipTriggerIfValid = ({
 }: ComponentProps<typeof TooltipTrigger>) => {
 	const rowContext = useContext(ProjectContext);
 	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
-		return children;
+		return <div className={props.className}>{children}</div>;
 	} else {
 		return <TooltipTrigger {...props}>{children}</TooltipTrigger>;
 	}

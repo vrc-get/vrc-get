@@ -22,7 +22,7 @@ import { HeadingPageName } from "@/app/_main/packages/-tab-selector";
 import Loading from "@/app/-loading";
 import { FilePathRow } from "@/components/common-setting-parts";
 import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
-import { HNavBar, VStack } from "@/components/layout";
+import { HNavBar, HNavBarButton, VStack } from "@/components/layout";
 import { Overlay } from "@/components/Overlay";
 import {
 	ReorderableList,
@@ -97,14 +97,13 @@ function RouteComponent() {
 				trailing={
 					<DropdownMenu>
 						<div className={"flex divide-x"}>
-							<CreateTemplateButton className={"rounded-r-none compact:h-10"} />
-							<DropdownMenuTrigger
-								asChild
-								className={"rounded-l-none pl-2 pr-2 compact:h-10"}
-							>
-								<Button>
+							<HNavBarButton asChild>
+								<CreateTemplateButton className={"rounded-r-none"} />
+							</HNavBarButton>
+							<DropdownMenuTrigger asChild>
+								<HNavBarButton className={"rounded-l-none pl-2 pr-2"}>
 									<ChevronDown className={"w-4 h-4"} />
-								</Button>
+								</HNavBarButton>
 							</DropdownMenuTrigger>
 						</div>
 						<DropdownMenuContent>
@@ -264,7 +263,7 @@ function TemplateRow({
 	duplicate?: (id: string) => void;
 	favorite: boolean;
 }) {
-	const cellClass = "p-2.5 compact:py-1";
+	const cellClass = "p-1.5 compact:py-1";
 	const id = useId();
 
 	const category = projectTemplateCategory(template.id);

@@ -9,7 +9,9 @@
 
 "use client";
 
+import { Slot } from "radix-ui";
 import type React from "react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -72,8 +74,26 @@ export function HNavBar({
 
 export function HNavBarText({ children }: { children?: React.ReactNode }) {
 	return (
-		<div className="-me-2 h-10 px-3 flex items-center grow-0">
+		<div className="-me-2 h-9 px-3 flex items-center grow-0">
 			<p className="cursor-pointer font-bold">{children}</p>
 		</div>
+	);
+}
+
+export function HNavBarElementSlot({ className, ...props }: Slot.SlotProps) {
+	return <Slot.Root className={`compact:h-9 ${className}`} {...props} />;
+}
+
+export function HNavBarButton({
+	className,
+	size,
+	...props
+}: React.ComponentProps<typeof Button> & { size?: "default" | "icon" }) {
+	const sizeOverride = {
+		default: "compact:h-9",
+		icon: "compact:size-9",
+	}[size ?? "default"];
+	return (
+		<Button className={`${sizeOverride} ${className}`} size={size} {...props} />
 	);
 }

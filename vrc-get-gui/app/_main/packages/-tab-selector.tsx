@@ -23,7 +23,7 @@ export function HeadingPageName({ pageType }: { pageType: PageType }) {
 	// For compact mode, the height of the button is 2 units shorter than normal with the height of the navbar is remaining.
 	// Therefore we use the 1 unit space for outer padding for selector rectangle.
 	return (
-		<div className={"flex compact:h-10 items-center"}>
+		<div className={"flex items-center"}>
 			<div
 				className={
 					"grid grid-cols-3 gap-1.5 bg-secondary p-1 rounded-md -m-1 compact:m-0"
@@ -62,7 +62,7 @@ function HeadingButton({
 	children: React.ReactNode;
 }) {
 	const button =
-		"cursor-pointer px-3 py-2 font-bold grow-0 hover:bg-background rounded-sm text-center p-2 compact:h-8 compact:py-1";
+		"cursor-pointer px-3 py-1.5 h-9 font-bold grow-0 hover:bg-background rounded-sm text-center compact:h-8 compact:py-1";
 
 	if (currentPage === targetPage) {
 		return <div className={`${button} bg-background`}>{children}</div>;
