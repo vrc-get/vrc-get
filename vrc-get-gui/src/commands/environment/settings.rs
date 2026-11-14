@@ -20,10 +20,7 @@ use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
-use vrc_get_vpm::environment::{
-    SyncWithLitedbMode, VccDatabaseConnection, find_unity_hub, remove_curated_repository_cache,
-    remove_official_repository_cache,
-};
+use vrc_get_vpm::environment::{SyncWithLitedbMode, VccDatabaseConnection, find_unity_hub};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
@@ -464,10 +461,6 @@ pub async fn environment_set_use_official_repository(
     settings.save().await?;
     packages.clear_cache();
 
-    if !value {
-        remove_official_repository_cache(io.inner()).await?;
-    }
-
     Ok(())
 }
 
@@ -483,10 +476,6 @@ pub async fn environment_set_use_curated_repository(
     settings.set_ignore_curated_repository(!value);
     settings.save().await?;
     packages.clear_cache();
-
-    if !value {
-        remove_curated_repository_cache(io.inner()).await?;
-    }
 
     Ok(())
 }
