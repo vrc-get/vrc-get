@@ -649,15 +649,15 @@ function PackagesCard() {
 	const {
 		data: {
 			showPrereleasePackages,
-			useOfficialRepository,
-			useCuratedRepository,
+			disableOfficialRepository,
+			disableCuratedRepository,
 		},
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			showPrereleasePackages: data.show_prerelease_packages,
-			useOfficialRepository: data.use_official_repository,
-			useCuratedRepository: data.use_curated_repository,
+			disableOfficialRepository: !data.use_official_repository,
+			disableCuratedRepository: !data.use_curated_repository,
 		}),
 	});
 
@@ -701,9 +701,9 @@ function PackagesCard() {
 		},
 	});
 
-	const setUseOfficialRepository = useMutation({
-		mutationFn: async (value: boolean) =>
-			await commands.environmentSetUseOfficialRepository(value),
+	const setDisableOfficialRepository = useMutation({
+		mutationFn: async (disabled: boolean) =>
+			await commands.environmentSetUseOfficialRepository(!disabled),
 		onError: (e) => {
 			console.error(e);
 			toastThrownError(e);
@@ -719,9 +719,9 @@ function PackagesCard() {
 		},
 	});
 
-	const setUseCuratedRepository = useMutation({
-		mutationFn: async (value: boolean) =>
-			await commands.environmentSetUseCuratedRepository(value),
+	const setDisableCuratedRepository = useMutation({
+		mutationFn: async (disabled: boolean) =>
+			await commands.environmentSetUseCuratedRepository(!disabled),
 		onError: (e) => {
 			console.error(e);
 			toastThrownError(e);
@@ -765,12 +765,12 @@ function PackagesCard() {
 			<div>
 				<label className={"flex items-center gap-2"}>
 					<Checkbox
-						checked={useOfficialRepository}
+						checked={disableOfficialRepository}
 						onCheckedChange={(value) =>
-							setUseOfficialRepository.mutate(value === true)
+							setDisableOfficialRepository.mutate(value === true)
 						}
 					/>
-					{tc("settings:use official repository")}
+					{tc("settings:disable official repository")}
 				</label>
 				<p className={"text-sm whitespace-normal"}>
 					{tc("settings:use official repository description")}
@@ -779,12 +779,12 @@ function PackagesCard() {
 			<div>
 				<label className={"flex items-center gap-2"}>
 					<Checkbox
-						checked={useCuratedRepository}
+						checked={disableCuratedRepository}
 						onCheckedChange={(value) =>
-							setUseCuratedRepository.mutate(value === true)
+							setDisableCuratedRepository.mutate(value === true)
 						}
 					/>
-					{tc("settings:use curated repository")}
+					{tc("settings:disable curated repository")}
 				</label>
 				<p className={"text-sm whitespace-normal"}>
 					{tc("settings:use curated repository description")}
