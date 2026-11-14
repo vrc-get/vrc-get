@@ -1,4 +1,6 @@
 /*/*
+!/*/.gitignore
+!/*/.gitattributes
 !/*/Assets
 /*/Assets/*
 !/*/Assets/.gitkeep
