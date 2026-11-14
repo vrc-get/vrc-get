@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog].
 - `.alcomrepositories` file extension for list of repositories `#3275`
   - This is exactly same as previous `repositories.txt` file, but with a distinct file extension for importing with double click.
   - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
+- Added a setting to disable the built-in VRChat Official and Curated repositories. [`#3197`](https://github.com/vrc-get/vrc-get/pull/3197)
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
