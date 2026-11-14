@@ -15,7 +15,6 @@ use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;
 use indexmap::IndexMap;
-use std::convert::Infallible;
 use std::sync::atomic::{AtomicBool, Ordering};
 use url::Url;
 
@@ -162,7 +161,7 @@ impl HttpClient for reqwest::Client {
     }
 }
 
-impl HttpClient for Infallible {
+impl HttpClient for ! {
     async fn get(&self, _: &Url, _: &IndexMap<&str, &str>) -> io::Result<impl AsyncRead> {
         Ok(io::empty())
     }
