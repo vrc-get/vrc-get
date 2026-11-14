@@ -8,6 +8,7 @@
     "general:version": "版本",
     "general:packages": "软件包",
     "general:source": "来源",
+    "general:project-path": "项目路径",
 
     "general:button:add": "添加",
     "general:button:edit": "编辑",
@@ -192,15 +193,15 @@
     "projects:toast:project migrated": "项目已成功迁移。",
 
     "projects:dialog:backup header": "备份项目",
-    "projects:dialog:creating backup...": "正在创建备份...",
+    "projects:dialog:creating backup of...": "正在为 <b>{{name}}</b> 创建备份...",
     "projects:dialog:proceed k/n": "正在处理 {{count}}/{{total}}",
     "projects:toast:backup canceled": "备份操作已被取消。",
-    "projects:toast:backup succeeded": "备份创建成功。",
+    "projects:toast:backup succeeded with name": "{{name}} 的备份创建成功。",
 
     "projects:dialog:warn removing project": "您即将删除项目 <b>{{name}}</b>。您确定吗？",
     "projects:button:remove from list": "从列表删除",
     "projects:button:remove directory": "删除目录",
-    "projects:dialog:removing...": "删除项目中...",
+    "projects:dialog:removing project...": "删除项目 <b>{{name}}</b> 中...",
     "projects:toast:project removed": "项目删除成功。",
 
     "projects:set project display name": "设置项目显示名称",
