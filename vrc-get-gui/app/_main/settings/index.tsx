@@ -772,9 +772,6 @@ function PackagesCard() {
 					/>
 					{tc("settings:disable official repository")}
 				</label>
-				<p className={"text-sm whitespace-normal"}>
-					{tc("settings:use official repository description")}
-				</p>
 			</div>
 			<div>
 				<label className={"flex items-center gap-2"}>
@@ -786,9 +783,6 @@ function PackagesCard() {
 					/>
 					{tc("settings:disable curated repository")}
 				</label>
-				<p className={"text-sm whitespace-normal"}>
-					{tc("settings:use curated repository description")}
-				</p>
 			</div>
 		</SettingsCard>
 	);
