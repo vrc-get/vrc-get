@@ -384,38 +384,40 @@ fn default_unity_cli_path() -> &'static [&'static str] {
     static INSTALLATIONS: LazyLock<&'static [&'static str]> = LazyLock::new(|| {
         cfg_select! {
             target_os = "windows" => {
-                static USER_INSTALLATION: LazyLock<String> = LazyLock::new(|| {
-                    let local_app_data = std::env::var("LOCALAPPDATA").expect("LOCALAPPDATA not set");
-                    format!("{local_app_data}\\Unity\\bin\\unity.exe")
-                });
-                vec![USER_INSTALLATION.as_str()].leak()
+                let mut paths = Vec::<&str>::with_capacity(1);
+
+                // install script
+                let local_app_data = std::env::var("LOCALAPPDATA").expect("LOCALAPPDATA not set");
+                paths.push(format!("{local_app_data}\\Unity\\bin\\unity.exe").leak());
+
+                paths.leak()
             }
             target_os = "macos" => {
-                static USER_INSTALLATION: LazyLock<String> = LazyLock::new(|| {
-                    let home = std::env::var("HOME").expect("HOME not set");
-                    format!("{home}/.unity/bin/unity")
-                });
-                vec![
-                    &USER_INSTALLATION,
-                    // homebrew
-                    "/opt/homebrew/bin/unity",
-                    "/usr/local/bin/unity",
-                ]
-                .leak()
+                let mut paths = Vec::<&str>::with_capacity(3);
+
+                // install script
+                let home = std::env::var("HOME").expect("HOME not set");
+                paths.push(format!("{home}/.unity/bin/unity").leak());
+
+                // homebrew
+                paths.push("/opt/homebrew/bin/unity");
+                paths.push("/usr/local/bin/unity");
+
+                paths.leak()
             }
             target_os = "linux" => {
-                static USER_INSTALLATION: LazyLock<String> = LazyLock::new(|| {
-                    let home = std::env::var("HOME").expect("HOME not set");
-                    format!("{home}/.local/bin/unity")
-                });
-                vec![
-                    &USER_INSTALLATION,
-                    // linuxbrew
-                    "/home/linuxbrew/.linuxbrew/bin/unity",
-                    // aur package
-                    "/usr/bin/unity",
-                ]
-                .leak()
+                let mut paths = Vec::<&str>::with_capacity(3);
+
+                // install script
+                let home = std::env::var("HOME").expect("HOME not set");
+                paths.push(format!("{home}/.local/bin/unity").leak());
+
+                // linuxbrew
+                paths.push("/home/linuxbrew/.linuxbrew/bin/unity");
+                // aur package
+                paths.push("/usr/bin/unity");
+
+                paths.leak()
             }
         }
     });
