@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog].
 - `.alcomrepositories` file extension for list of repositories `#3275`
   - This is exactly same as previous `repositories.txt` file, but with a distinct file extension for importing with double click.
   - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
+- The position of the main window is now reserved `#3316`
+  - This is not supported on Wayland since the position of windows is managed by the compositor.
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)

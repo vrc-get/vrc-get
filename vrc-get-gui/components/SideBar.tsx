@@ -77,7 +77,7 @@ export function SideBar({ className }: { className?: string }) {
 			toastNormal(tc("sidebar:toast:version copied"));
 		}
 	};
-	const isDev = import.meta.env.DEV;
+	const isDev = import.meta.env.DEV && false;
 
 	return (
 		<Card
@@ -94,11 +94,7 @@ export function SideBar({ className }: { className?: string }) {
 				<SideBarItem href={"/log"} text={tc("logs")} icon={AlignLeft} />
 				{isDev && <DevRestartSetupButton />}
 				{isDev && (
-					<SideBarItem
-						href={"/dev-palette"}
-						text={"UI Palette (dev only)"}
-						icon={SwatchBook}
-					/>
+					<SideBarItem href={"/dev-palette"} text={"UI"} icon={SwatchBook} />
 				)}
 				{isDev && <StyleQuickAccess />}
 				<div className={"grow"} />
@@ -183,7 +179,7 @@ function DevRestartSetupButton() {
 	};
 	return (
 		<SideBarButton icon={Settings} onClick={onClick}>
-			Restart Setup (dev only)
+			Restart
 		</SideBarButton>
 	);
 }
@@ -226,9 +222,7 @@ export function StyleQuickAccess() {
 	return (
 		<Popover>
 			<PopoverTrigger asChild>
-				<SideBarButton icon={SwatchBook}>
-					Style Settings (dev only)
-				</SideBarButton>
+				<SideBarButton icon={SwatchBook}>Style</SideBarButton>
 			</PopoverTrigger>
 			<PopoverContent className="w-96 flex flex-col gap-3 [&>label]:flex-col [&>label]:items-start [&>div]:space-y-1">
 				<LanguageSelector />
