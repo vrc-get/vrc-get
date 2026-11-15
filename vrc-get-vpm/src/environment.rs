@@ -106,6 +106,7 @@ pub async fn cleanup_repos_folder(
     let mut uesr_repo_file_names = HashSet::<OsString>::from_iter([
         OsString::from("vrc-official.json"),
         OsString::from("vrc-curated.json"),
+        // package cache management file used by VCC but not used by vrc-get
         OsString::from("package-cache.json"),
     ]);
     let repos_base = io.resolve(REPO_CACHE_FOLDER.as_ref());
@@ -140,6 +141,7 @@ pub async fn cleanup_repos_folder(
 
     Ok(())
 }
+
 async fn write_new_repo(
     local_cache: &LocalCachedRepository,
     io: &DefaultEnvironmentIo,
