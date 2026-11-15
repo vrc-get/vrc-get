@@ -8,6 +8,7 @@
     "general:version": "バージョン",
     "general:packages": "パッケージ",
     "general:source": "ソース",
+    "general:project-path": "プロジェクトの保存場所",
 
     "general:button:add": "追加",
     "general:button:edit": "編集",
@@ -192,15 +193,15 @@
     "projects:toast:project migrated": "プロジェクト移行に成功しました。",
 
     "projects:dialog:backup header": "バックアップを作成",
-    "projects:dialog:creating backup...": "バックアップを作成中...",
+    "projects:dialog:creating backup of...": "プロジェクト <b>{{name}}</b> のバックアップを作成中...",
     "projects:dialog:proceed k/n": "進捗: {{count}}/{{total}}",
     "projects:toast:backup canceled": "バックアップをキャンセルしました。",
-    "projects:toast:backup succeeded": "バックアップを作成しました。",
+    "projects:toast:backup succeeded with name": "バックアップを作成しました: {{name}}",
 
     "projects:dialog:warn removing project": "プロジェクト <b>{{name}}</b> をリストから削除してもよろしいですか？<br>なお、ファイルを削除する場合はゴミ箱に移動されます。",
     "projects:button:remove from list": "リストから削除する",
     "projects:button:remove directory": "プロジェクトのファイルも削除する",
-    "projects:dialog:removing...": "プロジェクトを削除中...",
+    "projects:dialog:removing project...": "プロジェクト <b>{{name}}</b> を削除中...",
     "projects:toast:project removed": "プロジェクトを削除しました。",
 
     "projects:set project display name": "プロジェクトの表示名を設定する",

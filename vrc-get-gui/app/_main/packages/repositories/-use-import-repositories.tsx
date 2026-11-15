@@ -20,11 +20,12 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
-import type {
-	TauriDownloadRepository,
-	TauriRepositoryDescriptor,
+import {
+	commands,
+	type TauriDownloadRepository,
+	type TauriParsedRepositories,
+	type TauriRepositoryDescriptor,
 } from "@/lib/bindings";
-import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { type DialogContext, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
@@ -41,21 +42,24 @@ const environmentRepositoriesInfo = queryOptions({
 	queryFn: commands.environmentRepositoriesInfo,
 });
 
-export async function importRepositories() {
+export async function importRepositories(
+	pickResult: TauriParsedRepositories | null = null,
+) {
 	using dialog = showDialog();
-
-	const pickResult = await commands.environmentImportRepositoryPick();
-	switch (pickResult.type) {
-		case "NoFilePicked":
-			// no-op
-			return;
-		case "ParsedRepositories":
-			// continue
-			break;
-		default:
-			assertNever(pickResult, "pickResult");
+	if (pickResult == null) {
+		const result = await commands.environmentImportRepositoryPick();
+		switch (result.type) {
+			case "NoFilePicked":
+				// no-op
+				return;
+			case "ParsedRepositories":
+				// continue
+				break;
+			default:
+				assertNever(result, "pickResult");
+		}
+		pickResult = result;
 	}
-	console.log("confirmingRepositories", pickResult);
 
 	const repositories = await dialog.ask(ConfirmingRepositoryList, {
 		pickResult,

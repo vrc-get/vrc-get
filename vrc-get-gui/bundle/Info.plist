@@ -22,9 +22,23 @@
             <string>ALCOM Project Template</string>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
             <key>LSItemContentTypes</key>
             <array>
                 <string>com.anatawa12.vrc-get.alcomtemplate</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>ALCOM Repositories List</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.anatawa12.vrc-get.alcomrepositories</string>
             </array>
         </dict>
     </array>
@@ -54,6 +68,32 @@
                 <key>public.filename-extension</key>
                 <array>
                     <string>alcomtemplate</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.anatawa12.vrc-get.alcomrepositories</string>
+            <key>UTTypeIcons</key>
+            <dict>
+                <key>UTTypeIconText</key>
+                <string>Repos</string>
+                <key>UTTypeIconBackgroundName</key>
+                <string></string>
+                <key>UTTypeIconBadgeName</key>
+                <string>icon.icns</string>
+            </dict>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.utf8-plain-text</string>
+            </array>
+            <key>UTTypeDescription</key>
+            <string>ALCOM Repositories List</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>alcomrepositories</string>
                 </array>
             </dict>
         </dict>

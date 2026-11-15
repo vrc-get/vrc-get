@@ -25,6 +25,12 @@ pub struct RepositoriesFileParseResult {
 }
 
 impl RepositoriesFile {
+    pub fn empty() -> Self {
+        Self {
+            repositories: vec![],
+        }
+    }
+
     pub fn parse(file: &str) -> RepositoriesFileParseResult {
         let mut parsed_lines = vec![];
         let mut unparseable_lines = vec![];
@@ -81,12 +87,26 @@ impl RepositoriesFile {
 }
 
 impl RepositoriesFileParseResult {
+    pub fn empty() -> Self {
+        Self {
+            parsed: RepositoriesFile::empty(),
+            unparseable_lines: vec![],
+        }
+    }
+
     pub fn parsed(&self) -> &RepositoriesFile {
         &self.parsed
     }
 
     pub fn unparseable_lines(&self) -> &[String] {
         &self.unparseable_lines
+    }
+}
+
+impl std::ops::AddAssign for RepositoriesFileParseResult {
+    fn add_assign(&mut self, rhs: Self) {
+        self.parsed.repositories.extend(rhs.parsed.repositories);
+        self.unparseable_lines.extend(rhs.unparseable_lines);
     }
 }
 
