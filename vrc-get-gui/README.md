@@ -13,14 +13,12 @@
 [shields-aur-version]: https://img.shields.io/aur/version/alcom
 [shields-winget-version]: https://img.shields.io/winget/v/anatawa12.ALCOM
 [shields-macports-version]: https://img.shields.io/macports/v/alcom
-
 [release-alcom]: https://github.com/vrc-get/vrc-get/releases?q=gui-v1
 [homebrew-alcom]: https://formulae.brew.sh/cask/alcom
 [scoop-alcom]: https://github.com/babo4d/scoop-xrtools/blob/master/bucket/vrc-alcom.json
 [aur-alcom]: https://aur.archlinux.org/packages/alcom
 [winget-alcom]: https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/anatawa12/ALCOM
 [macports-alcom]: https://ports.macports.org/port/alcom
-
 [scoop-xrtools]: https://github.com/babo4d/scoop-xrtools/
 
 A crossplatform fast open-source alternative of VRChat Creator Companion
@@ -73,7 +71,7 @@ To build ALCOM, you need to have the following installed:
 - [cargo] latest — to build the most part of the project
 - And other requirements for tauri, see [tauri requirements](https://v2.tauri.app/start/prerequisites/#system-dependencies)
 
-Please note that ALCOM requires the latest version of rust toolchain at that time. 
+Please note that ALCOM requires the latest version of rust toolchain at that time.
 We update the required version of cargo without notice.
 Therefore, It's recommended to update rust toolchain before building the project.
 

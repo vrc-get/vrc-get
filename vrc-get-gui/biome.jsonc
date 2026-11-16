@@ -9,6 +9,7 @@
 			"!.next",
 			"!out",
 			"!gen",
+			"!CHANGELOG.md",
 			"!lib/bindings.ts",
 			"!lib/routeTree.gen.ts",
 			"!build"
