@@ -70,7 +70,7 @@ struct UnityEditorWindow {
 }
 
 pub(crate) struct UnityRuntimeCache {
-    system: System,
+    system: Option<System>,
     refreshed_at: Option<Instant>,
     editor_windows: Vec<UnityEditorWindow>,
 }
@@ -193,7 +193,9 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
 impl UnityRuntimeCache {
     pub(crate) fn new() -> Self {
         Self {
-            system: System::new(),
+            system: System::new()
+                .inspect_err(|e| log::error!("System::new failed with {e}"))
+                .ok(),
             refreshed_at: None,
             editor_windows: Vec::new(),
         }
@@ -257,7 +259,11 @@ impl UnityRuntimeCache {
     }
 
     fn refresh(&mut self, now: Instant) -> io::Result<()> {
-        let processes = crate::unity_process::refresh_unity_processes(&mut self.system);
+        let processes = if let Some(ref mut system) = self.system {
+            crate::unity_process::refresh_unity_processes(system)
+        } else {
+            vec![]
+        };
         let editor_windows = find_unity_editor_windows(processes);
         self.refreshed_at = Some(now);
 
