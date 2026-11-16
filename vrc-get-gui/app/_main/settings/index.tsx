@@ -647,11 +647,17 @@ function PackagesCard() {
 	const queryClient = useQueryClient();
 
 	const {
-		data: { showPrereleasePackages },
+		data: {
+			showPrereleasePackages,
+			disableOfficialRepository,
+			disableCuratedRepository,
+		},
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			showPrereleasePackages: data.show_prerelease_packages,
+			disableOfficialRepository: !data.use_official_repository,
+			disableCuratedRepository: !data.use_curated_repository,
 		}),
 	});
 
@@ -695,6 +701,42 @@ function PackagesCard() {
 		},
 	});
 
+	const setDisableOfficialRepository = useMutation({
+		mutationFn: async (disabled: boolean) =>
+			await commands.environmentSetUseOfficialRepository(!disabled),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries(environmentGetSettings),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
+			]);
+		},
+	});
+
+	const setDisableCuratedRepository = useMutation({
+		mutationFn: async (disabled: boolean) =>
+			await commands.environmentSetUseCuratedRepository(!disabled),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries(environmentGetSettings),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
+			]);
+		},
+	});
+
 	return (
 		<SettingsCard className={"flex flex-col gap-4"}>
 			<h2>{tc("settings:packages")}</h2>
@@ -714,6 +756,33 @@ function PackagesCard() {
 				<p className={"text-sm whitespace-normal"}>
 					{tc("settings:show prerelease description")}
 				</p>
+			</div>
+			<div>
+				<p className={"text-sm whitespace-normal font-semibold"}>
+					{tc("settings:vrchat repositories experimental")}
+				</p>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={disableOfficialRepository}
+						onCheckedChange={(value) =>
+							setDisableOfficialRepository.mutate(value === true)
+						}
+					/>
+					{tc("settings:disable official repository")}
+				</label>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={disableCuratedRepository}
+						onCheckedChange={(value) =>
+							setDisableCuratedRepository.mutate(value === true)
+						}
+					/>
+					{tc("settings:disable curated repository")}
+				</label>
 			</div>
 		</SettingsCard>
 	);

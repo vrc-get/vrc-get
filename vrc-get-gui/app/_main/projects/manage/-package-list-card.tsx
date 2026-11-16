@@ -619,16 +619,20 @@ function ManagePackagesHeading({
 						{tc("projects:manage:menu:repository filter")}
 					</DropdownMenuLabel>
 					<ScrollArea className={"flex flex-col"}>
-						<RepositoryMenuItem
-							hiddenUserRepositories={hiddenUserRepositories}
-							repositoryName={tt("vpm repositories:source:official")}
-							repositoryId={"com.vrchat.repos.official"}
-						/>
-						<RepositoryMenuItem
-							hiddenUserRepositories={hiddenUserRepositories}
-							repositoryName={tt("vpm repositories:source:curated")}
-							repositoryId={"com.vrchat.repos.curated"}
-						/>
+						{repositoriesInfo?.use_official_repository && (
+							<RepositoryMenuItem
+								hiddenUserRepositories={hiddenUserRepositories}
+								repositoryName={tt("vpm repositories:source:official")}
+								repositoryId={"com.vrchat.repos.official"}
+							/>
+						)}
+						{repositoriesInfo?.use_curated_repository && (
+							<RepositoryMenuItem
+								hiddenUserRepositories={hiddenUserRepositories}
+								repositoryName={tt("vpm repositories:source:curated")}
+								repositoryId={"com.vrchat.repos.curated"}
+							/>
+						)}
 						<UserLocalRepositoryMenuItem
 							hideUserLocalPackages={
 								repositoriesInfo?.hide_local_user_packages ?? false

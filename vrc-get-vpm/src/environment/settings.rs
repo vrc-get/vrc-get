@@ -154,6 +154,14 @@ impl Settings {
     ) {
         self.vrc_get.set_project_list_sync_mode(mode);
     }
+
+    pub fn set_ignore_official_repository(&mut self, value: bool) {
+        self.vrc_get.set_ignore_official_repository(value);
+    }
+
+    pub fn set_ignore_curated_repository(&mut self, value: bool) {
+        self.vrc_get.set_ignore_curated_repository(value);
+    }
 }
 
 /// User Package Managements
