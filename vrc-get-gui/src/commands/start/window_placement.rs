@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 anatawa12 and other contributors
+ * Copyright (c) 2023 anatawa12 and other contributors
  * SPDX-License-Identifier: MPL-2.0
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
