@@ -22,6 +22,10 @@ pub struct GuiConfig {
     pub window_size: WindowSize,
     #[serde(default)]
     pub fullscreen: bool,
+    /// The position of the main window in OS-native desktop coordinates.
+    /// See [`WindowPosition`] for details.
+    #[serde(default)]
+    pub window_position: Option<WindowPosition>,
     #[serde(default = "language_default")]
     pub language: String,
     #[serde(default = "theme_default")]
@@ -93,6 +97,7 @@ impl Default for GuiConfig {
             hide_local_user_packages: false,
             window_size: WindowSize::default(),
             fullscreen: false,
+            window_position: None,
             language: language_default(),
             theme: theme_default(),
             backup_format: backup_default(),
@@ -200,4 +205,17 @@ impl Default for WindowSize {
             height: 800,
         }
     }
+}
+
+/// The position of the top-left corner of the window frame (outer position)
+/// in OS-native desktop coordinates, similar to Firefox's "desktop pixels".
+///
+/// - Windows: physical pixels, since there is no single logical coordinate
+///   space across monitors with different scale factors.
+/// - macOS: points (logical pixels), which is the native global coordinate space.
+/// - Linux (X11): GDK (logical) pixels, which use a single scale factor for all monitors.
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct WindowPosition {
+    pub x: f64,
+    pub y: f64,
 }

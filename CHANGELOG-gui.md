@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog].
 - Unity CLI can now be used to load the list of Unity installations `#3137`
   - Unity CLI is an additional install on top of Unity Hub, so reading Unity Hub configuration files stays the default.
   - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
+- The position of the main window is now reserved `#3316`
+  - This is not supported on Wayland since the position of windows is managed by the compositor.
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
