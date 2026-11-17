@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog].
 - `.alcomrepositories` file extension for list of repositories `#3275`
   - This is exactly same as previous `repositories.txt` file, but with a distinct file extension for importing with double click.
   - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
+- Unity CLI can now be used to load the list of Unity installations `#3137`
+  - Unity CLI is an additional install on top of Unity Hub, so reading Unity Hub configuration files stays the default.
+  - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
 - The position of the main window is now reserved `#3316`
   - This is not supported on Wayland since the position of windows is managed by the compositor.
 
@@ -26,6 +29,8 @@ The format is based on [Keep a Changelog].
 - Use display name from Unity Hub on the Project List `#2657`
 - Show the project name in the backup progress dialog and the remove project dialog `#3278`
 - Show the backup file name in the toast shown after creating a backup `#3279`
+- Reverted part of logic for MSIX version of Unity Hub, that are no longer necessary for Unity Hub 4.0 `#3321`
+  - ALCOM had support for sandboxed AppData, but Unity has disabled sandboxed AppData in Unity Hub 4.0.
 
 ### Deprecated
 

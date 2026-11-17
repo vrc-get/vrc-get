@@ -8,8 +8,8 @@ The goal of the .alcomtemplate file at this moment are:
 
 - Easy way to create custom templates based on VRChat Worlds / Avatars template  
   Customization generally consists of:
-    - Adding new package to the template
-    - importing unitypackage
+  - Adding new package to the template
+  - importing unitypackage
 - Easy way to distribute / share your own custom template
 
 ## Structure

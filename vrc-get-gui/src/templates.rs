@@ -662,6 +662,16 @@ async fn import_unitypackage_impl(
                         ),
                     )
                 })?;
+                // https://github.com/vrc-get/vrc-get/issues/2634
+                // https://issuetracker.unity3d.com/product/unity/issues/guid/UUM-132869
+                // if there is '\n' in their pathname, remove after last '\n'
+                let pathname = if let Some(index) = pathname.rfind('\n') {
+                    let mut pathname = pathname;
+                    pathname.replace_range(index.., "");
+                    pathname
+                } else {
+                    pathname
+                };
                 // Those are filename-banned characters for windows except for portable path separator '/'
                 if pathname.contains(['<', '>', ':', '"', '|', '?', '*', '\0']) {
                     return Err(io::Error::new(
@@ -672,7 +682,10 @@ async fn import_unitypackage_impl(
                         ),
                     ));
                 }
-                if pathname.split('/').any(|c| matches!(c, "" | "." | "..")) {
+                if pathname
+                    .split(['/', '\\'])
+                    .any(|c| matches!(c, "" | "." | ".."))
+                {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
                         format!(
@@ -689,16 +702,6 @@ async fn import_unitypackage_impl(
                     );
                     continue;
                 }
-                // https://github.com/vrc-get/vrc-get/issues/2634
-                // https://issuetracker.unity3d.com/product/unity/issues/guid/UUM-132869
-                // if there is '\n' in their pathname, remove after last '\n'
-                let pathname = if let Some(index) = pathname.rfind('\n') {
-                    let mut pathname = pathname;
-                    pathname.replace_range(index.., "");
-                    pathname
-                } else {
-                    pathname
-                };
                 package_entry.pathname = pathname;
             }
             _ => continue, // non unitypackage entry

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- `--method call-cli` for `vrc-get vcc unity update` to load the list of Unity installations with Unity CLI `#3137`
 
 ### Changed
 - Changed license of this project to MPL-2.0 `#3231`
@@ -20,8 +21,9 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Compatibility with the MSIX version of Unity Hub `#3298`
+- Compatibility with the MSIX version of Unity Hub `#3298` `#3321`
   - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
+- `vrc-get vcc unity update --method read-config` fails if Unity Hub is not installed `#3137`
 
 ### Security
 

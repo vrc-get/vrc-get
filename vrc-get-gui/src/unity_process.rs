@@ -20,7 +20,9 @@ pub(crate) struct UnityProcess {
 
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) fn find_unity_process_ids_for_project(project_path: &Path) -> Vec<u32> {
-    let mut system = System::new();
+    let Ok(mut system) = System::new() else {
+        return vec![];
+    };
     refresh_unity_processes(&mut system)
         .into_iter()
         .filter_map(|process| {
