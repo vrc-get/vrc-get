@@ -36,13 +36,11 @@ mod darwin {
         PathBuf::from("/Applications")
     }
 
-    pub fn user_data_paths() -> Vec<PathBuf> {
-        vec![
-            std::env::var_os("HOME")
-                .map(PathBuf::from)
-                .expect("HOME environment variable is not set")
-                .joined("Library/Application Support/UnityHub"),
-        ]
+    pub fn user_data_path() -> PathBuf {
+        std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .expect("HOME environment variable is not set")
+            .joined("Library/Application Support/UnityHub")
     }
 
     pub fn global_config_folder() -> PathBuf {
@@ -119,19 +117,17 @@ mod linux {
             .expect("HOME environment variable is not set")
     }
 
-    pub fn user_data_paths() -> Vec<PathBuf> {
+    pub fn user_data_path() -> PathBuf {
         if let Some(config_home) = std::env::var_os("XDG_CONFIG_HOME")
             .take_if(|x| !x.is_empty())
             .map(PathBuf::from)
         {
-            vec![config_home.joined("unityhub")]
+            config_home.joined("unityhub")
         } else {
-            vec![
-                std::env::var_os("HOME")
-                    .map(PathBuf::from)
-                    .expect("HOME environment variable is not set")
-                    .joined(".config/unityhub"),
-            ]
+            std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .expect("HOME environment variable is not set")
+                .joined(".config/unityhub")
         }
     }
 
@@ -179,22 +175,11 @@ mod windows {
             .unwrap_or(PathBuf::from("C:\\Program Files"))
     }
 
-    pub fn user_data_paths() -> Vec<PathBuf> {
-        vec![
-            user_data_path_for_appx_distribution(),
-            std::env::var_os("APPDATA")
-                .map(PathBuf::from)
-                .expect("APPDATA environment variable is not set")
-                .joined("UnityHub"),
-        ]
-    }
-    pub fn user_data_path_for_appx_distribution() -> PathBuf {
-        std::env::var_os("LOCALAPPDATA")
+    pub fn user_data_path() -> PathBuf {
+        std::env::var_os("APPDATA")
             .map(PathBuf::from)
             .expect("APPDATA environment variable is not set")
-            .joined(
-                r#"Packages\UnityTechnologies.UnityHub_2vrhnee42bhxm\LocalCache\Roaming\UnityHub"#,
-            )
+            .joined("UnityHub")
     }
 
     pub fn global_config_folder() -> PathBuf {
