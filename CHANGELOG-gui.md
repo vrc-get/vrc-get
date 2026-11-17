@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog].
 - Use display name from Unity Hub on the Project List `#2657`
 - Show the project name in the backup progress dialog and the remove project dialog `#3278`
 - Show the backup file name in the toast shown after creating a backup `#3279`
+- Reverted part of logic for MSIX version of Unity Hub, that are no longer necessary for Unity Hub 4.0 `#3321`
+  - ALCOM had support for sandboxed AppData, but Unity has disabled sandboxed AppData in Unity Hub 4.0.
 
 ### Deprecated
 
