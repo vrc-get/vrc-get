@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog].
 - `.alcomrepositories` file extension for list of repositories `#3275`
   - This is exactly same as previous `repositories.txt` file, but with a distinct file extension for importing with double click.
   - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
+- Unity CLI can now be used to load the list of Unity installations `#3137`
+  - Unity CLI is an additional install on top of Unity Hub, so reading Unity Hub configuration files stays the default.
+  - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
