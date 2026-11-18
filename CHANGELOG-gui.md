@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog].
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
 - Open Unity Hub in some places does not work `#3274`
+- AppImage doesn't function on distributions without systemd `#3323`
 
 ### Security
 
