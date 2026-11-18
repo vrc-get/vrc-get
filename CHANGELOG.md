@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog].
 - Compatibility with the MSIX version of Unity Hub `#3298` `#3321`
   - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
 - `vrc-get vcc unity update --method read-config` fails if Unity Hub is not installed `#3137`
+- Unity 2021.3.45f2 could not be added because its version string was rejected as invalid `#3204`
 
 ### Security
 
