@@ -108,8 +108,12 @@ function Settings() {
 
 	const updateUnityPaths = async () => {
 		updateUnityPathsTransition(async () => {
-			await commands.environmentUpdateUnityPathsFromUnityHub();
-			await queryClient.invalidateQueries(environmentGetSettings);
+			try {
+				await commands.environmentUpdateUnityPathsFromUnityHub();
+				await queryClient.invalidateQueries(environmentGetSettings);
+			} catch (e) {
+				toastThrownError(e);
+			}
 		});
 	};
 
