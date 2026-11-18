@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog].
 - Open Unity Hub in some places does not work `#3274`
 - GUI Crashes on error with "Reload Unity from Unity Hub" `#3322`
 - Unity 2021.3.45f2 could not be added because its version string was rejected as invalid `#3204`
+- AppImage doesn't function on distributions without systemd `#3323`
 
 ### Security
 
