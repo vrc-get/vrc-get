@@ -99,6 +99,9 @@ impl UnityVersion {
         let type_ = ReleaseType::try_from(rest.as_bytes()[revision_delimiter]).ok()?;
         let rest = &rest[revision_delimiter + 1..];
 
+        // `-` suffixes come from the version define docs. `.` suffixes are not
+        // documented: they come from the real `Unity -version` output of the
+        // 2021.3.45f2 build, e.g. `2021.3.45f2.git.2021.3/respin/2021.3.45f2-0da89fac8e.8976527`.
         let (increment_part, _rest) = rest.split_once(['-', '.']).unwrap_or((rest, ""));
         let (increment, china_increment);
         if increment_part.contains('c') {
