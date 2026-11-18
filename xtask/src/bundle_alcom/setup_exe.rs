@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::bundle_alcom::BundleContext;
 use crate::utils::command::{CommandExt, WineRunner};
 use crate::utils::{build_dir, cargo, download_file_cached, replace_arch, target_abi, target_arch};

@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 #![allow(dead_code)]
 
 use crate::utils::rustc::rustc_host_triple;
@@ -84,16 +93,15 @@ impl BuildProfile {
 }
 
 /// Make a file executable (mode 755).
-#[cfg(unix)]
 pub fn make_executable(path: &Path) -> anyhow::Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-    fs::set_permissions(path, fs::Permissions::from_mode(0o755))
-        .with_context(|| format!("chmod 755 {}", path.display()))
-}
-
-#[cfg(not(unix))]
-pub fn make_executable(_path: &Path) -> anyhow::Result<()> {
-    Ok(())
+    cfg_select! {
+        unix => {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(path, fs::Permissions::from_mode(0o755))
+                .with_context(|| format!("chmod 755 {}", path.display()))
+        }
+        _ => Ok(())
+    }
 }
 
 pub fn estimated_dir_size(path: &Path) -> Option<u64> {

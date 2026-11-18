@@ -63,6 +63,7 @@
     "setup:back": "返回",
 
     "setup:steps card:Appearance": "外觀",
+    "setup:appearance:heading": "外觀",
     "setup:appearance:description": "請先設定你的外觀偏好。<br/>稍後你能在設定頁面中再次更改。",
 
     "setup:steps card:UnityHub": "Unity Hub",

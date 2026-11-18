@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 mod copy_recursive;
 mod crlf_json_formatter;
 mod deup_deserializer;
@@ -324,6 +333,14 @@ where
     T: serde::de::DeserializeOwned + Default,
 {
     try_load_json(io, path).await.map(|x| x.unwrap_or_default())
+}
+
+#[allow(dead_code)]
+pub(crate) fn normalize_path_str(input: &str) -> String {
+    normalize_path(Path::new(input))
+        .into_os_string()
+        .into_string()
+        .unwrap()
 }
 
 pub(crate) fn normalize_path(input: &Path) -> PathBuf {

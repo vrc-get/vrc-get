@@ -1,18 +1,899 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::environment::VccDatabaseConnection;
 use crate::environment::settings::Settings;
+use crate::environment::sqlite::{
+    ArcMutexGuardConnectionExt, ArcMutexTransaction, SQLiteConnection, datetime_from_unix,
+};
 use crate::io::{DefaultEnvironmentIo, DefaultProjectIo, IoTrait};
-use crate::utils::{check_absolute_path, normalize_path};
+use crate::utils::{normalize_path, normalize_path_str};
 use crate::version::UnityVersion;
 use crate::{ProjectType, UnityProject, io};
 use futures::future::join_all;
-use log::error;
-use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
-use std::ffi::OsStr;
+use hex::ToHex;
+use log::{debug, error, trace, warn};
+use rusqlite::fallible_iterator::FallibleIterator;
+use rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE;
+use rusqlite::{OptionalExtension, TransactionBehavior};
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeSet, HashMap, HashSet};
+use std::num::NonZeroI64;
 use std::path::Path;
-use vrc_get_litedb::bson::{Array, DateTime, Document, Value};
-use vrc_get_litedb::document;
+use tokio::task::spawn_blocking;
+use vrc_get_litedb::bson::{DateTime, Document, ObjectId, Value};
 use vrc_get_litedb::file_io::BsonAutoId;
+
+#[derive(Debug)]
+pub enum Error {
+    LoadSettings(io::Error),
+    LoadLitedb(io::Error),
+    SQLite(rusqlite::Error),
+    SaveSettings(io::Error),
+    SaveLitedb(io::Error),
+    LoadingProjectInfo(io::Error),
+    BadPath(&'static str),
+    AlreadyExists,
+    ChangeProjectListNotSupported,
+}
+
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::LoadSettings(err) => write!(fmt, "Failed to load settings: {}", err),
+            Error::LoadLitedb(err) => write!(fmt, "Failed to load litedb: {}", err),
+            Error::SQLite(err) => write!(fmt, "SQLite error: {}", err),
+            Error::SaveSettings(err) => write!(fmt, "Failed to save settings: {}", err),
+            Error::SaveLitedb(err) => write!(fmt, "Failed to save litedb: {}", err),
+            Error::LoadingProjectInfo(err) => write!(fmt, "Failed to load project info: {}", err),
+            Error::BadPath(path) => write!(fmt, "Bad path: {}", path),
+            Error::AlreadyExists => write!(fmt, "Specified project already exists"),
+            Error::ChangeProjectListNotSupported => write!(
+                fmt,
+                "Adding / removing project is not supported for management session created with start_no_migration."
+            ),
+        }
+    }
+}
+
+pub struct ProjectManagement<'io> {
+    io: &'io DefaultEnvironmentIo,
+    json: Option<Settings>,
+    litedb: VccDatabaseConnection,
+    sqlite: SQLiteConnection,
+}
+
+/// This enum specifies the mode for synchronizing projects between SQLite and LiteDB.
+///
+/// For historical reasons, vrc-get has two sources of the project list: litedb, which is list
+/// of VCC, and SQLite, which is the vrc-get specific database.
+///
+/// Therefore, we need to synchronize the project list between SQLite and LiteDB as necessary.
+/// This enum specifies the mode for synchronizing projects between SQLite and LiteDB.
+///
+/// In both modes, projects that do not have `litedb_objectid` column will not be removed.
+/// `litedb_objectid` will be set when projects are live in LiteDB.
+#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum SyncWithLitedbMode {
+    /// Add projects from litedb to SQLite, and then add projects from SQLite to LiteDB.
+    /// In this mode, projects from either database will be live.
+    ///
+    /// The benefit of this mode is that we can work around the VCC's behavior that removes
+    /// projects that are not accessible to VCC, which can happen unintentionally with network
+    /// drives or removable drives, or permission errors.
+    ///
+    /// The downsides of this mode are that removing projects from VCC would not be reflected in SQLite
+    /// and rolled back to the previous state.
+    ///
+    /// This is the default mode since we think removing projects unintentionally is problematic
+    /// than restoring projects unintentionally.
+    ProjectsUnion,
+    /// Ask for the user when there are mismatches between the list.
+    #[default]
+    AskForUser,
+    /// Trust LiteDB for the project list and always reflect which are exists in LiteDB.
+    /// This mode also overwrites most metadata of projects in SQLite with LiteDB.
+    ///
+    /// The benefit of this mode is that removing projects from VCC would be preserved.
+    ///
+    /// The downsides of this mode are that VCC's unintentional removal of projects.
+    ///
+    /// Users may prefer this mode when VCC is the primary tool for project management.
+    TrustLitedb,
+}
+
+macro_rules! check_absolute {
+    ($project_path: ident, $function: ident, $result: expr) => {
+        if !Path::new($project_path).is_absolute() {
+            warn!(
+                "{} is not an absolute path. {} does not support relative paths",
+                $project_path,
+                stringify!($function),
+            );
+            return $result;
+        }
+    };
+}
+
+macro_rules! spawn_blocking {
+    (captures ($($capture: ident),*), move || $body: expr) => {
+        {
+            let result;
+            (($($capture,)*), result) = spawn_blocking(move || {
+                $(#[allow(unused_mut)] let mut $capture = $capture;)*
+                #[allow(clippy::redundant_closure_call)]
+                let result = (|| $body)();
+                (($($capture,)*), result)
+            })
+            .await
+            .unwrap();
+            result
+        }
+    };
+}
+
+impl<'io> ProjectManagement<'io> {
+    pub async fn start(io: &'io DefaultEnvironmentIo) -> Result<ProjectManagement<'io>, Error> {
+        (io.create_dir_all("vrc-get".as_ref()).await).map_err(Error::LoadSettings)?;
+        let mut json = Settings::load(io).await.map_err(Error::LoadSettings)?;
+        let mut litedb = VccDatabaseConnection::connect(io)
+            .await
+            .map_err(Error::LoadLitedb)?;
+        let mut sqlite = SQLiteConnection::connect(io).await.map_err(Error::SQLite)?;
+
+        let conn = sqlite.conn.clone();
+        let has_project_in_db = spawn_blocking!(captures(), move || {
+            conn.lock_arc()
+                .query_row("SELECT 1 FROM projects", [], |_| Ok(()))
+                .optional()
+                .map_err(Error::SQLite)
+        })?
+        .is_some();
+
+        Self::migrate(&mut litedb, &mut sqlite, &json, io).await?;
+        Self::dedup_projects(&mut litedb);
+        sqlite.sync_with_litedb(&mut litedb, io).await?;
+
+        json.load_from_db_inner(
+            (litedb.db)
+                .get_all(COLLECTION)
+                .filter_map(|doc| doc[PATH].as_str())
+                .collect::<HashSet<_>>(),
+        );
+
+        let sync_mode = json.project_list_sync_mode();
+
+        json.save(io).await.map_err(Error::SaveSettings)?;
+        litedb.save(io).await.map_err(Error::SaveLitedb)?;
+
+        let mut management = ProjectManagement {
+            io,
+            json: Some(json),
+            litedb,
+            sqlite,
+        };
+
+        macro_rules! extract_paths {
+            ($mismatch: expr, $variant: ident) => {
+                $mismatch
+                    .iter()
+                    .flat_map(|x| {
+                        let ProjectListMismatch::$variant { path, .. } = x else {
+                            return None;
+                        };
+                        Some(path.as_str())
+                    })
+                    .collect::<Vec<_>>()
+            };
+        }
+
+        if !has_project_in_db {
+            debug!("No project in database, coping from vcc");
+            let mismatch = management.find_project_list_mismatch().await?;
+            management
+                .fix_project_list_mismatch(&extract_paths!(mismatch, OnlyInVcc), &[], &[], &[])
+                .await?;
+        }
+
+        match sync_mode {
+            SyncWithLitedbMode::ProjectsUnion => {
+                let mismatch = management.find_project_list_mismatch().await?;
+                management
+                    .fix_project_list_mismatch(
+                        &extract_paths!(mismatch, OnlyInVcc),
+                        &extract_paths!(mismatch, OnlyInVrcGet),
+                        &[],
+                        &[],
+                    )
+                    .await?;
+            }
+            SyncWithLitedbMode::AskForUser => {
+                // Asks
+            }
+            SyncWithLitedbMode::TrustLitedb => {
+                let mismatch = management.find_project_list_mismatch().await?;
+                management
+                    .fix_project_list_mismatch(
+                        &extract_paths!(mismatch, OnlyInVcc),
+                        &[],
+                        &[],
+                        &extract_paths!(mismatch, OnlyInVrcGet),
+                    )
+                    .await?;
+            }
+        }
+
+        Ok(management)
+    }
+
+    async fn migrate(
+        litedb: &mut VccDatabaseConnection,
+        _sqlite: &mut SQLiteConnection,
+        settings: &Settings,
+        io: &DefaultEnvironmentIo,
+    ) -> Result<(), Error> {
+        let Some(setting_projects) = settings.user_projects() else {
+            // The userProjects key is absent in settings.json.
+            // The vcc.litedb is the single source of truth.
+            return Ok(());
+        };
+        let projects = setting_projects
+            .iter()
+            .filter(|x| {
+                if Path::new(x.as_ref()).is_absolute() {
+                    true
+                } else {
+                    warn!("Skipping relative path in settings.json: {x}");
+                    false
+                }
+            })
+            .map(|x| normalize_path_str(x.as_ref()))
+            .collect::<HashSet<_>>();
+
+        let db_projects = litedb.db.get_all(COLLECTION).cloned().collect::<Vec<_>>();
+
+        let db_projects_by_path = db_projects
+            .iter()
+            .filter_map(|x| Some((normalize_path_str(x.get("Path").as_str()?), x)))
+            .collect::<HashMap<_, _>>();
+
+        let mut retain_ids = HashSet::new();
+
+        // add new projects
+        for project in &projects {
+            let project = project.as_str();
+            if let Some(proj) = db_projects_by_path.get(project) {
+                if let Some(id) = proj[ID].as_object_id() {
+                    retain_ids.insert(id);
+                    trace!("migrate: keeping project id {id:?} for {project}");
+                } else {
+                    trace!("migrate: keeping no valid id for {project}");
+                }
+            } else {
+                async fn get_project_data(
+                    io: &DefaultEnvironmentIo,
+                    path: &Path,
+                ) -> io::Result<(
+                    ProjectType,
+                    Option<UnityVersion>,
+                    Option<String>,
+                    Option<String>,
+                )> {
+                    let project =
+                        UnityProject::load(DefaultProjectIo::new(io.resolve(path).into())).await?;
+                    let detected_type = project.detect_project_type().await;
+                    let detected_display_name = project.detect_display_name().await;
+                    Ok((
+                        detected_type,
+                        Some(project.unity_version()),
+                        project.unity_revision().map(|x| x.to_owned()),
+                        detected_display_name,
+                    ))
+                }
+                let (project_type, unity_version, unity_revision, display_name) = get_project_data(
+                    io,
+                    project.as_ref(),
+                )
+                .await
+                .unwrap_or((ProjectType::Unknown, None, None, None));
+                let mut project = UserProject::new(project.into(), unity_version, project_type);
+                if unity_version.is_some() {
+                    project.unity_revision = unity_revision;
+                }
+                if display_name.is_some() {
+                    project.display_name = display_name;
+                }
+
+                // insert projects to both databases
+                let object_id = *project.litedb_objectid.get_or_insert_with(ObjectId::new);
+                trace!(
+                    "migrate: adding new project {} with {object_id:?}",
+                    project.path
+                );
+                (litedb.db)
+                    .insert(COLLECTION, vec![project.to_bson()], BsonAutoId::ObjectId)
+                    .expect("inserting document");
+                retain_ids.insert(project.litedb_objectid.unwrap());
+            }
+        }
+
+        // remove deleted projects
+        // we don't delete from sqlite since we migrating may want to do 'keep both' depending on the mode
+        let ids_to_delete = (db_projects.iter().map(|proj| &proj[ID]))
+            .filter(|id| !id.as_object_id().is_some_and(|x| retain_ids.contains(&x)))
+            .cloned()
+            .collect::<Vec<_>>();
+        trace!(
+            "migrate: removing {} projects from litedb",
+            ids_to_delete.len()
+        );
+        litedb.db.delete(COLLECTION, &ids_to_delete);
+
+        Ok(())
+    }
+
+    fn dedup_projects(litedb: &mut VccDatabaseConnection) {
+        let projects = litedb.db.get_all(COLLECTION).collect::<Vec<_>>();
+
+        let mut projects_by_path = HashMap::<_, Vec<_>>::new();
+
+        for project in projects {
+            if let Some(path) = project[PATH].as_str() {
+                (projects_by_path.entry(path.to_string()).or_default()).push(&project[ID]);
+            }
+        }
+
+        let deletes = projects_by_path
+            .into_values()
+            .flat_map(|values| values.into_iter().skip(1))
+            .cloned()
+            .collect::<Vec<_>>();
+        trace!("dedup_projects: deleting {} projects", deletes.len());
+
+        litedb.db.delete(COLLECTION, &deletes);
+    }
+
+    /// Start project management without migrating from `settings.json`.
+    ///
+    /// Since this method does not touch `settings.json`, this session does not allow
+    /// adding or removing projects, which requires updating `settings.json`.
+    pub async fn start_no_migration(
+        io: &'io DefaultEnvironmentIo,
+    ) -> Result<ProjectManagement<'io>, Error> {
+        let litedb = VccDatabaseConnection::connect(io)
+            .await
+            .map_err(Error::LoadLitedb)?;
+        let sqlite = SQLiteConnection::connect(io).await.map_err(Error::SQLite)?;
+
+        Ok(ProjectManagement {
+            io,
+            json: None,
+            litedb,
+            sqlite,
+        })
+    }
+}
+
+struct GetProjectRunner;
+
+impl GetProjectRunner {
+    #[track_caller]
+    fn prepare<'conn>(
+        conn: &'conn rusqlite::Connection,
+        // This query must starts with "WHERE" and not injection safe
+        where_query: &str,
+    ) -> rusqlite::Statement<'conn> {
+        conn
+            .prepare(&format!("SELECT id, path, litedb_objectid, unity_version_with_revision, created_at, last_modified, type, favorite, custom_unity_args, unity_path, is_valid, display_name FROM projects {where_query}"))
+            .expect("Failed to prepare SQL statement")
+    }
+
+    fn read_row_ok(row: &rusqlite::Row) -> rusqlite::Result<UserProject> {
+        Ok(Self::read_row(row))
+    }
+
+    fn read_row(row: &rusqlite::Row) -> UserProject {
+        let id_col = 0;
+        let path_col = 1;
+        let litedb_objectid_col = 2;
+        let unity_version_with_revision_col = 3;
+        let created_at_col = 4;
+        let last_modified_col = 5;
+        let project_type_col = 6;
+        let favorite_col = 7;
+        let custom_unity_args_col = 8;
+        let unity_path_col = 9;
+        let is_valid_col = 10;
+        let display_name_col = 11;
+
+        let id = row.get(id_col).expect("id");
+        let path = row.get(path_col).expect("path");
+        let litedb_objectid = {
+            row.get_ref(litedb_objectid_col)
+                .and_then(|x| Ok(x.as_str_or_null()?))
+                .expect("litedb_objectid")
+                .and_then(|data| {
+                    let mut parsed = [0u8; _];
+                    hex::decode_to_slice(data, &mut parsed).ok()?;
+                    Some(ObjectId::from_bytes(parsed))
+                })
+        };
+        let (unity_version, unity_revision) = {
+            let version = row
+                .get_ref(unity_version_with_revision_col)
+                .and_then(|x| Ok(x.as_str_or_null()?))
+                .expect("unity_version");
+            if let Some(version) = version {
+                let (unity_version, revision) = version
+                    .split_once('(')
+                    .map(|(unity_version, revision)| {
+                        (
+                            unity_version.trim_end(),
+                            Some(revision.trim_end_matches(')')),
+                        )
+                    })
+                    .unwrap_or((version, None));
+
+                (
+                    Some(UnityVersion::parse(unity_version).expect("unparsable unity version")),
+                    revision.map(|x| x.to_string()),
+                )
+            } else {
+                (None, None)
+            }
+        };
+        let created_at = row.get(created_at_col).expect("created_at");
+        let last_modified = row.get(last_modified_col).expect("last_modified");
+        let project_type = {
+            ProjectType::from_i32(
+                row.get_ref(project_type_col)
+                    .and_then(|x| Ok(x.as_i64()?))
+                    .expect("project_type") as i32,
+            )
+            .unwrap_or(ProjectType::Unknown)
+        };
+        let favorite = row.get(favorite_col).expect("favorite");
+        let custom_unity_args = {
+            row.get_ref(custom_unity_args_col)
+                .and_then(|x| Ok(x.as_str_or_null()?))
+                .expect("custom_unity_args")
+                .map(|json| serde_json::from_str(json).expect("custom_unity_args json parse"))
+        };
+        let unity_path = row.get(unity_path_col).expect("unity_path");
+        let is_valid = row.get(is_valid_col).expect("is_valid");
+        let display_name = row.get(display_name_col).expect("display_name");
+
+        UserProject {
+            id,
+            path,
+            litedb_objectid,
+            unity_version,
+            unity_revision,
+            created_at,
+            last_modified,
+            project_type,
+            favorite,
+            custom_unity_args,
+            unity_path,
+            is_valid,
+            display_name,
+        }
+    }
+}
+
+impl<'io> ProjectManagement<'io> {
+    pub fn get_projects(&self) -> Vec<UserProject> {
+        let conn = (self.sqlite.conn).lock();
+        let mut get_projects = GetProjectRunner::prepare(&conn, "");
+
+        get_projects
+            .query(())
+            .expect("querying database")
+            .map(|row| Ok(GetProjectRunner::read_row(row)))
+            .collect::<Vec<_>>()
+            .expect("failed to collect user projects")
+    }
+
+    /// It might be better to call `RealProjectInformation::load_from_fs` and
+    /// then `sync_with_real_projects_information` since `load_from_fs` may take some time.
+    pub async fn sync_with_real_projects(
+        &mut self,
+        skip_not_found: bool,
+        io: &DefaultEnvironmentIo,
+    ) -> Result<(), Error> {
+        let projects = self.get_projects();
+
+        let projects = join_all(projects.into_iter().map(|project| async {
+            let path = project.path;
+            match ValidRealProjectInformation::load_from_fs(io, path.clone()).await {
+                Ok(Some(project)) => Some(RealProjectInformation::Valid(project)),
+                Ok(None) => {
+                    if !skip_not_found {
+                        error!("Project {path} not found");
+                    }
+                    Some(RealProjectInformation::Invalid(
+                        InvalidRealProjectInformation::new(path),
+                    ))
+                }
+                Err(err) => {
+                    error!("Error updating project information: {err}");
+                    Some(RealProjectInformation::Invalid(
+                        InvalidRealProjectInformation::new(path),
+                    ))
+                }
+            }
+        }))
+        .await;
+
+        self.sync_with_real_projects_informations(projects.into_iter().flatten().collect())
+            .await
+    }
+
+    pub async fn sync_with_real_projects_information(
+        &mut self,
+        info: RealProjectInformation,
+    ) -> Result<(), Error> {
+        let conn = self.sqlite.conn.clone();
+        spawn_blocking(move || {
+            let mut conn = conn.lock_arc();
+            let tx = conn.transaction().map_err(Error::SQLite)?;
+
+            Self::sync_with_real_projects_information_impl(&tx, info)?;
+
+            tx.commit().map_err(Error::SQLite)?;
+            Ok(())
+        })
+        .await
+        .unwrap()?;
+
+        Ok(())
+    }
+
+    pub async fn sync_with_real_projects_informations(
+        &mut self,
+        information: Vec<RealProjectInformation>,
+    ) -> Result<(), Error> {
+        let conn = self.sqlite.conn.clone();
+        spawn_blocking(move || {
+            let mut conn = conn.lock_arc();
+            let tx = conn.transaction().map_err(Error::SQLite)?;
+
+            for info in information {
+                Self::sync_with_real_projects_information_impl(&tx, info)?;
+            }
+
+            tx.commit().map_err(Error::SQLite)?;
+            Ok(())
+        })
+        .await
+        .unwrap()?;
+
+        Ok(())
+    }
+
+    fn sync_with_real_projects_information_impl(
+        tx: &rusqlite::Transaction,
+        info: RealProjectInformation,
+    ) -> Result<(), Error> {
+        match info {
+            RealProjectInformation::Valid(valid) => {
+                let unity_with_revision = unity_version_with_revision(
+                    valid.unity_version,
+                    valid.unity_revision.as_deref(),
+                );
+                tx.prepare_cached("UPDATE projects SET is_valid = 1, unity_version_with_revision = ?, type = ?, display_name = ? WHERE path = ?")
+                    .expect("prepare")
+                    .execute((unity_with_revision, valid.project_type as i32, &valid.display_name, &valid.path))
+                    .map_err(Error::SQLite)?;
+            }
+            RealProjectInformation::Invalid(info) => {
+                tx.prepare_cached("UPDATE projects SET is_valid = 0 WHERE path = ?")
+                    .expect("prepare")
+                    .execute([&info.path])
+                    .map_err(Error::SQLite)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn find_project_bson(&self, project_path: &str) -> Option<Document> {
+        (self.litedb.db)
+            .get_by_index(COLLECTION, "Path", &project_path.into())
+            .next()
+            .cloned()
+    }
+
+    pub fn find_project(&self, project_path: &str) -> Result<Option<UserProject>, Error> {
+        check_absolute!(project_path, find_project, Ok(None));
+        let project_path = normalize_path_str(project_path);
+
+        let conn = self.sqlite.conn.lock_arc();
+        let mut stmt = GetProjectRunner::prepare(&conn, "WHERE path = ?");
+        let mut rows = stmt.query((project_path,)).expect("query"); // the only source of error of query is ToSql Errors
+        let Some(row) = rows.next().map_err(Error::SQLite)? else {
+            return Ok(None);
+        };
+
+        Ok(Some(GetProjectRunner::read_row(row)))
+    }
+
+    pub async fn add_projects(&mut self, projects: &[UnityProject]) -> Result<(), Error> {
+        let json = self
+            .json
+            .as_mut()
+            .ok_or(Error::ChangeProjectListNotSupported)?;
+
+        if projects
+            .iter()
+            .any(|proj| !proj.project_dir().is_absolute())
+        {
+            return Err(Error::BadPath("project path is not absolute"));
+        }
+
+        let project_types = join_all(projects.iter().map(|proj| proj.detect_project_type())).await;
+
+        let mut new_projects = vec![];
+        let mut tx = (self.sqlite.conn.lock_arc())
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(Error::SQLite)?;
+
+        {
+            for (project, project_type) in projects.iter().zip(project_types) {
+                let path = normalize_path(project.project_dir());
+                let Some(path) = path.to_str() else {
+                    return Err(Error::BadPath("project path is not utf8"));
+                };
+                let unity_version = project.unity_version();
+                let unity_revision = project.unity_revision();
+
+                let mut new_project =
+                    UserProject::new(path.into(), Some(unity_version), project_type);
+                let object_id = ObjectId::new();
+                new_project.litedb_objectid = Some(object_id);
+                new_project.unity_revision = unity_revision.map(str::to_string);
+
+                if (self.litedb.db)
+                    .get_by_index(COLLECTION, "Path", &Value::String(path.into()))
+                    .next()
+                    .is_some()
+                {
+                    return Err(Error::AlreadyExists);
+                }
+
+                if !spawn_blocking!(captures(tx, new_project), move || {
+                    Self::add_sqlite_single_project(&tx, &mut new_project)
+                })? {
+                    return Err(Error::AlreadyExists);
+                }
+                new_projects.push(new_project.to_bson());
+                json.add_user_project(path);
+            }
+        }
+
+        (self.litedb.db)
+            .insert(COLLECTION, new_projects, BsonAutoId::ObjectId)
+            .expect("insert should never fail");
+
+        tx.commit().map_err(Error::SQLite)?;
+
+        json.save(self.io).await.map_err(Error::SaveSettings)?;
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+
+        Ok(())
+    }
+
+    fn add_sqlite_single_project(
+        tx: &ArcMutexTransaction,
+        new_project: &mut UserProject,
+    ) -> Result<bool, Error> {
+        let object_id = *new_project
+            .litedb_objectid
+            .get_or_insert_with(ObjectId::new);
+
+        let mut stmt = tx.prepare_cached("INSERT INTO projects \
+                    (path, litedb_objectid, unity_version_with_revision, created_at, last_modified, type, favorite, is_valid) \
+                    VALUES (?, ?, ?, unixepoch('now'), unixepoch('now'), ?, 0, 1) \
+                    RETURNING (created_at)").unwrap();
+        let created_at = match stmt
+            .query((
+                &new_project.path,
+                object_id.as_bytes().encode_hex::<String>(),
+                new_project.unity_version.map(|unity_version| {
+                    unity_version_with_revision(
+                        unity_version,
+                        new_project.unity_revision.as_deref(),
+                    )
+                }),
+                new_project.project_type as i32,
+            ))
+            .expect("query") // the only source of error of query is ToSql Errors
+            .next()
+            .map(|x| x.unwrap())
+        {
+            Ok(row) => row.get::<_, i64>(0).unwrap(),
+            Err(e) if e.sqlite_extended_error_code() == Some(SQLITE_CONSTRAINT_UNIQUE) => {
+                return Ok(false);
+            }
+            Err(e) => return Err(Error::SQLite(e)),
+        };
+        new_project.created_at = created_at;
+        new_project.last_modified = created_at;
+        Ok(true)
+    }
+
+    pub async fn remove_projects(&mut self, projects: &[UserProject]) -> Result<(), Error> {
+        let json = self
+            .json
+            .as_mut()
+            .ok_or(Error::ChangeProjectListNotSupported)?;
+
+        let tx = (self.sqlite.conn.lock_arc())
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(Error::SQLite)?;
+
+        {
+            let mut stmt = tx.prepare("DELETE from projects WHERE id = ?").unwrap();
+
+            for project in projects {
+                if let Some(object_id) = project.litedb_objectid {
+                    (self.litedb.db).delete(COLLECTION, &[Value::ObjectId(object_id)]);
+                }
+                if let Some(id) = project.id {
+                    stmt.execute([id]).map_err(Error::SQLite)?;
+                }
+
+                json.remove_user_project(project.path());
+            }
+            stmt.finalize().unwrap();
+        }
+
+        tx.commit().map_err(Error::SQLite)?;
+        json.save(self.io).await.map_err(Error::SaveSettings)?;
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        Ok(())
+    }
+
+    pub async fn set_favorite(
+        &mut self,
+        project_path: &str,
+        favorite: bool,
+    ) -> Result<bool, Error> {
+        check_absolute!(project_path, set_favorite, Ok(false));
+        let project_path = normalize_path_str(project_path);
+        let tx = (self.sqlite.conn.lock_arc())
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(Error::SQLite)?;
+        let changed = tx
+            .prepare("UPDATE projects SET favorite = ? WHERE path = ?")
+            .map_err(Error::SQLite)?
+            .execute((favorite, &project_path))
+            .map_err(Error::SQLite)?;
+        tx.commit().map_err(Error::SQLite)?;
+
+        if changed != 0
+            && let Some(mut project) = self.find_project_bson(&project_path)
+        {
+            project.insert(FAVORITE, favorite);
+
+            (self.litedb.db)
+                .update(COLLECTION, vec![project])
+                .expect("update");
+
+            self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        }
+        Ok(changed != 0)
+    }
+
+    pub async fn set_custom_unity_args(
+        &mut self,
+        project_path: &str,
+        args: Option<&[String]>,
+    ) -> Result<bool, Error> {
+        check_absolute!(project_path, set_custom_unity_args, Ok(false));
+        let project_path = normalize_path_str(project_path);
+        let tx = (self.sqlite.conn.lock_arc())
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(Error::SQLite)?;
+        let changed = tx
+            .prepare("UPDATE projects SET custom_unity_args = ? WHERE path = ?")
+            .map_err(Error::SQLite)?
+            .execute((
+                args.map(|x| serde_json::to_string(x).unwrap()),
+                &project_path,
+            ))
+            .map_err(Error::SQLite)?;
+        tx.commit().map_err(Error::SQLite)?;
+        // No need to update litedb since this is a vrc-get-only attribute
+        Ok(changed != 0)
+    }
+
+    pub async fn set_unity_path(
+        &mut self,
+        project_path: &str,
+        unity_path: Option<&str>,
+    ) -> Result<bool, Error> {
+        check_absolute!(project_path, set_custom_unity_args, Ok(false));
+        let project_path = normalize_path_str(project_path);
+
+        let tx = (self.sqlite.conn.lock_arc())
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(Error::SQLite)?;
+        let changed = tx
+            .prepare("UPDATE projects SET unity_path = ? WHERE path = ?")
+            .map_err(Error::SQLite)?
+            .execute((
+                unity_path.map(|x| serde_json::to_string(x).unwrap()),
+                project_path,
+            ))
+            .map_err(Error::SQLite)?;
+        tx.commit().map_err(Error::SQLite)?;
+        // No need to update litedb since this is a vrc-get-only attribute
+        Ok(changed != 0)
+    }
+
+    pub async fn set_display_name(
+        &mut self,
+        project_path: &str,
+        unity_path: Option<&str>,
+    ) -> Result<bool, Error> {
+        check_absolute!(project_path, set_custom_unity_args, Ok(false));
+        let project_path = normalize_path_str(project_path);
+
+        let tx = (self.sqlite.conn.lock_arc())
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(Error::SQLite)?;
+        let changed = tx
+            .prepare("UPDATE projects SET display_name = ? WHERE path = ?")
+            .map_err(Error::SQLite)?
+            .execute((unity_path, project_path))
+            .map_err(Error::SQLite)?;
+        tx.commit().map_err(Error::SQLite)?;
+        // No need to update litedb since this is a vrc-get-only attribute
+        Ok(changed != 0)
+    }
+
+    pub async fn update_project_last_modified(
+        &mut self,
+        project_path: &str,
+    ) -> Result<bool, Error> {
+        check_absolute!(project_path, set_custom_unity_args, Ok(false));
+        let project_path = normalize_path_str(project_path);
+
+        let tx = (self.sqlite.conn.lock_arc())
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(Error::SQLite)?;
+        let updated_date = tx
+            .prepare("UPDATE projects SET last_modified = unixepoch('now') WHERE path = ? RETURNING last_modified")
+            .map_err(Error::SQLite)?
+            .query((&project_path,))
+            .map_err(Error::SQLite)?
+            .next()
+            .map_err(Error::SQLite)?
+            .map(|row| row.get::<_, i64>(0).unwrap());
+        tx.commit().map_err(Error::SQLite)?;
+
+        if let Some(updated_date) = updated_date
+            && let Some(mut project) = self.find_project_bson(&project_path)
+        {
+            project.insert(LAST_MODIFIED, datetime_from_unix(updated_date));
+            (self.litedb.db)
+                .update(COLLECTION, vec![project])
+                .expect("update");
+
+            self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        }
+
+        Ok(updated_date.is_some())
+    }
+}
 
 pub(crate) static COLLECTION: &str = "projects";
 pub(crate) static ID: &str = "_id";
@@ -30,372 +911,495 @@ pub(crate) static CUSTOM_UNITY_ARGS: &str = "custom_unity_args";
 pub(crate) static UNITY_PATH: &str = "unity_path";
 pub(crate) static IS_VALID: &str = "is_valid";
 
-impl VccDatabaseConnection {
-    pub async fn migrate(
-        &mut self,
-        settings: &Settings,
-        io: &DefaultEnvironmentIo,
-    ) -> io::Result<()> {
-        let Some(setting_projects) = settings.user_projects() else {
-            // The userProjects key is absent in settings.json.
-            // The vcc.litedb is the single source of truth.
-            return Ok(());
+struct LiteDBProject<'a> {
+    object_id: ObjectId,
+    path: String,
+    created_at: DateTime,
+    last_modified: DateTime,
+    project_type: i32,
+    favorite: bool,
+    custom_unity_args: Option<Vec<String>>,
+    unity_path: Option<&'a str>,
+    is_valid_project: Option<bool>,
+    unity_version_with_revision: Option<String>,
+}
+
+impl<'a> LiteDBProject<'a> {
+    fn new(l_proj: &'a Document) -> Option<Self> {
+        let object_id = l_proj.get(ID).as_object_id()?;
+        let unity_version = match l_proj[UNITY_VERSION].as_str().map(UnityVersion::parse) {
+            Some(Some(v)) => Some(v),
+            Some(None) => return None,
+            None => None,
         };
-        let projects = setting_projects
-            .iter()
+        let path = l_proj[PATH].as_str()?;
+        let created_at = l_proj[CREATED_AT].as_date_time()?;
+        let last_modified = l_proj[LAST_MODIFIED].as_date_time()?;
+        let project_type = l_proj[TYPE].as_i32()?;
+        let path = normalize_path_str(path);
+        let favorite = l_proj[FAVORITE].as_bool().unwrap_or(false);
+        let vrc_get = l_proj.get(VRC_GET).as_document();
+        let unity_revision = vrc_get
             .filter(|x| {
-                if Path::new(x.as_ref()).is_absolute() {
-                    true
-                } else {
-                    error!("Skipping relative path: {x}");
-                    false
-                }
+                x[CACHED_UNITY_REVISION].as_str() == unity_version.map(|x| x.to_string()).as_deref()
+                    && unity_version.is_some()
             })
-            .map(|x| x.as_ref())
-            .collect::<HashSet<_>>();
+            .and_then(|x| x[UNITY_REVISION].as_str());
+        let custom_unity_args = vrc_get
+            .and_then(|x| x[CUSTOM_UNITY_ARGS].as_array())
+            .and_then(|x| {
+                x.as_slice()
+                    .iter()
+                    .map(|x| x.as_str().map(|x| x.to_owned()))
+                    .collect::<Option<Vec<_>>>()
+            });
+        let unity_path = vrc_get.and_then(|x| x[UNITY_PATH].as_str());
+        let is_valid_project = vrc_get.and_then(|x| x[IS_VALID].as_bool());
+        let unity_version_with_revision = unity_version
+            .map(|unity_version| unity_version_with_revision(unity_version, unity_revision));
 
-        let db_projects = self.db.get_all(COLLECTION).cloned().collect::<Vec<_>>();
+        Some(Self {
+            object_id,
+            path,
+            created_at,
+            last_modified,
+            project_type,
+            favorite,
+            custom_unity_args,
+            unity_path,
+            is_valid_project,
+            unity_version_with_revision,
+        })
+    }
 
-        let db_projects_by_path = db_projects
-            .iter()
-            .filter_map(|x| Some((x.get("Path").as_str()?, x)))
-            .collect::<HashMap<_, _>>();
+    fn update(&self, tx: &rusqlite::Connection, path: &str) -> Result<usize, Error> {
+        tx.prepare_cached(
+            "\
+            UPDATE projects SET \
+                unity_version_with_revision = COALESCE(?, unity_version_with_revision), \
+                created_at = ?, \
+                last_modified = ?, \
+                type = ?, \
+                favorite = ? \
+            WHERE path = ?",
+        )
+        .unwrap()
+        .execute((
+            self.unity_version_with_revision.clone(),
+            self.created_at.as_unix_milliseconds() / 1000,
+            self.last_modified.as_unix_milliseconds() / 1000,
+            ProjectType::from_i32(self.project_type).unwrap_or(ProjectType::Unknown) as i32,
+            self.favorite,
+            path,
+        ))
+        .map_err(Error::SQLite)
+    }
+}
 
-        let mut to_insert = vec![];
+impl SQLiteConnection {
+    async fn sync_with_litedb(
+        &mut self,
+        litedb: &mut VccDatabaseConnection,
+        io: &DefaultEnvironmentIo,
+    ) -> Result<(), Error> {
+        let litedb_projects = (litedb.db).get_all(COLLECTION).cloned().collect::<Vec<_>>();
+        let conn = self.conn.clone();
 
-        // add new projects
-        for project in &projects {
-            if !db_projects_by_path.contains_key(*project) {
-                async fn get_project_type(
-                    io: &DefaultEnvironmentIo,
-                    path: &Path,
-                ) -> io::Result<(ProjectType, Option<UnityVersion>, Option<String>)>
-                {
-                    let project =
-                        UnityProject::load(DefaultProjectIo::new(io.resolve(path).into())).await?;
-                    let detected_type = project.detect_project_type().await;
-                    Ok((
-                        detected_type,
-                        Some(project.unity_version()),
-                        project.unity_revision().map(|x| x.to_owned()),
-                    ))
+        trace!("Syncing with LiteDB");
+
+        let projects_to_update = spawn_blocking(move || {
+            let tx = conn
+                .lock_arc()
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(Error::SQLite)?;
+
+            let mut projects_to_update: Vec<Document> = vec![];
+
+            let mut inserted_projects = BTreeSet::new();
+
+            // Copy projects from LiteDB to SQLite with upsert
+            let mut by_object_id = GetProjectRunner::prepare(&tx, "WHERE litedb_objectid = ?");
+            let mut by_path = GetProjectRunner::prepare(&tx, "WHERE path = ?");
+
+            for l_proj in &litedb_projects {
+                if let Some(proj) = LiteDBProject::new(l_proj) {
+                    let oid_str = proj.object_id.as_bytes().encode_hex::<String>();
+                    let by_object_id = by_object_id.query_one([&oid_str], GetProjectRunner::read_row_ok).optional().map_err(Error::SQLite)?;
+                    let by_path = by_path.query_one([&proj.path], GetProjectRunner::read_row_ok).optional().map_err(Error::SQLite)?;
+
+                    let path;
+                    match (&by_object_id, &by_path) {
+                        (None, None) => {
+                            // New project. Do nothing and ask user later
+                            path = None;
+                        }
+                        (Some(by_object_id), Some(by_path)) if by_object_id.id == by_path.id => {
+                            // The project already exists without any conflicts.
+                            // Nothing to do here
+                            path = Some(by_object_id.path.as_str());
+                        }
+                        (None, Some(on_sqlite)) => {
+                            // project was re-added. Just update the object id of SQLite
+                            tx.prepare_cached("UPDATE projects SET litedb_objectid = ? WHERE id = ?")
+                                .expect("prepare")
+                                .execute((&oid_str, on_sqlite.id.unwrap().get()))
+                                .map_err(Error::SQLite)?;
+                            path = Some(on_sqlite.path.as_str());
+                        }
+                        (Some(on_sqlite), None) => {
+                            trace!(
+                                "We found project with object_id ({object_id:?}), but path disagrees with litedb ({path:?}). assuming either has changed path. sqlite has {sqlite_path:?}",
+                                object_id = proj.object_id,
+                                path = proj.path,
+                                sqlite_path = on_sqlite.path,
+                            );
+                            let db_last_modified = datetime_from_unix(on_sqlite.last_modified);
+
+                            // As of writing, neither vrc-get and VCC have a feature to rename / move the project.
+                            // However, we see path disagree so we assume either has changed the path.
+                            // We assume moving project would update the 'last modified' column and
+                            // use newer path.
+                            if db_last_modified < proj.last_modified {
+                                trace!("Litedb last_modified is newer than SQLite last_modified. updating sqlite");
+
+                                tx.execute("UPDATE projects SET path = ?, last_modified = unixepoch('now') WHERE id = ?", (&proj.path, on_sqlite.id))
+                                    .map_err(Error::SQLite)?;
+                                path = Some(proj.path.as_str());
+                            } else {
+                                trace!("SQLite last_modified is newer than Litedb last_modified. updating Litedb");
+                                let mut l_proj = l_proj.clone();
+                                l_proj.insert(PATH, Value::String(on_sqlite.path.clone()));
+                                l_proj.insert(LAST_MODIFIED, Value::DateTime(db_last_modified));
+                                projects_to_update.push(l_proj);
+                                path = Some(on_sqlite.path.as_str());
+                            }
+
+                            inserted_projects.insert(on_sqlite.id.unwrap().get());
+                        }
+                        (Some(by_object_id), Some(by_path)) => {
+                            // Both path and sqlite_objectid are already in the database.
+                            // This case is likely be removed in VCC and then renamed in VCC.
+                            // vcc: [(id0, path0), (id1, path1)] => [(id0, path0)] => [(id0, path1)]
+                            // vrc-get: [(id0, path0), (id1, path1)]
+                            // But swapping file path and id can be done in VCC (by renaming to path0>path2, path1>path0, path2>path1).
+                            //
+                            // To prevent losing paths, we swap path of the two projects, trusting the project id.
+                            // This might link updateAt and other metadata to incorrect paths, but we ignore it, at least for now.
+                            let path_conflict_id = by_path.id.unwrap().get();
+                            let (object_id_conflict_id, path_of_object_id_on_db) = (by_object_id.id.unwrap().get(), by_object_id.path.as_str());
+                            trace!(
+                                "Conflicted with {path_conflict_id} on path and {object_id_conflict_id} ({path_of_object_id_on_db:?}) on object_id. swapping the path of both entries: {path:?}, {object_id:?}",
+                                path = proj.path,
+                                object_id = proj.object_id,
+                            );
+
+                            tx.execute("UPDATE projects SET path = CAST(random() AS TEXT) WHERE id = ?", (object_id_conflict_id,)).map_err(Error::SQLite)?;
+                            tx.execute("UPDATE projects SET path = ? WHERE id = ?", (&path_of_object_id_on_db, path_conflict_id)).map_err(Error::SQLite)?;
+                            tx.execute("UPDATE projects SET path = ? WHERE id = ?", (&proj.path, object_id_conflict_id)).map_err(Error::SQLite)?;
+                            path = Some(proj.path.as_str());
+                        }
+                    }
+
+                    if let Some(path) = path {
+                        proj.update(&tx, path)?;
+                    }
                 }
-                let (project_type, unity_version, unity_revision) = get_project_type(
-                    io,
-                    project.as_ref(),
-                )
-                .await
-                .unwrap_or((ProjectType::Unknown, None, None));
-                let mut project = UserProject::new((*project).into(), unity_version, project_type);
-                if let Some(unity) = unity_version {
-                    project.set_unity_revision(unity, unity_revision);
-                }
-                to_insert.push(project);
             }
-        }
+            by_object_id.finalize().map_err(Error::SQLite)?;
+            by_path.finalize().map_err(Error::SQLite)?;
 
-        if !to_insert.is_empty() {
-            self.db
-                .insert(
-                    COLLECTION,
-                    to_insert.iter().map(|x| x.to_bson()).collect(),
-                    BsonAutoId::ObjectId,
-                )
-                .expect("inserting document");
-        }
+            tx.commit().unwrap();
 
-        let mut ids_to_delete = vec![];
+            Ok(projects_to_update)
+        })
+            .await
+            .unwrap()?;
 
-        // remove deleted projects
-        for project in db_projects.iter() {
-            if project[PATH]
-                .as_str()
-                .map(|path| !projects.contains(path))
-                .unwrap_or(true)
-            {
-                ids_to_delete.push(project.get(ID).clone());
-            }
-        }
+        litedb
+            .db
+            .update(COLLECTION, projects_to_update)
+            .expect("update");
 
-        self.db.delete(COLLECTION, &ids_to_delete);
+        litedb.save(io).await.map_err(Error::SaveLitedb)?;
 
         Ok(())
     }
 }
 
-impl VccDatabaseConnection {
-    pub fn normalize_path(&mut self) {
-        let mut to_update = vec![];
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+pub enum ProjectListMismatch {
+    OnlyInVcc { path: String },
+    OnlyInVrcGet { path: String },
+}
 
-        for project in self.db.get_all(COLLECTION) {
-            let Some(path) = project[PATH].as_str() else {
-                continue;
-            };
-
-            let normalized = normalize_path(path.as_ref());
-            if normalized.to_str().unwrap() != path {
-                let mut project = project.clone();
-                project.insert(PATH, normalized.into_os_string().into_string().unwrap());
-
-                to_update.push(project);
-            }
-        }
-
-        if !to_update.is_empty() {
-            self.db
-                .update(COLLECTION, to_update)
-                .expect("updating project");
-        }
-    }
-
-    /// It might be better to call `normalize_path`, `RealProjectInformation::load_from_fs` and
-    /// then `sync_with_real_projects_information` since `load_from_fs` may take some time.
-    pub async fn sync_with_real_projects(
-        &mut self,
-        skip_not_found: bool,
-        io: &DefaultEnvironmentIo,
-    ) -> io::Result<()> {
-        self.normalize_path();
-
-        let projects = self.db.get_all(COLLECTION).collect::<Vec<_>>();
-
-        let projects = join_all(projects.into_iter().map(|project| async {
-            let path = project[PATH].as_str()?;
-            match ValidRealProjectInformation::load_from_fs(io, path.to_owned()).await {
-                Ok(Some(project)) => Some(RealProjectInformation::Valid(project)),
-                Ok(None) => {
-                    if !skip_not_found {
-                        error!("Project {path} not found");
-                    }
-                    Some(RealProjectInformation::Invalid(
-                        InvalidRealProjectInformation::new(path.into()),
-                    ))
-                }
-                Err(err) => {
-                    error!("Error updating project information: {err}");
-                    Some(RealProjectInformation::Invalid(
-                        InvalidRealProjectInformation::new(path.into()),
-                    ))
-                }
-            }
-        }))
-        .await;
-
-        self.sync_with_real_projects_information(projects.into_iter().flatten().collect());
-
-        Ok(())
-    }
-
-    pub fn sync_with_real_projects_information(
-        &mut self,
-        information: Vec<RealProjectInformation>,
-    ) {
-        let by_path = information
-            .iter()
-            .map(|x| (x.path(), x))
-            .collect::<HashMap<_, _>>();
-
-        let mut to_update = vec![];
-
-        for project in self.db.get_all(COLLECTION) {
-            let Some(path) = project[PATH].as_str() else {
-                continue;
-            };
-
-            let Some(&real) = by_path.get(path) else {
-                continue;
-            };
-
-            let mut project = Cow::Borrowed(project);
-
-            if let RealProjectInformation::Valid(real) = real {
-                let unity_version = real.unity_version.to_string();
-                if let Some(revision) = &real.unity_revision {
-                    if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str()
-                        || Some(revision.as_str())
-                            != project[VRC_GET]
-                                .as_document()
-                                .filter(|x| {
-                                    x.get(CACHED_UNITY_REVISION).as_str()
-                                        == Some(unity_version.as_str())
-                                })
-                                .and_then(|x| x.get(UNITY_REVISION).as_str())
-                    {
-                        project
-                            .to_mut()
-                            .insert(UNITY_VERSION, unity_version.clone());
-                        let vrc_get = project.to_mut().entry(VRC_GET).document_or_replace();
-                        vrc_get.insert(UNITY_REVISION, revision);
-                        vrc_get.insert(CACHED_UNITY_REVISION, unity_version);
-                    }
-                } else {
-                    #[allow(clippy::collapsible_else_if)]
-                    if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str() {
-                        project.to_mut().insert(UNITY_VERSION, unity_version);
-                    }
-                }
-
-                if project[TYPE].as_i32() != Some(real.project_type as i32) {
-                    project.to_mut().insert(TYPE, real.project_type as i32);
-                }
-            }
-
-            if project[VRC_GET]
-                .as_document()
-                .and_then(|x| x[IS_VALID].as_bool())
-                != Some(real.is_valid())
-            {
-                project
-                    .to_mut()
-                    .entry(VRC_GET)
-                    .document_or_replace()
-                    .insert(IS_VALID, real.is_valid());
-            }
-
-            if let Cow::Owned(project) = project {
-                to_update.push(project);
-            }
-        }
-
-        if !to_update.is_empty() {
-            self.db
-                .update(COLLECTION, to_update)
-                .expect("updating project");
-        }
-    }
-
-    pub fn dedup_projects(&mut self) {
-        let projects = self.db.get_all(COLLECTION).collect::<Vec<_>>();
-
-        let mut projects_by_path = HashMap::<_, Vec<_>>::new();
-
-        for project in projects {
-            if let Some(path) = project[PATH].as_str() {
-                projects_by_path
-                    .entry(path.to_string())
-                    .or_default()
-                    .push(project);
-            }
-        }
-
-        let mut updates = vec![];
-        let mut deletes = vec![];
-
-        for (_, values) in projects_by_path {
-            if values.len() == 1 {
-                continue;
-            }
-
-            // update favorite and last modified
-
-            let favorite = values
-                .iter()
-                .any(|x| x[FAVORITE].as_bool().unwrap_or(false));
-            let created_at = values
-                .iter()
-                .filter_map(|x| x[CREATED_AT].as_date_time())
-                .min()
-                .unwrap();
-            let last_modified = values
-                .iter()
-                .filter_map(|x| x[LAST_MODIFIED].as_date_time())
-                .max()
-                .unwrap();
-
-            let mut values_iter = values.into_iter();
-            let mut project = Cow::Borrowed(values_iter.next().unwrap());
-            if project[FAVORITE].as_bool() != Some(favorite) {
-                project.to_mut().insert(FAVORITE, favorite);
-            }
-            if project[LAST_MODIFIED].as_date_time() != Some(last_modified) {
-                project.to_mut().insert(LAST_MODIFIED, last_modified);
-            }
-            if project[CREATED_AT].as_date_time() != Some(created_at) {
-                project.to_mut().insert(CREATED_AT, created_at);
-            }
-
-            if let Cow::Owned(project) = project {
-                updates.push(project);
-            }
-
-            // remove rest
-            for project in values_iter {
-                deletes.push(project[ID].clone());
-            }
-        }
-
-        self.db.update(COLLECTION, updates).expect("update");
-        self.db.delete(COLLECTION, &deletes);
-    }
-
-    pub fn get_projects(&self) -> Vec<UserProject> {
-        self.db
-            .get_all(COLLECTION)
-            .cloned()
-            .map(UserProject::from_document)
-            .collect::<Vec<_>>()
-    }
-
-    pub fn find_project_bson(&self, project_path: &str) -> io::Result<Option<&Document>> {
-        check_absolute_path(project_path)?;
-        let project_path = normalize_path(project_path.as_ref());
-
-        Ok(self
+impl<'io> ProjectManagement<'io> {
+    pub async fn find_project_list_mismatch(&self) -> Result<Vec<ProjectListMismatch>, Error> {
+        let in_litedb = self
+            .litedb
             .db
-            .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into())
-            .next())
+            .get_all(COLLECTION)
+            .flat_map(|x| x.get(PATH).as_str())
+            .map(|x| x.to_string())
+            .collect::<BTreeSet<_>>();
+        let conn = self.sqlite.conn.clone();
+
+        spawn_blocking!(captures(), move || {
+            let mut conn = conn.lock();
+
+            let mut result = vec![];
+
+            // this is read transaction
+            let tx = conn.transaction().map_err(Error::SQLite)?;
+            let mut stmt = tx
+                .prepare("SELECT path FROM projects ORDER BY path COLLATE BINARY")
+                .expect("prepare select projects");
+
+            // both rows and litedb_iter are ordered lexicographicaly by path
+            let mut rows = stmt.query(()).unwrap().map(|row| row.get::<_, String>(0));
+            let mut litedb_iter = in_litedb.into_iter();
+
+            let mut sqlite_cur = rows.next().map_err(Error::SQLite)?;
+            let mut litedb_cur = litedb_iter.next();
+
+            loop {
+                match (sqlite_cur, litedb_cur) {
+                    (Some(sqlite_val), litedb_val)
+                        if (litedb_val.as_ref())
+                            .is_none_or(|litedb_val| &sqlite_val < litedb_val) =>
+                    {
+                        result.push(ProjectListMismatch::OnlyInVrcGet { path: sqlite_val });
+                        sqlite_cur = rows.next().map_err(Error::SQLite)?;
+                        litedb_cur = litedb_val;
+                    }
+                    (sqlite_val, Some(litedb_val))
+                        if (sqlite_val.as_ref())
+                            .is_none_or(|sqlite_val| sqlite_val > &litedb_val) =>
+                    {
+                        result.push(ProjectListMismatch::OnlyInVcc { path: litedb_val });
+                        litedb_cur = litedb_iter.next();
+                        sqlite_cur = sqlite_val;
+                    }
+                    (None, None) => break,
+                    (sqlite_val, litedb_val) => {
+                        debug_assert!(sqlite_val == litedb_val);
+                        sqlite_cur = rows.next().map_err(Error::SQLite)?;
+                        litedb_cur = litedb_iter.next();
+                    }
+                }
+            }
+
+            Ok(result)
+        })
     }
 
-    pub fn find_project(&self, project_path: &str) -> io::Result<Option<UserProject>> {
-        Ok(self
-            .find_project_bson(project_path)?
+    pub async fn fix_project_list_mismatch(
+        &mut self,
+        // restore from litedb => alters sqlite
+        paths_to_restore_projects_from_litedb: &[&str],
+        // restore from sqlite => alters litedb
+        paths_to_restore_projects_from_sqlite: &[&str],
+        // remove from litedb => alters litedb
+        paths_to_remove_projects_from_litedb: &[&str],
+        // remove from sqlite => alters sqlite
+        paths_to_remove_projects_from_sqlite: &[&str],
+    ) -> Result<(), Error> {
+        let json = self
+            .json
+            .as_mut()
+            .ok_or(Error::ChangeProjectListNotSupported)?;
+
+        {
+            // validate that paths are not duplicated
+            let mut all_paths = BTreeSet::new();
+            for path in [
+                paths_to_restore_projects_from_litedb,
+                paths_to_restore_projects_from_sqlite,
+                paths_to_remove_projects_from_litedb,
+                paths_to_remove_projects_from_sqlite,
+            ]
+            .into_iter()
+            .flatten()
+            .copied()
+            {
+                if !all_paths.insert(path) {
+                    panic!("Path {} is duplicated", path);
+                }
+            }
+        }
+
+        let paths_to_remove_projects_from_sqlite = (paths_to_remove_projects_from_sqlite.iter())
+            .filter(|path| {
+                (self.litedb.db)
+                    .get_by_index(COLLECTION, "Path", &Value::String(path.to_string()))
+                    .next()
+                    .is_none()
+            })
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>();
+
+        let litedb_projects = (paths_to_restore_projects_from_litedb.iter())
+            .flat_map(|path| {
+                (self.litedb.db)
+                    .get_by_index(COLLECTION, "Path", &Value::String(path.to_string()))
+                    .next()
+            })
             .cloned()
-            .map(UserProject::from_document))
-    }
+            .collect::<Vec<_>>();
 
-    pub fn update_project_last_modified(&mut self, project_path: &str) -> io::Result<()> {
-        check_absolute_path(project_path)?;
-        let Some(mut project) = self.find_project_bson(project_path)?.cloned() else {
-            return Ok(());
-        };
+        let paths_to_restore_projects_from_sqlite = paths_to_restore_projects_from_sqlite
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>();
 
-        project.insert(LAST_MODIFIED, DateTime::now());
-        self.db.update(COLLECTION, vec![project]).expect("update");
-        Ok(())
-    }
+        let mut paths_to_remove_projects_from_litedb = paths_to_remove_projects_from_litedb
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<BTreeSet<_>>();
 
-    pub fn update_project(&mut self, project: &UserProject) {
-        self.db
-            .update(COLLECTION, vec![project.to_bson()])
-            .expect("update");
-    }
+        let conn = self.sqlite.conn.clone();
+        let projects_to_insert =
+            spawn_blocking!(captures(paths_to_remove_projects_from_litedb), move || {
+                let tx = conn
+                    .lock_arc()
+                    .transaction_with_behavior(TransactionBehavior::Immediate)
+                    .map_err(Error::SQLite)?;
 
-    pub fn remove_project(&mut self, project: &UserProject) {
-        self.db.delete(COLLECTION, &[project.bson[ID].clone()]);
-    }
+                let mut insert = tx
+                    .prepare(
+                        "INSERT INTO projects \
+                            (path, \
+                                litedb_objectid, \
+                                unity_version_with_revision, \
+                                created_at, \
+                                last_modified, \
+                                type, \
+                                favorite, \
+                                custom_unity_args, \
+                                unity_path, \
+                                is_valid)\
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                        ON CONFLICT (litedb_objectid) DO NOTHING \
+                        ON CONFLICT (path) DO NOTHING \
+                        ",
+                    )
+                    .unwrap();
 
-    pub async fn add_project(&mut self, project: &UnityProject) -> io::Result<()> {
-        check_absolute_path(project.project_dir())?;
-        let path = normalize_path(project.project_dir());
-        let path = path.to_str().ok_or(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "project path is not utf8",
-        ))?;
-        let unity_version = project.unity_version();
-        let unity_revision = project.unity_revision();
+                for project in litedb_projects {
+                    if let Some(proj) = LiteDBProject::new(&project) {
+                        insert
+                            .execute((
+                                proj.path,
+                                &proj.object_id.as_bytes().encode_hex::<String>(),
+                                &proj.unity_version_with_revision,
+                                proj.created_at.as_unix_milliseconds() / 1000,
+                                proj.last_modified.as_unix_milliseconds() / 1000,
+                                ProjectType::from_i32(proj.project_type)
+                                    .unwrap_or(ProjectType::Unknown)
+                                    as i32,
+                                proj.favorite,
+                                &(proj.custom_unity_args)
+                                    .map(|x| serde_json::to_string(&x).unwrap()),
+                                proj.unity_path,
+                                proj.is_valid_project.unwrap_or(true),
+                            ))
+                            .map_err(Error::SQLite)?;
+                    }
+                }
+                insert.finalize().unwrap();
 
-        let project_type = project.detect_project_type().await;
+                let mut remove = tx
+                    .prepare("DELETE FROM projects WHERE path = ?")
+                    .map_err(Error::SQLite)?;
+                for path in paths_to_remove_projects_from_sqlite {
+                    remove.execute([path]).map_err(Error::SQLite)?;
+                }
+                remove.finalize().unwrap();
 
-        let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
-        new_project.set_unity_revision(unity_version, unity_revision.map(ToOwned::to_owned));
+                let mut get_project_query = GetProjectRunner::prepare(&tx, "WHERE path = ?");
+                let mut set_object_id = tx
+                    .prepare("UPDATE projects SET litedb_objectid = ? WHERE id = ?")
+                    .expect("prepare set objectid");
+                let projects_to_insert = paths_to_restore_projects_from_sqlite
+                    .into_iter()
+                    .flat_map(|path| {
+                        get_project_query
+                            .query_one([path], GetProjectRunner::read_row_ok)
+                            .optional()
+                            .map_err(Error::SQLite)
+                            .transpose()
+                    })
+                    .map(|mut proj| {
+                        if let Ok(ref mut proj) = proj
+                            && proj.litedb_objectid.is_none()
+                        {
+                            let new_id = ObjectId::new();
 
-        self.db
-            .insert(
-                COLLECTION,
-                vec![new_project.to_bson()],
-                BsonAutoId::ObjectId,
-            )
-            .expect("insert");
+                            set_object_id
+                                .execute((
+                                    new_id.as_bytes().encode_hex::<String>(),
+                                    proj.id.unwrap().get(),
+                                ))
+                                .map_err(Error::SQLite)?;
+
+                            proj.litedb_objectid = Some(new_id);
+                        }
+                        proj
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                get_project_query.finalize().unwrap();
+                set_object_id.finalize().unwrap();
+
+                let mut exists_query = tx
+                    .prepare("SELECT 1 FROM projects WHERE path = ?")
+                    .expect("prepare exists projects");
+                let mut error_while_retain = None;
+                paths_to_remove_projects_from_litedb.retain(|path| {
+                    exists_query
+                        .query_row([path], |_| Ok(()))
+                        .optional()
+                        .map_err(Error::SQLite)
+                        .map(|result| result.is_none())
+                        .map_err(|err| {
+                            error_while_retain.get_or_insert(err);
+                        })
+                        .unwrap_or(false)
+                });
+                exists_query.finalize().unwrap();
+
+                tx.commit().map_err(Error::SQLite)?;
+
+                Ok(projects_to_insert)
+            })?;
+
+        if !paths_to_remove_projects_from_litedb.is_empty() || !projects_to_insert.is_empty() {
+            json.retain_user_projects(|path| !paths_to_remove_projects_from_litedb.contains(path));
+            for x in &projects_to_insert {
+                json.add_user_project(&x.path);
+            }
+
+            let mut delete_keys = vec![];
+            for path in paths_to_remove_projects_from_litedb {
+                for x in (self.litedb.db).get_by_index(COLLECTION, "Path", &Value::String(path)) {
+                    delete_keys.push(x.get(ID).clone());
+                }
+            }
+            self.litedb.db.delete(COLLECTION, &delete_keys);
+
+            (self.litedb.db)
+                .insert(
+                    COLLECTION,
+                    projects_to_insert
+                        .into_iter()
+                        .map(|x| x.to_bson())
+                        .collect::<Vec<_>>(),
+                    BsonAutoId::ObjectId,
+                )
+                .unwrap();
+
+            json.save(self.io).await.map_err(Error::SaveLitedb)?;
+            json.save(self.io).await.map_err(Error::SaveLitedb)?;
+            self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
+        }
 
         Ok(())
     }
@@ -416,6 +1420,7 @@ pub struct ValidRealProjectInformation {
     unity_version: UnityVersion,
     unity_revision: Option<String>,
     project_type: ProjectType,
+    display_name: Option<String>,
 }
 
 impl RealProjectInformation {
@@ -454,12 +1459,14 @@ impl ValidRealProjectInformation {
         let unity_version = loaded_project.unity_version();
         let unity_revision = loaded_project.unity_revision().map(ToOwned::to_owned);
         let project_type = loaded_project.detect_project_type().await;
+        let display_name = loaded_project.detect_display_name().await;
 
         Ok(Some(ValidRealProjectInformation {
             path,
             unity_version,
             unity_revision,
             project_type,
+            display_name,
         }))
     }
 
@@ -478,163 +1485,131 @@ impl ValidRealProjectInformation {
     pub fn project_type(&self) -> ProjectType {
         self.project_type
     }
+
+    pub fn display_name(&self) -> Option<&str> {
+        self.display_name.as_deref()
+    }
 }
 
 pub struct UserProject {
-    bson: Document,
+    id: Option<NonZeroI64>, // 0 means unsigned
+    path: String,
+    litedb_objectid: Option<ObjectId>,
+    unity_version: Option<UnityVersion>,
+    unity_revision: Option<String>,
+    created_at: i64,    // unix timestamp in seconds
+    last_modified: i64, // unix timestamp in seconds
+    project_type: ProjectType,
+    favorite: bool,
+    custom_unity_args: Option<Vec<String>>,
+    unity_path: Option<String>,
+    is_valid: bool,
+    display_name: Option<String>,
 }
 
 impl UserProject {
     pub(crate) fn to_bson(&self) -> Document {
-        self.bson.clone()
+        let mut doc = Document::new();
+        if let Some(object_id) = self.litedb_objectid {
+            doc.insert(ID, object_id);
+        }
+        doc.insert(PATH, &self.path);
+        doc.insert(UNITY_VERSION, self.unity_version.map(|x| x.to_string()));
+        doc.insert(CREATED_AT, datetime_from_unix(self.created_at));
+        doc.insert(LAST_MODIFIED, datetime_from_unix(self.last_modified));
+        doc.insert(TYPE, self.project_type as i32);
+        doc.insert(FAVORITE, self.favorite);
+        doc
+    }
+}
+
+fn unity_version_with_revision(
+    unity_version: UnityVersion,
+    unity_revision: Option<&str>,
+) -> String {
+    if let Some(revision) = unity_revision {
+        format!("{}({})", unity_version, revision)
+    } else {
+        unity_version.to_string()
     }
 }
 
 impl UserProject {
     fn new(path: Box<str>, unity_version: Option<UnityVersion>, project_type: ProjectType) -> Self {
-        let now = DateTime::now();
+        let now = DateTime::now().as_unix_milliseconds() / 1000;
         Self {
-            bson: document! {
-                PATH => path.as_ref(),
-                UNITY_VERSION => unity_version.as_ref().map(ToString::to_string),
-                CREATED_AT => now,
-                LAST_MODIFIED => now,
-                TYPE => project_type as i32,
-                FAVORITE => false,
-            },
+            id: None,
+            path: path.into_string(),
+            litedb_objectid: None,
+            unity_version,
+            unity_revision: None,
+            created_at: now,
+            last_modified: now,
+            project_type,
+            favorite: false,
+            custom_unity_args: None,
+            unity_path: None,
+            is_valid: true,
+            display_name: None,
         }
     }
 
-    fn from_document(document: Document) -> Self {
-        Self { bson: document }
+    #[doc(hidden)]
+    pub fn litedb_objectid(&self) -> Option<ObjectId> {
+        self.litedb_objectid
     }
 
-    pub fn path(&self) -> Option<&str> {
-        self.bson[PATH].as_str()
+    pub fn path(&self) -> &str {
+        self.path.as_str()
     }
 
-    pub fn name(&self) -> Option<&str> {
+    pub fn name(&self) -> &str {
         self.path()
-            .map(Path::new)
-            .and_then(Path::file_name)
-            .and_then(OsStr::to_str)
+            .rsplit_once(cfg_select! {
+                windows => ['/', '\\'],
+                _ => ['/'],
+            })
+            .map(|(_, name)| name)
+            .unwrap_or(self.path())
     }
 
-    pub fn crated_at(&self) -> Option<DateTime> {
-        self.bson[CREATED_AT].as_date_time()
+    pub fn crated_at(&self) -> DateTime {
+        datetime_from_unix(self.created_at)
     }
 
-    pub fn last_modified(&self) -> Option<DateTime> {
-        self.bson[LAST_MODIFIED].as_date_time()
+    pub fn last_modified(&self) -> DateTime {
+        datetime_from_unix(self.last_modified)
     }
 
     pub fn unity_version(&self) -> Option<UnityVersion> {
-        self.bson[UNITY_VERSION]
-            .as_str()
-            .and_then(UnityVersion::parse)
+        self.unity_version
     }
 
     pub fn project_type(&self) -> ProjectType {
-        self.bson[TYPE]
-            .as_i32()
-            .and_then(ProjectType::from_i32)
-            .unwrap_or(ProjectType::Unknown)
+        self.project_type
+    }
+
+    pub fn display_name(&self) -> Option<&str> {
+        self.display_name.as_deref()
     }
 
     pub fn favorite(&self) -> bool {
-        self.bson[FAVORITE].as_bool().unwrap_or(false)
-    }
-
-    pub fn set_favorite(&mut self, favorite: bool) {
-        self.bson.insert(FAVORITE, favorite);
-    }
-
-    pub fn set_unity_version(&mut self, unity_version: UnityVersion) {
-        let version = unity_version.to_string();
-        self.bson.insert(UNITY_VERSION, version.clone());
-        if let Some(vrc_get) = self.bson.get_mut(VRC_GET).and_then(|x| x.as_document_mut()) {
-            vrc_get.insert(CACHED_UNITY_REVISION, version);
-            vrc_get.insert(UNITY_REVISION, Value::Null);
-        }
-    }
-
-    pub fn set_unity_revision(
-        &mut self,
-        unity_version: UnityVersion,
-        unity_revision: Option<String>,
-    ) {
-        let version = unity_version.to_string();
-        self.bson.insert(UNITY_VERSION, version.clone());
-        let vrc_get = self.bson.entry(VRC_GET).document_or_replace();
-        vrc_get.insert(CACHED_UNITY_REVISION, version);
-        vrc_get.insert(UNITY_REVISION, unity_revision);
+        self.favorite
     }
 
     pub fn unity_revision(&self) -> Option<&str> {
-        let unity_version = self.bson[UNITY_VERSION].as_str()?;
-        self.bson
-            .get(VRC_GET)
-            .as_document()
-            .filter(|x| x[CACHED_UNITY_REVISION].as_str() == Some(unity_version))
-            .and_then(|x| x[UNITY_REVISION].as_str())
+        self.unity_revision.as_deref()
     }
 
-    pub fn custom_unity_args(&self) -> Option<Vec<String>> {
-        self.bson
-            .get(VRC_GET)
-            .as_document()
-            .and_then(|x| x[CUSTOM_UNITY_ARGS].as_array())
-            .and_then(|x| {
-                x.as_slice()
-                    .iter()
-                    .map(|x| x.as_str().map(|x| x.to_owned()))
-                    .collect::<Option<Vec<_>>>()
-            })
-    }
-
-    pub fn set_custom_unity_args(&mut self, custom_unity_args: Vec<String>) {
-        self.bson
-            .entry(VRC_GET)
-            .document_or_replace()
-            .insert(CUSTOM_UNITY_ARGS, Array::from(&custom_unity_args));
-    }
-
-    pub fn clear_custom_unity_args(&mut self) {
-        if let Some(x) = self.bson.get_mut(VRC_GET).and_then(|x| x.as_document_mut()) {
-            x.remove(CUSTOM_UNITY_ARGS);
-        }
+    pub fn custom_unity_args(&self) -> Option<&[String]> {
+        self.custom_unity_args.as_deref()
     }
 
     pub fn unity_path(&self) -> Option<&str> {
-        self.bson[VRC_GET]
-            .as_document()
-            .and_then(|x| x[UNITY_PATH].as_str())
+        self.unity_path.as_deref()
     }
 
-    pub fn set_unity_path(&mut self, unity_path: String) {
-        self.bson
-            .entry(VRC_GET)
-            .document_or_replace()
-            .insert(UNITY_PATH, unity_path);
-    }
-
-    pub fn clear_unity_path(&mut self) {
-        if let Some(x) = self.bson.get_mut(VRC_GET).and_then(|x| x.as_document_mut()) {
-            x.remove(UNITY_PATH);
-        }
-    }
-
-    pub fn is_valid_project(&self) -> Option<bool> {
-        self.bson
-            .get(VRC_GET)
-            .as_document()
-            .and_then(|x| x[IS_VALID].as_bool())
-    }
-
-    pub fn set_is_valid_project(&mut self, is_valid: bool) {
-        self.bson
-            .entry(VRC_GET)
-            .document_or_replace()
-            .insert(IS_VALID, is_valid);
+    pub fn is_valid_project(&self) -> bool {
+        self.is_valid
     }
 }

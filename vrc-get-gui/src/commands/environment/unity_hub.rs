@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::state::SettingsState;
 use log::debug;
 use std::io;
@@ -6,9 +15,9 @@ use tauri::State;
 use tokio::spawn;
 use tokio::sync::Mutex;
 use tokio::sync::oneshot;
-use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_hub};
+use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_cli, find_unity_hub};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
-use vrc_get_vpm::unity_hub;
+use vrc_get_vpm::{unity_cli, unity_hub};
 
 use crate::commands::prelude::*;
 use crate::config::UnityHubAccessMethod;
@@ -142,6 +151,13 @@ async fn update_unity_paths_from_unity_hub_impl(
             };
 
             unity_hub::load_unity_by_calling_unity_hub(unity_hub_path.as_ref()).await?
+        }
+        UnityHubAccessMethod::CallCli => {
+            let Some(unity_cli_path) = find_unity_cli(io).await? else {
+                return Ok(false);
+            };
+
+            unity_cli::load_unity_by_calling_unity_cli(unity_cli_path.as_ref()).await?
         }
     };
 

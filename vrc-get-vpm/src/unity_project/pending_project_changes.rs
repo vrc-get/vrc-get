@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::io::{DefaultProjectIo, IoTrait};
 use crate::traits::AbortCheck;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
@@ -717,6 +726,9 @@ async fn extract_packages<Env: PackageInstaller>(
     // resolve all packages
     join_all(packages.iter().map(|package| {
         async {
+            if !valid_package_name(package.name()) {
+                return Err(io::Error::other("Insecure package name"));
+            }
             env.install_package(io, *package, &extract_dir.join(package.name()), &abort)
                 .await
         }
@@ -735,6 +747,15 @@ async fn extract_packages<Env: PackageInstaller>(
     }
 
     Ok(())
+}
+
+fn valid_package_name(name: &str) -> bool {
+    let mut iter = Path::new(name).components();
+    !name.contains(['/', '\\'])
+        && matches!(
+            (iter.next(), iter.next()),
+            (Some(std::path::Component::Normal(_)), None)
+        )
 }
 
 /// The context that holds information to restore changes to packages directory when recoverable error occurs

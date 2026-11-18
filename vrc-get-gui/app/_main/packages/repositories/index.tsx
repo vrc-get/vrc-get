@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 "use client";
 
 import {
@@ -193,9 +202,14 @@ function PageBody() {
 	});
 
 	const processDeepLink = useCallback(async function processDeepLink() {
-		const data = await commands.deepLinkTakeAddRepository();
-		if (data == null) return;
-		await addRepository(data.url, data.headers);
+		const singleRepository = await commands.deepLinkTakeAddRepository();
+		if (singleRepository != null) {
+			await addRepository(singleRepository.url, singleRepository.headers);
+		}
+		const repositoriesInfo = await commands.deepLinkTakeImportRepositories();
+		if (repositoriesInfo != null) {
+			await importRepositories(repositoriesInfo);
+		}
 	}, []);
 
 	const hiddenUserRepos = useMemo(

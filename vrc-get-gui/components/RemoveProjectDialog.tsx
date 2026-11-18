@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -61,7 +70,11 @@ export function RemoveProjectDialog({
 			<DialogTitle>{tc("projects:remove project")}</DialogTitle>
 			<div>
 				{removeProject.isPending ? (
-					<p className={"font-normal"}>{tc("projects:dialog:removing...")}</p>
+					<p className={"font-normal"}>
+						{tc("projects:dialog:removing project...", {
+							name: nameFromPath(project.path),
+						})}
+					</p>
 				) : (
 					<p className={"font-normal"}>
 						{tc("projects:dialog:warn removing project", {

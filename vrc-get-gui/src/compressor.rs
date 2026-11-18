@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::commands::AsyncCommandContext;
 use crate::utils::FileSystemTree;
 use async_zip::base::write::ZipFileWriter;
@@ -168,12 +177,17 @@ pub(crate) async fn parallel_compress_zip(
 
     let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
     let available_ram = {
-        let mut sys = sysinfo::System::new();
-        sys.refresh_memory();
+        let free_memory = sysinfo::System::new()
+            .map(|mut sys| {
+                sys.refresh_memory();
+                sys.free_memory()
+            })
+            // AFAIK and As of writing, this never fails
+            .unwrap_or(100_000_000); // 100Mb
 
         // Since the maximum capacity of the semaphore is u32::MAX, it can only handle up to 4GB.
         // To circumvent this, we will use 1 permit for every 10 bytes, allowing for a capacity of up to 40GB.
-        let available_ram: u32 = ((sys.free_memory() as f64 / 10.0 * 0.8) as u32) // 80% of free memory
+        let available_ram: u32 = ((free_memory as f64 / 10.0 * 0.8) as u32) // 80% of free memory
             .max(1);
 
         log::info!(

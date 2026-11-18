@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
@@ -11,7 +20,9 @@ pub(crate) struct UnityProcess {
 
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) fn find_unity_process_ids_for_project(project_path: &Path) -> Vec<u32> {
-    let mut system = System::new();
+    let Ok(mut system) = System::new() else {
+        return vec![];
+    };
     refresh_unity_processes(&mut system)
         .into_iter()
         .filter_map(|process| {

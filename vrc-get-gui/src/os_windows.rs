@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 //! OS-specific functionality.
 
 //! This module is for creating `cmd.exe /d /c start "Name"
@@ -42,7 +51,9 @@ const LOCK_RANGE_LOW: u32 = u32::MAX;
 const LOCK_RANGE_HIGH: u32 = u32::MAX;
 const UNITY_EDITOR_WINDOW_CLASS: &str = "UnityContainerWndClass";
 const UNITY_RUNTIME_CACHE_TTL: Duration = Duration::from_secs(1);
-pub(crate) const CAN_BRING_UNITY_TO_FRONT: bool = true;
+pub(crate) fn can_bring_unity_to_front() -> bool {
+    true
+}
 pub(crate) const CAN_DETECT_UNITY_EDITOR_READY: bool = true;
 
 #[derive(Clone, Copy)]
@@ -59,7 +70,7 @@ struct UnityEditorWindow {
 }
 
 pub(crate) struct UnityRuntimeCache {
-    system: System,
+    system: Option<System>,
     refreshed_at: Option<Instant>,
     editor_windows: Vec<UnityEditorWindow>,
 }
@@ -182,7 +193,9 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
 impl UnityRuntimeCache {
     pub(crate) fn new() -> Self {
         Self {
-            system: System::new(),
+            system: System::new()
+                .inspect_err(|e| log::error!("System::new failed with {e}"))
+                .ok(),
             refreshed_at: None,
             editor_windows: Vec::new(),
         }
@@ -246,7 +259,11 @@ impl UnityRuntimeCache {
     }
 
     fn refresh(&mut self, now: Instant) -> io::Result<()> {
-        let processes = crate::unity_process::refresh_unity_processes(&mut self.system);
+        let processes = if let Some(ref mut system) = self.system {
+            crate::unity_process::refresh_unity_processes(system)
+        } else {
+            vec![]
+        };
         let editor_windows = find_unity_editor_windows(processes);
         self.refreshed_at = Some(now);
 

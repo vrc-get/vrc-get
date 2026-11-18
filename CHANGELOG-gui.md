@@ -10,9 +10,27 @@ The format is based on [Keep a Changelog].
 ### Added
 - Spanish localization [`#3099`](https://github.com/vrc-get/vrc-get/pull/3099)
 - Added Russian localization `#3120`
-- Project launch buttons now show when Unity is opening or running and can bring open Unity Editor windows to the foreground on Windows and macOS. [`#3109`](https://github.com/vrc-get/vrc-get/pull/3109)
+- Project launch buttons now show when Unity is opening or running and can bring open Unity Editor windows to the foreground on Windows, macOS, and Linux. [`#3109`](https://github.com/vrc-get/vrc-get/pull/3109) `#3153`
+- `.alcomrepositories` file extension for list of repositories `#3275`
+  - This is exactly same as previous `repositories.txt` file, but with a distinct file extension for importing with double click.
+  - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
+- Unity CLI can now be used to load the list of Unity installations `#3137`
+  - Unity CLI is an additional install on top of Unity Hub, so reading Unity Hub configuration files stays the default.
+  - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
+- The position of the main window is now reserved `#3316`
+  - This is not supported on Wayland since the position of windows is managed by the compositor.
 
 ### Changed
+- Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
+- Changed license of this project to MPL-2.0 `#3231`
+- Changed how the Project List is managed `#3184`
+  - Added a project list for ALCOM and logic to sync it with VCC's project list.
+  - Added a configuration option for the project list syncing mode.
+- Use display name from Unity Hub on the Project List `#2657`
+- Show the project name in the backup progress dialog and the remove project dialog `#3278`
+- Show the backup file name in the toast shown after creating a backup `#3279`
+- Reverted part of logic for MSIX version of Unity Hub, that are no longer necessary for Unity Hub 4.0 `#3321`
+  - ALCOM had support for sandboxed AppData, but Unity has disabled sandboxed AppData in Unity Hub 4.0.
 
 ### Deprecated
 
@@ -23,9 +41,24 @@ The format is based on [Keep a Changelog].
 - Improved compatibility with better compatibility with tools resizes window on launch `#3157`
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
-- Unity respin builds (e.g. `2021.3.45f2`) could not be added because their version string was rejected as invalid [`#3204`](https://github.com/vrc-get/vrc-get/pull/3204)
+- Open Unity Hub in some places does not work `#3274`
+- GUI Crashes on error with "Reload Unity from Unity Hub" `#3322`
 
 ### Security
+
+## [1.1.10] - 2026-11-13
+### Fixed
+- Compatibility with the MSIX version of Unity Hub [`#3298`](https://github.com/vrc-get/vrc-get/pull/3298) (Backported)
+    - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
+
+## [1.1.9] - 2026-10-23
+### Changed
+- Upgraded rustls-webpki to 0.103.16 (HotFix)
+  - Addresses recent eMudhra intermediate CA key compromise (No single CVE number)
+
+### Fixed
+- `vcc:` Deep Linking not working on macOS (backports [`#3211`](https://github.com/vrc-get/vrc-get/pull/3211))
+- Creating project mignt fail without any dialog (backports [`#3232`](https://github.com/vrc-get/vrc-get/pull/3232))
 
 ## [1.1.8] - 2026-07-11
 ### Fixed
@@ -740,7 +773,9 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.8...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.10...HEAD
+[1.1.10]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.9...gui-v1.1.10
+[1.1.9]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.8...gui-v1.1.9
 [1.1.8]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.7...gui-v1.1.8
 [1.1.7]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.6...gui-v1.1.7
 [1.1.6]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.5...gui-v1.1.6

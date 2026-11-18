@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::environment::{Settings, VccDatabaseConnection};
 use crate::io;
 use crate::io::{DefaultEnvironmentIo, IoTrait};
@@ -8,6 +17,7 @@ use log::info;
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use vrc_get_litedb::bson::Document;
 use vrc_get_litedb::document;
 use vrc_get_litedb::file_io::{BsonAutoId, LiteDBFile};
@@ -16,6 +26,10 @@ pub(crate) static COLLECTION: &str = "unityVersions";
 static PATH: &str = "Path";
 static VERSION: &str = "Version";
 static LOADED_FROM_HUB: &str = "LoadedFromHub";
+#[cfg(windows)]
+static UNITY_CLI_FILE_NAME: &str = "unity.exe";
+#[cfg(not(windows))]
+static UNITY_CLI_FILE_NAME: &str = "unity";
 
 impl VccDatabaseConnection {
     pub fn get_unity_installations(&self) -> Vec<UnityInstallation> {
@@ -195,63 +209,220 @@ pub async fn find_unity_hub(
 
 fn default_unity_hub_path() -> &'static [&'static str] {
     // https://docs.unity3d.com/hub/manual/HubCLI.html
-    #[cfg(windows)]
     {
-        lazy_static::lazy_static! {
-            static ref INSTALLATIONS: &'static [&'static str] = {
-                // https://github.com/vrc-get/vrc-get/issues/579
-                if let Some(unity_hub_from_regi) =
-                    winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
-                        .open_subkey(r"Software\Unity Technologies\Hub")
-                        .ok()
-                        .and_then(|key| key.get_value("InstallLocation").ok())
-                        .and_then(|str: std::ffi::OsString| str.into_string().ok())
-                        .map(PathBuf::from)
-                        .map(|mut p| {
-                            p.push("Unity Hub.exe");
-                            p
-                        })
-                        .map(|p| p.into_os_string().into_string().unwrap()) {
-                    vec![unity_hub_from_regi.leak(), "C:\\Program Files\\Unity Hub\\Unity Hub.exe"].leak()
-                } else {
-                    &["C:\\Program Files\\Unity Hub\\Unity Hub.exe"]
+        static INSTALLATIONS: LazyLock<&'static [&'static str]> = LazyLock::new(|| {
+            cfg_select! {
+                target_os = "windows" => {
+                    // https://github.com/vrc-get/vrc-get/issues/579
+                    let mut paths = Vec::<&str>::with_capacity(3);
+                    for mut msix_install_path in find_appx_path::install_locations("UnityTechnologies.UnityHub_2vrhnee42bhxm").ok().unwrap_or_default() {
+                        msix_install_path.push("app\\Unity Hub.exe");
+                        if let Some(_path_as_str) = msix_install_path.to_str() {
+                            paths.push(msix_install_path.leak().to_str().unwrap());
+                        }
+                    }
+                    if let Some(unity_hub_from_regi) =
+                        winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
+                            .open_subkey(r"Software\Unity Technologies\Hub")
+                            .ok()
+                            .and_then(|key| key.get_value("InstallLocation").ok())
+                            .and_then(|str: std::ffi::OsString| str.into_string().ok())
+                            .map(PathBuf::from)
+                            .map(|mut p| {
+                                p.push("Unity Hub.exe");
+                                p
+                            })
+                            .map(|p| p.into_os_string().into_string().unwrap())
+                    {
+                        paths.push(unity_hub_from_regi.leak());
+                    }
+                    paths.push("C:\\Program Files\\Unity Hub\\Unity Hub.exe");
+                    paths.leak()
+                },
+                target_os = "macos" => {
+                    &["/Applications/Unity Hub.app/Contents/MacOS/Unity Hub"]
                 }
-            };
-        }
+                target_os = "linux" => {
+                    let mut paths = Vec::<&str>::with_capacity(5);
 
-        INSTALLATIONS.as_ref()
-    }
-    #[cfg(target_os = "macos")]
-    {
-        &["/Applications/Unity Hub.app/Contents/MacOS/Unity Hub"]
-    }
-    #[cfg(target_os = "linux")]
-    {
-        // for linux,
-        lazy_static::lazy_static! {
-            static ref USER_INSTALLATION: String = {
-                let home = std::env::var("HOME").expect("HOME not set");
-                format!("{home}/Applications/Unity Hub.AppImage")
-            };
-            static ref FLATPAK_USER_INSTALLATION: String = {
-                let data_home = std::env::var("XDG_DATA_HOME")
-                    .unwrap_or_else(|_| format!("{}/.local/share", std::env::var("HOME").expect("HOME not set")));
-                format!("{data_home}/flatpak/exports/bin/com.unity.UnityHub")
-            };
-            static ref INSTALLATIONS: [&'static str; 5] =
-                [
-                    &USER_INSTALLATION,
-                    "/usr/bin/unity-hub",
+                    // AppImage user installation
+                    let home = std::env::var("HOME").expect("HOME not set");
+                    paths.push(format!("{home}/Applications/Unity Hub.AppImage").leak());
+
+                    // common PATH
+                    paths.push("/usr/bin/unity-hub");
                     // apt package
-                    "/opt/unityhub/unityhub",
+                    paths.push("/opt/unityhub/unityhub");
+
                     // flatpak
-                    &FLATPAK_USER_INSTALLATION,
-                    "/var/lib/flatpak/exports/bin/com.unity.UnityHub",
-                ];
-        }
+                    let data_home = std::env::var("XDG_DATA_HOME").unwrap_or_else(|_| format!("{home}/.local/share"));
+                    paths.push(format!("{data_home}/flatpak/exports/bin/com.unity.UnityHub").leak());
+                    paths.push("/var/lib/flatpak/exports/bin/com.unity.UnityHub");
+
+                    paths.leak()
+                }
+            }
+        });
 
         INSTALLATIONS.as_ref()
     }
+}
+
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+mod find_appx_path {
+    use std::{ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf};
+    use windows::{
+        Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, WIN32_ERROR},
+        Win32::Storage::Packaging::Appx::{GetPackagePathByFullName, GetPackagesByPackageFamily},
+        core::{Error, HSTRING, PCWSTR, PWSTR, Result},
+    };
+
+    fn win32_err(e: WIN32_ERROR) -> Error {
+        e.to_hresult().into()
+    }
+
+    /// Get list of Install Location of packages belonging to family
+    pub fn install_locations(family_name: &str) -> Result<Vec<PathBuf>> {
+        package_full_names(&HSTRING::from(family_name))?
+            .iter()
+            .map(|name| package_path(name))
+            .collect()
+    }
+
+    /// NUL-terminated UTF-16 string
+    struct Win32WString(Vec<u16>);
+
+    impl Win32WString {
+        fn from_wide(s: &[u16]) -> Self {
+            let mut vec = s.to_vec();
+            vec.push(0);
+            Self(vec)
+        }
+
+        fn as_ptr(&self) -> *const u16 {
+            self.0.as_ptr()
+        }
+    }
+
+    /// Get list of FullName of packages belonging to family
+    fn package_full_names(family: &HSTRING) -> Result<Vec<Win32WString>> {
+        let (mut count, mut len) = (0u32, 0u32);
+        match unsafe { GetPackagesByPackageFamily(family, &mut count, None, &mut len, None) } {
+            ERROR_INSUFFICIENT_BUFFER => {}
+            ERROR_SUCCESS => return Ok(Vec::new()), // No install (count == 0)
+            e => return Err(win32_err(e)),
+        }
+
+        loop {
+            let mut names = vec![PWSTR::null(); count as usize];
+            let mut buf = vec![0u16; len as usize];
+            let r = unsafe {
+                GetPackagesByPackageFamily(
+                    family,
+                    &mut count,
+                    Some(names.as_mut_ptr()),
+                    &mut len,
+                    Some(PWSTR(buf.as_mut_ptr())),
+                )
+            };
+            match r {
+                ERROR_SUCCESS => {
+                    // names は buf 内を指しているので、buf が生きているうちにコピーする
+                    let result = names[..count as usize]
+                        .iter()
+                        .map(|p| Win32WString::from_wide(unsafe { p.as_wide() }))
+                        .collect();
+                    drop(buf); // Asserts buf lives
+                    return Ok(result);
+                }
+                // New installation between two GetPackagesByPackageFamily
+                ERROR_INSUFFICIENT_BUFFER => continue,
+                e => return Err(win32_err(e)),
+            }
+        }
+    }
+
+    fn package_path(full_name: &Win32WString) -> Result<PathBuf> {
+        let name = PCWSTR(full_name.as_ptr());
+        let mut len = 0u32;
+        let r = unsafe { GetPackagePathByFullName(name, &mut len, None) };
+        if r != ERROR_INSUFFICIENT_BUFFER {
+            return Err(win32_err(r));
+        }
+        let mut buf = vec![0u16; len as usize];
+        unsafe { GetPackagePathByFullName(name, &mut len, Some(PWSTR(buf.as_mut_ptr()))) }.ok()?;
+        buf.truncate(len as usize - 1); // remove trailing NUL
+        Ok(PathBuf::from(OsString::from_wide(&buf)))
+    }
+}
+
+pub async fn find_unity_cli(io: &DefaultEnvironmentIo) -> io::Result<Option<String>> {
+    if let Some(path_env) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path_env) {
+            let path = dir.join(UNITY_CLI_FILE_NAME);
+            if io.is_file(&path).await
+                && let Ok(path) = path.into_os_string().into_string()
+            {
+                return Ok(Some(path));
+            }
+        }
+    }
+
+    // if not, try default paths
+
+    for &path in default_unity_cli_path() {
+        if io.is_file(path.as_ref()).await {
+            return Ok(Some(path.to_string()));
+        }
+    }
+
+    Ok(None)
+}
+
+fn default_unity_cli_path() -> &'static [&'static str] {
+    static INSTALLATIONS: LazyLock<&'static [&'static str]> = LazyLock::new(|| {
+        cfg_select! {
+            target_os = "windows" => {
+                let mut paths = Vec::<&str>::with_capacity(1);
+
+                // install script
+                let local_app_data = std::env::var("LOCALAPPDATA").expect("LOCALAPPDATA not set");
+                paths.push(format!("{local_app_data}\\Unity\\bin\\unity.exe").leak());
+
+                paths.leak()
+            }
+            target_os = "macos" => {
+                let mut paths = Vec::<&str>::with_capacity(3);
+
+                // install script
+                let home = std::env::var("HOME").expect("HOME not set");
+                paths.push(format!("{home}/.unity/bin/unity").leak());
+
+                // homebrew
+                paths.push("/opt/homebrew/bin/unity");
+                paths.push("/usr/local/bin/unity");
+
+                paths.leak()
+            }
+            target_os = "linux" => {
+                let mut paths = Vec::<&str>::with_capacity(3);
+
+                // install script
+                let home = std::env::var("HOME").expect("HOME not set");
+                paths.push(format!("{home}/.local/bin/unity").leak());
+
+                // linuxbrew
+                paths.push("/home/linuxbrew/.linuxbrew/bin/unity");
+                // aur package
+                paths.push("/usr/bin/unity");
+
+                paths.leak()
+            }
+        }
+    });
+
+    INSTALLATIONS.as_ref()
 }
 
 pub struct UnityInstallation {

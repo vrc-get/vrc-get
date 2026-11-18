@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use crate::logging::LogLevel;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
@@ -13,6 +22,10 @@ pub struct GuiConfig {
     pub window_size: WindowSize,
     #[serde(default)]
     pub fullscreen: bool,
+    /// The position of the main window in OS-native desktop coordinates.
+    /// See [`WindowPosition`] for details.
+    #[serde(default)]
+    pub window_position: Option<WindowPosition>,
     #[serde(default = "language_default")]
     pub language: String,
     #[serde(default = "theme_default")]
@@ -38,7 +51,7 @@ pub struct GuiConfig {
     pub gui_compact: bool,
     #[serde(default = "project_view_mode_default")]
     pub project_view_mode: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "unity_hub_access_method")]
     pub unity_hub_access_method: UnityHubAccessMethod,
     // last element is the most recent one
     // 8 paths are saved
@@ -63,6 +76,18 @@ pub enum UnityHubAccessMethod {
     ReadConfig,
     /// Launches headless Unity Hub in background
     CallHub,
+    /// Calls the standalone Unity CLI
+    CallCli,
+}
+
+fn unity_hub_access_method<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<UnityHubAccessMethod, D::Error> {
+    Ok(match String::deserialize(deserializer)?.as_str() {
+        "CallHub" => UnityHubAccessMethod::CallHub,
+        "CallCli" => UnityHubAccessMethod::CallCli,
+        _ => UnityHubAccessMethod::default(),
+    })
 }
 
 impl Default for GuiConfig {
@@ -72,6 +97,7 @@ impl Default for GuiConfig {
             hide_local_user_packages: false,
             window_size: WindowSize::default(),
             fullscreen: false,
+            window_position: None,
             language: language_default(),
             theme: theme_default(),
             backup_format: backup_default(),
@@ -84,7 +110,7 @@ impl Default for GuiConfig {
             gui_animation: true,
             gui_compact: gui_compact_default(),
             project_view_mode: project_view_mode_default(),
-            unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
+            unity_hub_access_method: UnityHubAccessMethod::default(),
             recent_project_locations: Vec::new(),
             exclude_vpm_packages_from_backup: false,
             favorite_templates: vec![],
@@ -179,4 +205,17 @@ impl Default for WindowSize {
             height: 800,
         }
     }
+}
+
+/// The position of the top-left corner of the window frame (outer position)
+/// in OS-native desktop coordinates, similar to Firefox's "desktop pixels".
+///
+/// - Windows: physical pixels, since there is no single logical coordinate
+///   space across monitors with different scale factors.
+/// - macOS: points (logical pixels), which is the native global coordinate space.
+/// - Linux (X11): GDK (logical) pixels, which use a single scale factor for all monitors.
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct WindowPosition {
+    pub x: f64,
+    pub y: f64,
 }

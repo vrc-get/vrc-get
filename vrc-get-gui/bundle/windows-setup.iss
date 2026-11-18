@@ -30,9 +30,6 @@
 #define MyAppPublisher "anatawa12"
 #define MyAppURL "https://vrc-get.anatawa12.com/alcom/"
 #define MyAppExeName "ALCOM.exe"
-#define MyAppAssocName "ALCOM Template"
-#define MyAppAssocExt ".alcomtemplate"
-#define MyAppAssocKey "ALCOM Project Template"
 
 [Setup]
 AppId={{4C3D0631-AE29-4D20-A231-678D9CF8D6DB}
@@ -85,10 +82,16 @@ Source: "{#WebView2SetupPath}"; DestName: "MicrosoftEdgeWebView2Setup.exe"; Flag
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
-Root: HKA; Subkey: "Software\Classes\{#MyAppAssocExt}\OpenWithProgids"; ValueType: string; ValueName: "{#MyAppAssocKey}"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}"; ValueType: string; ValueName: ""; ValueData: "{#MyAppAssocName}"; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
-Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\.alcomtemplate\OpenWithProgids"; ValueType: string; ValueName: "ALCOM Project Template"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\ALCOM Project Template"; ValueType: string; ValueName: ""; ValueData: "ALCOM Template"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\ALCOM Project Template\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKA; Subkey: "Software\Classes\ALCOM Project Template\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+
+Root: HKA; Subkey: "Software\Classes\.alcomrepositories"; ValueType: string; ValueName: "PerceivedType"; ValueData: "text"; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\.alcomrepositories\OpenWithProgids"; ValueType: string; ValueName: "Anatawa12.ALCOM.Repositories"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories"; ValueType: string; ValueName: ""; ValueData: "ALCOM Repositories"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

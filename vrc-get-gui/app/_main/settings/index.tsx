@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 "use client";
 import {
 	queryOptions,
@@ -19,7 +28,10 @@ import {
 	GuiCompactSwitch,
 	LanguageSelector,
 	ProjectPathWarnings,
+	ProjectSyncModeSelect,
+	ProjectSyncModeWarning,
 	ThemeSelector,
+	WarningMessage,
 } from "@/components/common-setting-parts";
 import { HNavBar, HNavBarText, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
@@ -29,6 +41,14 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	Tooltip,
 	TooltipContent,
@@ -88,8 +108,12 @@ function Settings() {
 
 	const updateUnityPaths = async () => {
 		updateUnityPathsTransition(async () => {
-			await commands.environmentUpdateUnityPathsFromUnityHub();
-			await queryClient.invalidateQueries(environmentGetSettings);
+			try {
+				await commands.environmentUpdateUnityPathsFromUnityHub();
+				await queryClient.invalidateQueries(environmentGetSettings);
+			} catch (e) {
+				toastThrownError(e);
+			}
 		});
 	};
 
@@ -200,12 +224,13 @@ function UnityInstallationsCard({
 }) {
 	const queryClient = useQueryClient();
 	const {
-		data: { unityPaths, unityHubAccessMethod },
+		data: { unityPaths, unityHubAccessMethod, unityCli },
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			unityPaths: data.unity_paths,
 			unityHubAccessMethod: data.unity_hub_access_method,
+			unityCli: data.unity_cli,
 		}),
 	});
 
@@ -342,18 +367,52 @@ function UnityInstallationsCard({
 				</tbody>
 			</ScrollableCardTable>
 			<div>
-				<label className={"flex items-center gap-2"}>
-					<Checkbox
-						checked={unityHubAccessMethod === "CallHub"}
-						onCheckedChange={(e) =>
-							setAccessMethod.mutate(e === true ? "CallHub" : "ReadConfig")
-						}
-					/>
-					{tc("settings:use legacy unity hub loading")}
-				</label>
+				<h3>{tc("settings:unity hub access method")}</h3>
 				<p className={"text-sm whitespace-normal"}>
-					{tc("settings:use legacy unity hub loading description")}
+					{tc("settings:unity hub access method description")}
 				</p>
+				<Select
+					value={unityHubAccessMethod}
+					onValueChange={(value) =>
+						setAccessMethod.mutate(value as UnityHubAccessMethod)
+					}
+				>
+					<SelectTrigger>
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							<SelectItem value={"ReadConfig"}>
+								{tc("settings:unity hub access method:read config")}
+							</SelectItem>
+							<SelectItem value={"CallHub"}>
+								{tc("settings:unity hub access method:call hub")}
+							</SelectItem>
+							<SelectItem value={"CallCli"}>
+								{tc("settings:unity hub access method:call cli")}
+							</SelectItem>
+						</SelectGroup>
+					</SelectContent>
+				</Select>
+				<div className="mb-2" />
+				{unityHubAccessMethod === "CallHub" && (
+					<WarningMessage>
+						{tc("settings:unity hub access method:warning:call hub")}
+					</WarningMessage>
+				)}
+				{unityHubAccessMethod === "CallCli" && (
+					<>
+						<WarningMessage>
+							{tc("settings:unity hub access method:warning:call cli")}
+						</WarningMessage>
+						<h3 className="mt-2">{tc("settings:unity cli path")}</h3>
+						<FilePathRow
+							path={unityCli ?? ""}
+							notFoundMessage={tt("settings:unity cli not found")}
+							withOpen={false}
+						/>
+					</>
+				)}
 			</div>
 		</SettingsCard>
 	);
@@ -475,11 +534,12 @@ function DefaultProjectPathCard() {
 	const queryClient = useQueryClient();
 
 	const {
-		data: { defaultProjectPath },
+		data: { defaultProjectPath, projectListSyncMode },
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			defaultProjectPath: data.default_project_path,
+			projectListSyncMode: data.project_list_sync_mode,
 		}),
 	});
 
@@ -511,7 +571,8 @@ function DefaultProjectPathCard() {
 
 	return (
 		<SettingsCard>
-			<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
+			<h2 className={"mb-2"}>{tc("settings:project management")}</h2>
+			<h3>{tc("settings:default project path")}</h3>
 			<p className={"whitespace-normal"}>
 				{tc("settings:default project path description")}
 			</p>
@@ -520,6 +581,13 @@ function DefaultProjectPathCard() {
 				pick={pickProjectDefaultPath.mutate}
 			/>
 			<ProjectPathWarnings projectPath={defaultProjectPath} />
+			<h3 className="mt-2">{tc("settings:projects:sync-mode")}</h3>
+			<p className={"whitespace-normal"}>
+				{tc("settings:projects:sync-mode:description")}
+			</p>
+			<ProjectSyncModeSelect projectListSyncMode={projectListSyncMode} />
+			<div className="mb-2" />
+			<ProjectSyncModeWarning projectListSyncMode={projectListSyncMode} />
 		</SettingsCard>
 	);
 }

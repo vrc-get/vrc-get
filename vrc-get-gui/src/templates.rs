@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2023 anatawa12 and other contributors
+ * SPDX-License-Identifier: MPL-2.0
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org.
+ */
+
 use async_compression::futures::bufread::GzipDecoder;
 use fs_extra::error::ErrorKind;
 use futures::io::BufReader;
@@ -653,6 +662,16 @@ async fn import_unitypackage_impl(
                         ),
                     )
                 })?;
+                // https://github.com/vrc-get/vrc-get/issues/2634
+                // https://issuetracker.unity3d.com/product/unity/issues/guid/UUM-132869
+                // if there is '\n' in their pathname, remove after last '\n'
+                let pathname = if let Some(index) = pathname.rfind('\n') {
+                    let mut pathname = pathname;
+                    pathname.replace_range(index.., "");
+                    pathname
+                } else {
+                    pathname
+                };
                 // Those are filename-banned characters for windows except for portable path separator '/'
                 if pathname.contains(['<', '>', ':', '"', '|', '?', '*', '\0']) {
                     return Err(io::Error::new(
@@ -663,7 +682,10 @@ async fn import_unitypackage_impl(
                         ),
                     ));
                 }
-                if pathname.split('/').any(|c| matches!(c, "" | "." | "..")) {
+                if pathname
+                    .split(['/', '\\'])
+                    .any(|c| matches!(c, "" | "." | ".."))
+                {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
                         format!(
@@ -680,16 +702,6 @@ async fn import_unitypackage_impl(
                     );
                     continue;
                 }
-                // https://github.com/vrc-get/vrc-get/issues/2634
-                // https://issuetracker.unity3d.com/product/unity/issues/guid/UUM-132869
-                // if there is '\n' in their pathname, remove after last '\n'
-                let pathname = if let Some(index) = pathname.rfind('\n') {
-                    let mut pathname = pathname;
-                    pathname.replace_range(index.., "");
-                    pathname
-                } else {
-                    pathname
-                };
                 package_entry.pathname = pathname;
             }
             _ => continue, // non unitypackage entry

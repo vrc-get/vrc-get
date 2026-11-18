@@ -97,8 +97,8 @@ jobs:
           sed -i vrc-get-gui/bundle/alcom.spec -e "/^Version:/c\Version:        ${GUI_VERSION//-/\~}"
 
           case "$GITHUB_REF_NAME" in
-            master | master-* )
-              echo "head is master or master-*"
+            master | master-* | hotfix-* )
+              echo "head is master, master-*, or hotfix-*"
               ;;
             * )
               if [ "$DRY_RUN" = "true" ]; then
@@ -696,15 +696,17 @@ jobs:
           path: changelog
 
       - name: Push tag
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |-
           # set tag and publish current version
           git tag "gui-v$GUI_VERSION"
           git push --tags
           # create master and push
-          git switch -c master
-          git fetch origin master --depth=1
+          git switch -c "$BRANCH"
+          git fetch origin "$BRANCH" --depth=1
           git log --all --graph
-          git push -u origin master
+          git push -u origin "$BRANCH"
           sleep 1
 
       - name: create release
