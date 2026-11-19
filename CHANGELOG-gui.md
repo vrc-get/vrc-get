@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog].
   - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
 - The position of the main window is now reserved `#3316`
   - This is not supported on Wayland since the position of windows is managed by the compositor.
+- `alcom://` URL scheme as an ALCOM-specific alias of `vcc://` `#3334`
+  - This is intended for repositories entirely depends on vrc-get extension of VPM.
+  - This is registered automatically on macOS, Windows, and linux package manager distributions.
+  - For AppImage, this is registered along with `vcc://` when you enable the URL scheme setting.
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
