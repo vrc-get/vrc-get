@@ -30,7 +30,7 @@ enum DeepLink {
 }
 
 fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
-    if deep_link.scheme() != "vcc" {
+    if deep_link.scheme() != "vcc" && deep_link.scheme() != "alcom" {
         log::error!("Invalid deep link: {deep_link}");
         return None;
     }

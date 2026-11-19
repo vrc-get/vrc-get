@@ -153,6 +153,7 @@ fn process_args(app: &AppHandle, args: &[String]) {
 
     fn is_deep_link(url: &str) -> bool {
         url.starts_with("vcc://")
+            || url.starts_with("alcom://")
             || ends_with_ignore_ascii_case(url, ".alcomtemplate")
             || ends_with_ignore_ascii_case(url, ".alcomrepositories")
     }
@@ -163,7 +164,7 @@ fn process_args(app: &AppHandle, args: &[String]) {
     fn process_deep_link_string(app: &AppHandle, url: &str) {
         if let Some(url) = url::Url::parse(url)
             .ok()
-            .take_if(|url| url.scheme() == "vcc")
+            .take_if(|url| url.scheme() == "vcc" || url.scheme() == "alcom")
         {
             deep_link_support::on_deep_link(url);
             return;
