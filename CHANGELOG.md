@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog].
 - Changed how the Project List is managed `#3184`
   - Added a project list for ALCOM / vrc-get and logic to sync it with VCC's project list.
   - Added a configuration option for the project list syncing mode.
+- VPM Repositories with invalid version name will be accepted `#3325`
+  - Package versions with invalid version names wll be ignored instead.
 
 ### Deprecated
 
