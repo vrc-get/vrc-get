@@ -892,10 +892,18 @@ function AlcomCard() {
 		},
 	});
 
+	const registersAlcomScheme = globalInfo.registersAlcomScheme;
+
 	const installVccProtocol = useMutation({
 		mutationFn: async () => await commands.deepLinkInstallVcc(),
 		onSuccess: () => {
-			toastSuccess(tc("settings:toast:vcc scheme installed"));
+			toastSuccess(
+				tc(
+					registersAlcomScheme
+						? "settings:toast:vcc and alcom scheme installed"
+						: "settings:toast:vcc scheme installed",
+				),
+			);
 		},
 		onError: (e) => {
 			console.error(e);
@@ -974,7 +982,11 @@ function AlcomCard() {
 								setUseAlcomForVccProtocol.mutate(value === true)
 							}
 						/>
-						{tc("settings:use alcom for vcc scheme")}
+						{tc(
+							registersAlcomScheme
+								? "settings:register vcc and alcom scheme handlers"
+								: "settings:use alcom for vcc scheme",
+						)}
 					</label>
 					<Button
 						className={"my-1"}
@@ -984,10 +996,14 @@ function AlcomCard() {
 						{tc("settings:register vcc scheme now")}
 					</Button>
 					<p className={"text-sm whitespace-normal"}>
-						{tc([
-							"settings:use vcc scheme description",
-							"settings:vcc scheme description",
-						])}
+						{tc(
+							registersAlcomScheme
+								? "settings:register vcc and alcom scheme handlers description"
+								: [
+										"settings:use vcc scheme description",
+										"settings:vcc scheme description",
+									],
+						)}
 					</p>
 				</div>
 			)}

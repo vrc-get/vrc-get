@@ -113,6 +113,16 @@ pub fn should_install_deep_link(app: &AppHandle) -> bool {
     }
 }
 
+/// Whether [`deep_link_install_vcc`] registers the `alcom:` scheme together with the `vcc:` scheme.
+#[allow(unused_variables)]
+pub fn registers_alcom_scheme(app: &AppHandle) -> bool {
+    cfg_select! {
+        target_os = "macos" => false,
+        target_os = "windows" => false,
+        target_os = "linux" => app.env().appimage.is_some(),
+    }
+}
+
 static IMPORTED_NON_TOASTED_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 pub fn process_files(app: &AppHandle, files: Vec<PathBuf>) {
@@ -233,7 +243,7 @@ Name=ALCOM
 Exec="{appimage_path}" link %u
 NoDisplay=true
 Terminal=false
-MimeType=x-scheme-handler/vcc
+MimeType=x-scheme-handler/vcc;x-scheme-handler/alcom;
 Categories=Utility;
 "#,
                      appimage_path = escape(&appimage_path)

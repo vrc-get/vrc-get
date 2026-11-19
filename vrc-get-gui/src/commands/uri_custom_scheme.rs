@@ -55,6 +55,7 @@ pub struct GlobalInfo<'a> {
     check_for_updates: bool,
     setup_pages: Vec<(super::environment::config::SetupPages, &'static str)>,
     should_install_deep_link: bool,
+    registers_alcom_scheme: bool,
 }
 
 pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
@@ -93,6 +94,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     };
 
     let should_install_deep_link = crate::deep_link_support::should_install_deep_link(app);
+    let registers_alcom_scheme = crate::deep_link_support::registers_alcom_scheme(app);
 
     let global_info = GlobalInfo {
         language: &config.language,
@@ -112,6 +114,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
             .map(|&page_id| (page_id, page_id.path()))
             .collect(),
         should_install_deep_link,
+        registers_alcom_scheme,
     };
 
     let mut script = b"globalThis.vrcGetGlobalInfo = ".to_vec();

@@ -6,4 +6,4 @@ Icon=alcom
 Name=ALCOM
 Terminal=false
 Type=Application
-MimeType=x-scheme-handler/vcc
+MimeType=x-scheme-handler/vcc;x-scheme-handler/alcom;

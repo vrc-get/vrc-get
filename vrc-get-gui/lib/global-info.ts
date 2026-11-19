@@ -31,6 +31,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	vpmHomeFolder: "",
 	checkForUpdates: false,
 	shouldInstallDeepLink: false,
+	registersAlcomScheme: false,
 	setupPages: [],
 };
 
