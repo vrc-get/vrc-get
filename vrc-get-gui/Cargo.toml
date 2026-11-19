@@ -83,7 +83,7 @@ wayland-client = "0.31"
 wayland-protocols-wlr = { version = "0.3", features = ["client"] }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31", features = ["fs", "mount"] }
+nix = { version = "0.32", features = ["fs", "mount"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
