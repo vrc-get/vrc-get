@@ -16,6 +16,8 @@ use tauri::async_runtime::spawn;
 use tauri::{App, AppHandle, LogicalSize, Manager, State, WebviewWindow, WindowEvent};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 
+mod window_placement;
+
 trait WindowExt {
     fn make_fullscreen_ish(&self) -> tauri::Result<()>;
     fn is_fullscreen_ish(&self) -> tauri::Result<bool>;
@@ -101,6 +103,8 @@ pub fn startup(app: &mut App) {
         )
         .title("ALCOM")
         .resizable(true)
+        // the window is shown after restoring the position to avoid flickering
+        .visible(false)
         .incognito(true) // this prevents the webview from saving data
         .on_navigation(|url| {
             if cfg!(debug_assertions) && url.host_str() == Some("localhost") {
@@ -123,70 +127,127 @@ pub fn startup(app: &mut App) {
 
         let window = builder.build()?;
 
+        if let Some(position) = config.window_position
+            && let Err(e) = window_placement::restore_position(&window, position)
+        {
+            error!("failed to restore window position: {e}");
+        }
+
+        window.show()?;
+
         if config.fullscreen {
             window.make_fullscreen_ish()?;
         }
 
         let cloned = window.clone();
 
-        let resize_debounce: std::sync::Mutex<Option<tauri::async_runtime::JoinHandle<()>>> =
-            std::sync::Mutex::new(None);
+        let save_debounce = Debouncer::new(move || {
+            let cloned = cloned.clone();
+            async move {
+                if let Err(e) = save_window_state(cloned).await {
+                    error!("failed to save window state: {e}");
+                }
+            }
+        });
 
         #[allow(clippy::single_match)]
         window.on_window_event(move |e| match e {
-            WindowEvent::Resized(size) => {
-                let logical = size
-                    .to_logical::<u32>(cloned.current_monitor().unwrap().unwrap().scale_factor());
-
-                if logical.width < 100 || logical.height < 100 {
-                    // ignore too small sizes
-                    // this is generally caused by the window being minimized
-                    return;
-                }
-
-                let fullscreen = cloned.is_fullscreen_ish().unwrap();
-
-                let mut resize_debounce = resize_debounce.lock().unwrap();
-
-                if let Some(resize_debounce) = resize_debounce.as_ref() {
-                    resize_debounce.abort();
-                }
-
-                let cloned = cloned.clone();
-
-                *resize_debounce = Some(tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-
-                    if let Err(e) = save_window_size(cloned, logical, fullscreen).await {
-                        error!("failed to save window size: {e}");
-                    }
-                }));
+            WindowEvent::Resized(_) | WindowEvent::Moved(_) => {
+                save_debounce.trigger(tokio::time::Duration::from_secs(1));
             }
             _ => {}
         });
 
-        async fn save_window_size(
-            window: WebviewWindow,
-            size: LogicalSize<u32>,
-            fullscreen: bool,
-        ) -> tauri::Result<()> {
+        async fn save_window_state(window: WebviewWindow) -> tauri::Result<()> {
+            if window.is_minimized()? {
+                // we keep the state before minimized
+                return Ok(());
+            }
+
+            let fullscreen = window.is_fullscreen_ish()?;
+
+            if fullscreen {
+                info!("saving window state: fullscreen");
+                let config = window.state::<GuiConfigState>();
+                let mut config = config.load_mut().await?;
+                config.fullscreen = true;
+                // keep the size and position before maximized / fullscreen
+                config.save().await?;
+                return Ok(());
+            }
+
+            let size: LogicalSize<u32> = window.inner_size()?.to_logical(window.scale_factor()?);
+
+            if size.width < 100 || size.height < 100 {
+                // ignore too small sizes
+                // this is generally caused by the window being minimized
+                return Ok(());
+            }
+
+            let position = window_placement::get_position(&window)
+                .inspect_err(|e| error!("failed to get window position: {e}"))
+                .ok()
+                .flatten();
+
             info!(
-                "saving window size: {}x{}, full: {fullscreen}",
+                "saving window state: {}x{}, position: {position:?}",
                 size.width, size.height
             );
+
             let config = window.state::<GuiConfigState>();
             let mut config = config.load_mut().await?;
-            if fullscreen {
-                config.fullscreen = true;
-            } else {
-                config.fullscreen = false;
-                config.window_size.width = size.width;
-                config.window_size.height = size.height;
+            config.fullscreen = false;
+            config.window_size.width = size.width;
+            config.window_size.height = size.height;
+            if let Some(position) = position {
+                config.window_position = Some(position);
             }
             config.save().await?;
             Ok(())
         }
 
         Ok(())
+    }
+}
+
+struct Debouncer {
+    sender: tokio::sync::mpsc::UnboundedSender<tokio::time::Instant>,
+}
+
+impl Debouncer {
+    pub fn new<F, Fut>(f: F) -> Self
+    where
+        F: Fn() -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel::<tokio::time::Instant>();
+
+        tokio::spawn(async move {
+            loop {
+                let Some(mut wait_for) = receiver.recv().await else {
+                    break; // The Debouncer is dropped
+                };
+
+                loop {
+                    tokio::select! {
+                        _ = tokio::time::sleep_until(wait_for) => break,
+                        time = receiver.recv() => {
+                            if let Some(time) = time {
+                                wait_for = std::cmp::max(wait_for, time);
+                            }
+                        }
+                    }
+                }
+                f().await;
+            }
+        });
+
+        Self { sender }
+    }
+
+    pub fn trigger(&self, duration: tokio::time::Duration) {
+        self.sender
+            .send(tokio::time::Instant::now() + duration)
+            .ok();
     }
 }

@@ -8,20 +8,25 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- `--method call-cli` for `vrc-get vcc unity update` to load the list of Unity installations with Unity CLI `#3137`
 
 ### Changed
 - Changed license of this project to MPL-2.0 `#3231`
 - Changed how the Project List is managed `#3184`
   - Added a project list for ALCOM / vrc-get and logic to sync it with VCC's project list.
   - Added a configuration option for the project list syncing mode.
+- VPM Repositories with invalid version name will be accepted `#3325`
+  - Package versions with invalid version names wll be ignored instead.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Compatibility with the MSIX version of Unity Hub `#3298`
+- Compatibility with the MSIX version of Unity Hub `#3298` `#3321`
   - Recently Unity Hub released the MSIX version of Unity Hub, and it's now default.
+- `vrc-get vcc unity update --method read-config` fails if Unity Hub is not installed `#3137`
+- Unity 2021.3.45f2 could not be added because its version string was rejected as invalid `#3204`
 
 ### Security
 

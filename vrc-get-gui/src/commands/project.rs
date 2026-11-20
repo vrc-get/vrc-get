@@ -780,7 +780,7 @@ pub async fn project_create_backup(
                         &backup_path,
                         project_path.as_ref(),
                         Compression::Deflate,
-                        DeflateOption::Fast,
+                        DeflateOption::Other(1),
                         exclude_vpm,
                         ctx,
                     )
@@ -795,7 +795,7 @@ pub async fn project_create_backup(
                         &backup_path,
                         project_path.as_ref(),
                         Compression::Deflate,
-                        DeflateOption::Maximum,
+                        DeflateOption::Other(9),
                         exclude_vpm,
                         ctx,
                     )
@@ -812,7 +812,7 @@ pub async fn project_create_backup(
                         &backup_path,
                         project_path.as_ref(),
                         Compression::Deflate,
-                        DeflateOption::Fast,
+                        DeflateOption::Other(1),
                         exclude_vpm,
                         ctx,
                     )

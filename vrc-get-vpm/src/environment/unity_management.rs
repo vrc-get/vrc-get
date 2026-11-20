@@ -26,6 +26,10 @@ pub(crate) static COLLECTION: &str = "unityVersions";
 static PATH: &str = "Path";
 static VERSION: &str = "Version";
 static LOADED_FROM_HUB: &str = "LoadedFromHub";
+#[cfg(windows)]
+static UNITY_CLI_FILE_NAME: &str = "unity.exe";
+#[cfg(not(windows))]
+static UNITY_CLI_FILE_NAME: &str = "unity";
 
 impl VccDatabaseConnection {
     pub fn get_unity_installations(&self) -> Vec<UnityInstallation> {
@@ -351,6 +355,74 @@ mod find_appx_path {
         buf.truncate(len as usize - 1); // remove trailing NUL
         Ok(PathBuf::from(OsString::from_wide(&buf)))
     }
+}
+
+pub async fn find_unity_cli(io: &DefaultEnvironmentIo) -> io::Result<Option<String>> {
+    if let Some(path_env) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path_env) {
+            let path = dir.join(UNITY_CLI_FILE_NAME);
+            if io.is_file(&path).await
+                && let Ok(path) = path.into_os_string().into_string()
+            {
+                return Ok(Some(path));
+            }
+        }
+    }
+
+    // if not, try default paths
+
+    for &path in default_unity_cli_path() {
+        if io.is_file(path.as_ref()).await {
+            return Ok(Some(path.to_string()));
+        }
+    }
+
+    Ok(None)
+}
+
+fn default_unity_cli_path() -> &'static [&'static str] {
+    static INSTALLATIONS: LazyLock<&'static [&'static str]> = LazyLock::new(|| {
+        cfg_select! {
+            target_os = "windows" => {
+                let mut paths = Vec::<&str>::with_capacity(1);
+
+                // install script
+                let local_app_data = std::env::var("LOCALAPPDATA").expect("LOCALAPPDATA not set");
+                paths.push(format!("{local_app_data}\\Unity\\bin\\unity.exe").leak());
+
+                paths.leak()
+            }
+            target_os = "macos" => {
+                let mut paths = Vec::<&str>::with_capacity(3);
+
+                // install script
+                let home = std::env::var("HOME").expect("HOME not set");
+                paths.push(format!("{home}/.unity/bin/unity").leak());
+
+                // homebrew
+                paths.push("/opt/homebrew/bin/unity");
+                paths.push("/usr/local/bin/unity");
+
+                paths.leak()
+            }
+            target_os = "linux" => {
+                let mut paths = Vec::<&str>::with_capacity(3);
+
+                // install script
+                let home = std::env::var("HOME").expect("HOME not set");
+                paths.push(format!("{home}/.local/bin/unity").leak());
+
+                // linuxbrew
+                paths.push("/home/linuxbrew/.linuxbrew/bin/unity");
+                // aur package
+                paths.push("/usr/bin/unity");
+
+                paths.leak()
+            }
+        }
+    });
+
+    INSTALLATIONS.as_ref()
 }
 
 pub struct UnityInstallation {
