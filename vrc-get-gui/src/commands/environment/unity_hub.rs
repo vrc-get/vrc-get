@@ -10,7 +10,7 @@
 use crate::state::SettingsState;
 use log::debug;
 use std::io;
-use std::mem::forget;
+use std::mem::DropGuard;
 use tauri::State;
 use tokio::spawn;
 use tokio::sync::Mutex;
@@ -86,21 +86,15 @@ pub async fn update_unity_paths_from_unity_hub(
                 }
             }
         } else {
-            // The struct to release lock on panic
-            struct PanicGuard;
-            impl Drop for PanicGuard {
-                fn drop(&mut self) {
-                    spawn(async {
-                        let mut guard = UPDATE_UNITY_PATH_SHARED_STATE.lock().await;
-                        *guard = None;
-                    });
-                }
-            }
-
             *guard = Some(UpdateUnityState::new());
-
             drop(guard);
-            let _panic_guard = PanicGuard;
+            // release lock on panic
+            let panic_guard = DropGuard::new((), |()| {
+                spawn(async {
+                    let mut guard = UPDATE_UNITY_PATH_SHARED_STATE.lock().await;
+                    *guard = None;
+                });
+            });
 
             debug!("updating unity paths from unity hub");
 
@@ -114,9 +108,9 @@ pub async fn update_unity_paths_from_unity_hub(
                 Err(_) => UpdateUnityResultTiny::IoError,
             };
 
+            DropGuard::dismiss(panic_guard);
             let mut guard = UPDATE_UNITY_PATH_SHARED_STATE.lock().await;
             let state = guard.take();
-            forget(_panic_guard); // we now have none on the guard
             drop(guard);
 
             let state = state.unwrap();
