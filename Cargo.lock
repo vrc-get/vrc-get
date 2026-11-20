@@ -5812,6 +5812,7 @@ dependencies = [
  "itertools 0.15.0",
  "log",
  "reqwest",
+ "rlimit",
  "serde",
  "serde_json",
  "tokio",

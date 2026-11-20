@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog].
   - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
 - The position of the main window is now reserved `#3316`
   - This is not supported on Wayland since the position of windows is managed by the compositor.
+- VCC 2.5.0 Features compatibility `#3336`
+  - This release adds Unity 6000.0 VRCSDK support.
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)

@@ -15,7 +15,7 @@ use crate::compressor::parallel_compress_zip;
 use crate::utils::{collect_notable_project_files_tree, project_backup_path};
 use async_zip::{Compression, DeflateOption};
 use log::{error, info, warn};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -28,7 +28,7 @@ use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
-use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
+use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges, UnityMigration};
 use vrc_get_vpm::version::{StrictEqVersion, Version};
 
 #[derive(Serialize, specta::Type)]
@@ -338,15 +338,24 @@ pub async fn project_clear_pending_changes(
     Ok(())
 }
 
+#[derive(Deserialize, specta::Type)]
+pub enum TauriMigrateVrcUnityVersion {
+    #[serde(rename = "2022")]
+    Unity2022,
+    #[serde(rename = "6000.0")]
+    Unity6000_0,
+}
+
 #[tauri::command]
 #[specta::specta]
-pub async fn project_migrate_project_to_2022(
+pub async fn project_migrate_vrc_unity(
     app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     project_path: String,
+    version: TauriMigrateVrcUnityVersion,
 ) -> Result<(), RustError> {
     {
         let settings = settings.load(io.inner()).await?;
@@ -355,8 +364,13 @@ pub async fn project_migrate_project_to_2022(
 
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
+        let migration = match version {
+            TauriMigrateVrcUnityVersion::Unity2022 => UnityMigration::UNITY_2022,
+            TauriMigrateVrcUnityVersion::Unity6000_0 => UnityMigration::UNITY_6000_0,
+        };
+
         unity_project
-            .migrate_unity_2022(packages.collection(), &installer)
+            .migrate_unity(migration, packages.collection(), &installer)
             .await?;
 
         update_project_last_modified(&io, unity_project.project_dir()).await;
