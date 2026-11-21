@@ -66,7 +66,11 @@ import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
+import {
+	compareUnityVersionString,
+	parseUnityVersion,
+	unityMajorName,
+} from "@/lib/version";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
@@ -400,7 +404,9 @@ function MigrationCards({
 	return (
 		<>
 			{isMigrationTo2022Recommended && (
-				<SuggestMigrateTo2022Card
+				<SuggestMajorMigrationCard
+					currentUnity={unityMajorName(currentUnity)}
+					targetUnity={unityMajorName(unityVersionsResult.recommended_version)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -411,7 +417,8 @@ function MigrationCards({
 				/>
 			)}
 			{is2022PatchMigrationRecommended && (
-				<Suggest2022PatchMigrationCard
+				<SuggestPatchMigrationCard
+					unityMajor={unityMajorName(unityVersionsResult.recommended_version)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -422,7 +429,11 @@ function MigrationCards({
 				/>
 			)}
 			{isMigrationTo6000_0Recommended && (
-				<SuggestMigrateTo6000_0Card
+				<SuggestMajorMigrationCard
+					currentUnity={unityMajorName(currentUnity)}
+					targetUnity={unityMajorName(
+						unityVersionsResult.recommended_6000_0_version,
+					)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -433,7 +444,10 @@ function MigrationCards({
 				/>
 			)}
 			{is6000_0PatchMigrationRecommended && (
-				<Suggest6000_0PatchMigrationCard
+				<SuggestPatchMigrationCard
+					unityMajor={unityMajorName(
+						unityVersionsResult.recommended_6000_0_version,
+					)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -459,17 +473,24 @@ function MigrationCards({
 	);
 }
 
-function SuggestMigrateTo2022Card({
+function SuggestMajorMigrationCard({
+	currentUnity,
+	targetUnity,
 	disabled,
 	onMigrateRequested,
 }: {
+	currentUnity: string;
+	targetUnity: string;
 	disabled?: boolean;
 	onMigrateRequested: () => void;
 }) {
 	return (
 		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
-				{tc("projects:manage:suggest unity migration")}
+				{tc("projects:manage:suggest unity migration", {
+					currentUnity,
+					targetUnity,
+				})}
 			</p>
 			<div className={"grow shrink-0 w-2"} />
 			<Button
@@ -483,65 +504,19 @@ function SuggestMigrateTo2022Card({
 	);
 }
 
-function Suggest2022PatchMigrationCard({
+function SuggestPatchMigrationCard({
+	unityMajor,
 	disabled,
 	onMigrateRequested,
 }: {
+	unityMajor: string;
 	disabled?: boolean;
 	onMigrateRequested: () => void;
 }) {
 	return (
 		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
-				{tc("projects:manage:suggest unity patch migration")}
-			</p>
-			<div className={"grow shrink-0 w-2"} />
-			<Button
-				variant={"ghost-destructive"}
-				onClick={onMigrateRequested}
-				disabled={disabled}
-			>
-				{tc("projects:manage:button:unity migrate")}
-			</Button>
-		</Card>
-	);
-}
-
-function SuggestMigrateTo6000_0Card({
-	disabled,
-	onMigrateRequested,
-}: {
-	disabled?: boolean;
-	onMigrateRequested: () => void;
-}) {
-	return (
-		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
-			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
-				{tc("projects:manage:suggest unity 6000.0 migration")}
-			</p>
-			<div className={"grow shrink-0 w-2"} />
-			<Button
-				variant={"ghost-destructive"}
-				onClick={onMigrateRequested}
-				disabled={disabled}
-			>
-				{tc("projects:manage:button:unity migrate")}
-			</Button>
-		</Card>
-	);
-}
-
-function Suggest6000_0PatchMigrationCard({
-	disabled,
-	onMigrateRequested,
-}: {
-	disabled?: boolean;
-	onMigrateRequested: () => void;
-}) {
-	return (
-		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
-			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
-				{tc("projects:manage:suggest unity 6000.0 patch migration")}
+				{tc("projects:manage:suggest unity patch migration", { unityMajor })}
 			</p>
 			<div className={"grow shrink-0 w-2"} />
 			<Button

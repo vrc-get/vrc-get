@@ -221,8 +221,8 @@
     "projects:manage:suggest resolve": "此專案所需的部分套件未安裝。<br>強烈建議安裝這些套件。",
     "projects:manage:button:resolve": "安裝套件",
 
-    "projects:manage:suggest unity migration": "你的專案使用的是 Unity 2019，這已不再受 VRChat SDK 支援。VRChat 建議你將專案遷移到 Unity 2022。",
-    "projects:manage:suggest unity patch migration": "你的專案使用的是較舊版本的 Unity 2022。VRChat 建議你將專案遷移到較新版本的 Unity 2022。",
+    "projects:manage:suggest unity migration": "你的專案使用的是 Unity {{currentUnity}}，這已不再受 VRChat SDK 支援。VRChat 建議你將專案遷移到 Unity {{targetUnity}}。",
+    "projects:manage:suggest unity patch migration": "你的專案使用的是較舊版本的 Unity {{unityMajor}}。VRChat 建議你將專案遷移到較新版本的 Unity {{unityMajor}}。",
     "projects:manage:suggest unity china to international migration": "你的專案正在使用中國版 Unity。建議你使用國際版 Unity 以更好地相容於 VRChat。",
     "projects:manage:button:unity migrate": "遷移專案",
 
@@ -301,11 +301,9 @@
 
     "projects:manage:dialog:unity migrate header": "Unity 遷移",
     "projects:dialog:migrate unity2022 patch description": "專案將會遷移到 Unity {{unity}}。",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "找不到 Unity 2022 的精確推薦版本進行補丁遷移。<br>請使用 Unity Hub 安裝 Unity {{unity}}，然後重新啟動 ALCOM。",
-    "projects:manage:dialog:unity migrate finalizing...": "正在背景中啟動 Unity 2022 以完成遷移...",
-    "projects:toast:unity migrate failed by unity not found": "專案遷移失敗：找不到 Unity 2022",
-    "projects:toast:unity migration finalize failed by unity not found": "無法完成遷移：找不到 Unity 2022",
-    "projects:toast:unity migrated": "此專案已遷移到 Unity 2022",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "找不到 Unity {{unityMajor}} 的精確推薦版本進行補丁遷移。<br>請使用 Unity Hub 安裝 Unity {{unity}}，然後重新啟動 ALCOM。",
+    "projects:manage:dialog:unity migrate finalizing...": "正在背景中啟動 Unity {{unityMajor}} 以完成遷移...",
+    "projects:toast:unity migrated": "此專案已遷移到 Unity {{unityMajor}}",
 
     "projects:manage:dialog:confirm changes description": "你正在對專案套用以下變更。",
     "projects:manage:dialog:note breaking changes": "部分套件之間存在重大變更。<br/>專案中的資產、設定與工具可能不再相容。<br/>請查閱相容性資訊並小心升級。",

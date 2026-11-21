@@ -231,11 +231,9 @@
     "projects:manage:suggest resolve": "项目所需的某些软件包未安装。<br>强烈建议修复软件包缺失问题。",
     "projects:manage:button:resolve": "安装软件包",
 
-    "projects:manage:suggest unity migration": "您的项目使用的是 VRChat SDK 不再支持的 Unity 2019。VRChat 建议您将项目迁移到 Unity 2022。",
-    "projects:manage:suggest unity patch migration": "您的项目使用的是较旧版本的 Unity 2022。VRChat 建议您将项目迁移到较新版本的 Unity 2022。",
+    "projects:manage:suggest unity migration": "您的项目使用的是 VRChat SDK 不再支持的 Unity {{currentUnity}}。VRChat 建议您将项目迁移到 Unity {{targetUnity}}。",
+    "projects:manage:suggest unity patch migration": "您的项目使用的是较旧版本的 Unity {{unityMajor}}。VRChat 建议您将项目迁移到较新版本的 Unity {{unityMajor}}。",
     "projects:manage:suggest unity china to international migration": "您的项目使用的是中国版 Unity。我们建议您将项目迁移到国际版 Unity，以便更好地兼容 VRChat。",
-    "projects:manage:suggest unity 6000.0 migration": "您的项目使用的是 VRChat SDK 不再支持的 Unity 2022。VRChat 建议您将项目迁移到 Unity 6000.0。",
-    "projects:manage:suggest unity 6000.0 patch migration": "您的项目使用的是较旧版本的 Unity 6000.0. VRChat 建议您将项目迁移到较新版本的 6000.0.",
     "projects:manage:button:unity migrate": "迁移项目",
 
     "projects:manage:manage packages": "管理软件包",
@@ -314,9 +312,7 @@
     "projects:dialog:migrate unity2022 patch description": "项目将被迁移至 Unity {{unity}}。",
     "projects:manage:dialog:exact version unity not found for patch migration description": "我们无法找到正确的 Unity 版本用于修补迁移。请使用 Unity Hub 安装 Unity {{unity}}，然后重新启动 ALCOM。",
     "projects:manage:dialog:unity migrate finalizing...": "正在后台启动 Unity 以完成迁移...",
-    "projects:toast:unity migrate failed by unity not found": "迁移项目失败： 未找到 Unity 2022",
-    "projects:toast:unity migration finalize failed by unity not found": "未能完成迁移： 未找到 Unity 2022",
-    "projects:toast:unity migrated": "项目已迁移至 Unity 2022",
+    "projects:toast:unity migrated": "项目已迁移至 Unity {{unityMajor}}",
 
     "projects:manage:dialog:confirm changes description": "您正在对项目进行以下更改。",
     "projects:manage:dialog:note breaking changes": "部分软件包存在破坏性变更。<br/>项目中的资产、配置和工具可能不兼容。<br/>请查阅兼容性信息，谨慎升级。",

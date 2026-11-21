@@ -121,7 +121,7 @@ static UNITY_6000_0_MIGRATION_STATIC: UnityMigration = UnityMigration {
     expected_unity_major_text: "2022.x",
     packages_to_remove: &["com.unity.ide.vscode"],
     unity_version: VRCHAT_RECOMMENDED_6000_0_UNITY,
-    unity_version_text: "6000.0",
+    unity_version_text: "6.0",
     with_upgrade_marker: true,
 };
 

@@ -19,8 +19,8 @@ The format is based on [Keep a Changelog].
   - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
 - The position of the main window is now reserved `#3316`
   - This is not supported on Wayland since the position of windows is managed by the compositor.
-- VCC 2.5.0 Features compatibility `#3336`
-  - This release adds Unity 6000.0 VRCSDK support.
+- VCC 2.5.0 Features compatibility
+  - This release adds Unity 6000.0 VRCSDK support. `#3336` `#3350`
 - `alcom://` URL scheme as an ALCOM-specific alias of `vcc://` `#3334`
   - This is intended for repositories entirely depends on vrc-get extension of VPM.
   - This is registered automatically on macOS, Windows, and linux package manager distributions.
