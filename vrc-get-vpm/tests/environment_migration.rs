@@ -1150,3 +1150,218 @@ async fn sqlite_litedb_sync() {
         );
     }
 }
+
+/// Tests for how metadata is merged when a project exists on both SQLite and LiteDB.
+///
+/// - the values from the database with newer last_modified are used
+/// - if last_modified is the same, SQLite (ALCOM) values are preferred
+/// - for unity version, if the release is the same, the one with revision is used regardless of last_modified
+#[tokio::test]
+async fn sqlite_litedb_sync_metadata() {
+    common::init_log();
+    let env_dir = get_temp_path("environment");
+    let env_projects = get_temp_path("env_projects");
+    let env_projects_str = env_projects.to_str().unwrap();
+    let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
+
+    let old_created = vrc_get_litedb::date!(2022-03-02 11:02:14);
+    let new_created = vrc_get_litedb::date!(2023-03-02 11:02:14);
+    let old_modified = vrc_get_litedb::date!(2024-03-02 12:15:00);
+    let new_modified = vrc_get_litedb::date!(2024-06-02 12:15:00);
+
+    let unix = |date: DateTime| date.as_unix_milliseconds() / 1000;
+    let path = |name: &str| normalize_path(format!("{env_projects_str}/{name}"));
+
+    const REVISION_2019: &str = "bd5abf232a62";
+    const REVISION_2022: &str = "887be4894c44";
+
+    clean_dir(&env_dir);
+    {
+        // Create tables
+        ProjectManagement::start(io).await.unwrap();
+
+        // In SQLite, all projects are non-favorite worlds project created at new_created
+        let conn = rusqlite::Connection::open(env_dir.join(VRC_GET_SQLITE)).unwrap();
+        let mut stmt = conn
+            .prepare(
+                "INSERT INTO projects \
+                    (path, litedb_objectid, unity_version_with_revision, \
+                    created_at, last_modified, type, favorite, is_valid)\
+                VALUES (?, ?, ?, ?, ?, ?, 0, 1) ",
+            )
+            .unwrap();
+        let mut insert = |name: &str, id: &[u8; 12], unity: &str, last_modified: DateTime| {
+            stmt.execute((
+                path(name),
+                object_id(id).as_bytes().encode_hex::<String>(),
+                unity,
+                unix(new_created),
+                unix(last_modified),
+                ProjectType::Worlds as i32,
+            ))
+            .unwrap();
+        };
+        insert(
+            "litedb-is-newer",
+            b"litedb-newer",
+            "2019.4.31f1(bd5abf232a62)",
+            old_modified,
+        );
+        insert(
+            "sqlite-is-newer",
+            b"sqlite-newer",
+            "2019.4.31f1(bd5abf232a62)",
+            new_modified,
+        );
+        insert(
+            "same-modified",
+            b"samemodified",
+            "2019.4.31f1(bd5abf232a62)",
+            old_modified,
+        );
+        insert(
+            "same-release-litedb-is-newer",
+            b"same-rel-lit",
+            "2022.3.22f1(887be4894c44)",
+            old_modified,
+        );
+        insert(
+            "same-release-sqlite-is-newer",
+            b"same-rel-sql",
+            "2022.3.22f1",
+            new_modified,
+        );
+    }
+
+    // In LiteDB, all projects are favorite avatars project created at old_created
+    let litedb_project = |name: &str, id: &[u8; 12], last_modified: DateTime| {
+        vrc_get_litedb::document! {
+            "_id" => object_id(id),
+            "Path" => path(name),
+            "UnityVersion" => "2022.3.22f1",
+            "CreatedAt" => old_created,
+            "LastModified" => last_modified,
+            "Type" => ProjectType::Avatars as i32,
+            "Favorite" => true,
+        }
+    };
+    let mut same_release_sqlite_is_newer = litedb_project(
+        "same-release-sqlite-is-newer",
+        b"same-rel-sql",
+        old_modified,
+    );
+    same_release_sqlite_is_newer.insert(
+        "vrc-get",
+        vrc_get_litedb::document! {
+            "cached_unity_version" => "2022.3.22f1",
+            "unity_revision" => REVISION_2022,
+        },
+    );
+    std::fs::write(
+        env_dir.join(SETTINGS_JSON),
+        test_settings_json_with_projects!(
+            env_projects_str,
+            additional_projects = vec![
+                format!("{env_projects_str}/litedb-is-newer"),
+                format!("{env_projects_str}/sqlite-is-newer"),
+                format!("{env_projects_str}/same-modified"),
+                format!("{env_projects_str}/same-release-litedb-is-newer"),
+                format!("{env_projects_str}/same-release-sqlite-is-newer"),
+            ],
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        env_dir.join(VCC_LITEDB),
+        test_litedb_file_with_projects!(
+            env_projects_str,
+            additional_projects = vec![
+                litedb_project("litedb-is-newer", b"litedb-newer", new_modified),
+                litedb_project("sqlite-is-newer", b"sqlite-newer", old_modified),
+                litedb_project("same-modified", b"samemodified", old_modified),
+                litedb_project(
+                    "same-release-litedb-is-newer",
+                    b"same-rel-lit",
+                    new_modified
+                ),
+                same_release_sqlite_is_newer,
+            ]
+        ),
+    )
+    .unwrap();
+
+    // The result must be stable, so we run the sync twice.
+    for iteration in 0..2 {
+        eprintln!("iteration: {iteration}");
+        let manage = ProjectManagement::start(io).await.unwrap();
+
+        let get_project = |name: &str| {
+            manage
+                .find_project(&format!("{env_projects_str}/{name}"))
+                .unwrap()
+                .unwrap()
+        };
+
+        // LiteDB is newer: everything comes from LiteDB
+        let project = get_project("litedb-is-newer");
+        assert_eq!(project.crated_at(), old_created);
+        assert_eq!(project.last_modified(), new_modified);
+        assert_eq!(project.project_type(), ProjectType::Avatars);
+        assert!(project.favorite());
+        assert_eq!(
+            project.unity_version(),
+            Some(UnityVersion::new_f1(2022, 3, 22))
+        );
+        assert_eq!(project.unity_revision(), None);
+
+        // SQLite is newer: everything is kept
+        let project = get_project("sqlite-is-newer");
+        assert_eq!(project.crated_at(), new_created);
+        assert_eq!(project.last_modified(), new_modified);
+        assert_eq!(project.project_type(), ProjectType::Worlds);
+        assert!(!project.favorite());
+        assert_eq!(
+            project.unity_version(),
+            Some(UnityVersion::new_f1(2019, 4, 31))
+        );
+        assert_eq!(project.unity_revision(), Some(REVISION_2019));
+
+        // last_modified is the same: SQLite is preferred, so everything is kept
+        let project = get_project("same-modified");
+        assert_eq!(project.crated_at(), new_created);
+        assert_eq!(project.last_modified(), old_modified);
+        assert_eq!(project.project_type(), ProjectType::Worlds);
+        assert!(!project.favorite());
+        assert_eq!(
+            project.unity_version(),
+            Some(UnityVersion::new_f1(2019, 4, 31))
+        );
+        assert_eq!(project.unity_revision(), Some(REVISION_2019));
+
+        // LiteDB is newer, but the release is the same and only SQLite has revision:
+        // revision in SQLite is kept, and others come from LiteDB
+        let project = get_project("same-release-litedb-is-newer");
+        assert_eq!(project.crated_at(), old_created);
+        assert_eq!(project.last_modified(), new_modified);
+        assert_eq!(project.project_type(), ProjectType::Avatars);
+        assert!(project.favorite());
+        assert_eq!(
+            project.unity_version(),
+            Some(UnityVersion::new_f1(2022, 3, 22))
+        );
+        assert_eq!(project.unity_revision(), Some(REVISION_2022));
+
+        // SQLite is newer, but the release is the same and only LiteDB has revision:
+        // revision comes from LiteDB, and others are kept
+        let project = get_project("same-release-sqlite-is-newer");
+        assert_eq!(project.crated_at(), new_created);
+        assert_eq!(project.last_modified(), new_modified);
+        assert_eq!(project.project_type(), ProjectType::Worlds);
+        assert!(!project.favorite());
+        assert_eq!(
+            project.unity_version(),
+            Some(UnityVersion::new_f1(2022, 3, 22))
+        );
+        assert_eq!(project.unity_revision(), Some(REVISION_2022));
+    }
+}
