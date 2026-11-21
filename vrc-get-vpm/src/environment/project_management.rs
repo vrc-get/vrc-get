@@ -539,49 +539,53 @@ impl<'io> ProjectManagement<'io> {
 
     pub async fn sync_with_real_projects_information(
         &mut self,
-        info: RealProjectInformation,
+        mut info: RealProjectInformation,
     ) -> Result<(), Error> {
         let conn = self.sqlite.conn.clone();
-        spawn_blocking(move || {
+        spawn_blocking!(captures(info), move || {
             let mut conn = conn.lock_arc();
             let tx = conn.transaction().map_err(Error::SQLite)?;
 
-            Self::sync_with_real_projects_information_impl(&tx, info)?;
+            Self::sync_with_real_projects_information_impl(&tx, &info)?;
 
             tx.commit().map_err(Error::SQLite)?;
             Ok(())
-        })
-        .await
-        .unwrap()?;
+        })?;
+
+        Self::sync_with_real_projects_information_impl_litedb(&mut self.litedb, &info)?;
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
 
         Ok(())
     }
 
     pub async fn sync_with_real_projects_informations(
         &mut self,
-        information: Vec<RealProjectInformation>,
+        mut information: Vec<RealProjectInformation>,
     ) -> Result<(), Error> {
         let conn = self.sqlite.conn.clone();
-        spawn_blocking(move || {
+        spawn_blocking!(captures(information), move || {
             let mut conn = conn.lock_arc();
             let tx = conn.transaction().map_err(Error::SQLite)?;
 
-            for info in information {
+            for info in &information {
                 Self::sync_with_real_projects_information_impl(&tx, info)?;
             }
 
             tx.commit().map_err(Error::SQLite)?;
             Ok(())
-        })
-        .await
-        .unwrap()?;
+        })?;
+
+        for info in information {
+            Self::sync_with_real_projects_information_impl_litedb(&mut self.litedb, &info)?;
+        }
+        self.litedb.save(self.io).await.map_err(Error::SaveLitedb)?;
 
         Ok(())
     }
 
     fn sync_with_real_projects_information_impl(
         tx: &rusqlite::Transaction,
-        info: RealProjectInformation,
+        info: &RealProjectInformation,
     ) -> Result<(), Error> {
         match info {
             RealProjectInformation::Valid(valid) => {
@@ -599,6 +603,35 @@ impl<'io> ProjectManagement<'io> {
                     .expect("prepare")
                     .execute([&info.path])
                     .map_err(Error::SQLite)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn sync_with_real_projects_information_impl_litedb(
+        litedb: &mut VccDatabaseConnection,
+        info: &RealProjectInformation,
+    ) -> Result<(), Error> {
+        match info {
+            RealProjectInformation::Valid(valid) => {
+                let Some(mut project) = (litedb.db)
+                    .get_by_index(COLLECTION, "Path", &Value::String(valid.path.clone()))
+                    .next()
+                    .cloned()
+                else {
+                    // The project only exists in vrc-get (SQLite); nothing to update.
+                    return Ok(());
+                };
+
+                project.insert(UNITY_VERSION, valid.unity_version.to_string());
+                project.insert(TYPE, valid.project_type as i32);
+
+                (litedb.db)
+                    .update(COLLECTION, vec![project])
+                    .expect("update");
+            }
+            RealProjectInformation::Invalid(_) => {
+                // is_valid is a vrc-get-only attribute, so no need to update litedb
             }
         }
         Ok(())
