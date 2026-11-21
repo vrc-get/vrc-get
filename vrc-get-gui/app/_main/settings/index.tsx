@@ -582,7 +582,7 @@ function DefaultProjectPathCard() {
 			/>
 			<ProjectPathWarnings projectPath={defaultProjectPath} />
 			<h3 className="mt-2">{tc("settings:projects:sync-mode")}</h3>
-			<p className={"whitespace-normal"}>
+			<p className={"whitespace-normal text-sm"}>
 				{tc("settings:projects:sync-mode:description")}
 			</p>
 			<ProjectSyncModeSelect projectListSyncMode={projectListSyncMode} />
