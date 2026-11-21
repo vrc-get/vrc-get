@@ -318,8 +318,6 @@
     "projects:dialog:migrate unity2022 patch description": "프로젝트를 Unity {{unity}} 버전으로 마이그레이션합니다.",
     "projects:manage:dialog:exact version unity not found for patch migration description": "마이그레이션에 권장되는 정확한 Unity {{unityMajor}} 버전을 찾을 수 없습니다.<br>Unity Hub에서 Unity {{unity}} 버전을 설치한 후 ALCOM을 다시 시작해 주세요.",
     "projects:manage:dialog:unity migrate finalizing...": "Unity {{unityMajor}} 버전을 백그라운드에서 실행하여 마이그레이션을 마무리하는 중입니다...",
-    "projects:toast:unity migrate failed by unity not found": "프로젝트 마이그레이션에 실패했습니다: Unity 2022 버전을 찾을 수 없습니다.",
-    "projects:toast:unity migration finalize failed by unity not found": "마이그레이션을 완료하지 못했습니다: Unity 2022 버전을 찾을 수 없습니다.",
     "projects:toast:unity migrated": "프로젝트를 Unity {{unityMajor}} 버전으로 마이그레이션했습니다.",
 
     "projects:manage:dialog:confirm changes description": "이 프로젝트에 다음 변경 사항을 적용하려고 합니다.",

@@ -312,8 +312,6 @@
     "projects:dialog:migrate unity2022 patch description": "项目将被迁移至 Unity {{unity}}。",
     "projects:manage:dialog:exact version unity not found for patch migration description": "我们无法找到正确的 Unity 版本用于修补迁移。请使用 Unity Hub 安装 Unity {{unity}}，然后重新启动 ALCOM。",
     "projects:manage:dialog:unity migrate finalizing...": "正在后台启动 Unity 以完成迁移...",
-    "projects:toast:unity migrate failed by unity not found": "迁移项目失败： 未找到 Unity 2022",
-    "projects:toast:unity migration finalize failed by unity not found": "未能完成迁移： 未找到 Unity 2022",
     "projects:toast:unity migrated": "项目已迁移至 Unity {{unityMajor}}",
 
     "projects:manage:dialog:confirm changes description": "您正在对项目进行以下更改。",

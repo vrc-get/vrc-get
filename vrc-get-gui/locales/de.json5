@@ -318,8 +318,6 @@
     "projects:dialog:migrate unity2022 patch description": "Das Projekt wird zu Unity {{unity}} migriert.",
     "projects:manage:dialog:exact version unity not found for patch migration description": "Wir konnten nicht die genaue Unity {{unityMajor}} Version finden. <br>Bitte installiere Unity {{unity}} über Unity Hub und starte ALCOM neu.",
     "projects:manage:dialog:unity migrate finalizing...": "Starte Unity {{unityMajor}} im Hintergrund, um die Migration abzuschließen...",
-    "projects:toast:unity migrate failed by unity not found": "Fehler beim Migrieren: Unity 2022 nicht gefunden",
-    "projects:toast:unity migration finalize failed by unity not found": "Fehler beim Abschluss der Migration: Unity 2022 nicht gefunden",
     "projects:toast:unity migrated": "Das Projekt wurde zu Unity {{unityMajor}} migriert",
 
     "projects:manage:dialog:confirm changes description": "Du bist dabei, die folgenden Änderungen vorzunehmen",

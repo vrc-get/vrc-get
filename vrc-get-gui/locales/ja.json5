@@ -313,8 +313,6 @@
     "projects:dialog:migrate unity2022 patch description": "プロジェクトをUnity {{unity}}に移行します。",
     "projects:manage:dialog:exact version unity not found for patch migration description": "推奨バージョンに一致するUnity {{unityMajor}}が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
     "projects:manage:dialog:unity migrate finalizing...": "Unity {{unityMajor}}をバックグラウンドで起動し、移行の完了処理を行っています...",
-    "projects:toast:unity migrate failed by unity not found": "プロジェクト移行に失敗しました: Unity 2022がありません",
-    "projects:toast:unity migration finalize failed by unity not found": "プロジェクト移行の完了処理を行えませんでした: Unity 2022がありません",
     "projects:toast:unity migrated": "プロジェクトをUnity {{unityMajor}}に移行しました。",
 
     "projects:manage:dialog:confirm changes description": "このプロジェクトに以下の変更を加えようとしています。",
