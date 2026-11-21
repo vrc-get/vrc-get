@@ -150,13 +150,16 @@ export function parseUnityVersion(version: string): UnityVersion | null {
 
 /**
  * Returns the release stream name of the unity version used in messages.
- * e.g. "2022" for 2022.3.22f1 and "6000.0" for 6000.0.58f2
+ * e.g. "2022" for 2022.3.22f1 and "6.0" for 6000.0.58f2
  */
 export function unityMajorName(version: string): string {
 	const parsed = parseUnityVersion(version);
 	if (parsed == null) return version;
 	// Since Unity 6, minor version is a separate release stream.
-	if (parsed.major >= 6000) return (parsed.major % 1000) === 0 ? `${parsed.major / 1000}.${parsed.minor}` : `${parsed.major}.${parsed.minor}`;
+	if (parsed.major >= 6000)
+		return parsed.major % 1000 === 0
+			? `${parsed.major / 1000}.${parsed.minor}`
+			: `${parsed.major}.${parsed.minor}`;
 	return `${parsed.major}`;
 }
 

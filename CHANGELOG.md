@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog].
 - VPM Repositories with invalid version name will be accepted `#3325`
   - Package versions with invalid version names wll be ignored instead.
 - VCC 2.5.0 Features compatibility `#3336`
-  - This release adds Unity 6000.0 VRCSDK support.
+  - This release adds Unity 6.0 VRCSDK support.
 
 ### Deprecated
 

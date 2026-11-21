@@ -427,7 +427,7 @@ function MigrationCards({
 			{isMigrationTo6000_0Recommended && (
 				<SuggestMajorMigrationCard
 					currentUnity="2022"
-					targetUnity="6000.0"
+					targetUnity="6.0"
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -439,7 +439,7 @@ function MigrationCards({
 			)}
 			{is6000_0PatchMigrationRecommended && (
 				<SuggestPatchMigrationCard
-					unityMajor="6000.0"
+					unityMajor="6.0"
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
