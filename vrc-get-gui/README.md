@@ -109,7 +109,10 @@ Check `--help` for the list of supported bundle types.
 
 ALCOM is currently based on tauri and next.js.
 
-Run `npm run tauri dev` to start the development server and gui.
+Run `cargo xtask dev-alcom` to start the development server and gui.
+While it's running, enter `r` to rebuild and restart ALCOM, or `q` to quit.
+
+Alternatively, you can use `npm run tauri dev` to use tauri cli for development.
 
 ## Contribution
 
