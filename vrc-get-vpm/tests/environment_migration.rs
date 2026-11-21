@@ -72,7 +72,7 @@ fn object_id(bytes: &[u8; 12]) -> vrc_get_litedb::bson::ObjectId {
 const VCC_LITEDB: &str = "vcc.liteDb";
 const VRC_GET_SQLITE: &str = "vrc-get/vrc-get.db";
 const SETTINGS_JSON: &str = "settings.json";
-//const VRC_GET_SETTINGS: &str = "vrc-get/settings.json";
+const VRC_GET_SETTINGS: &str = "vrc-get/settings.json";
 
 macro_rules! test_settings_json_with_projects {
     ($env_projects_str: expr$(,)?) => {
@@ -1012,9 +1012,7 @@ async fn sqlite_litedb_sync() {
                 ProjectListMismatch::OnlyInVcc {
                     path: normalize_path(format!("{env_projects_str}/litedb-good")),
                 },
-                ProjectListMismatch::OnlyInVrcGet {
-                    path: normalize_path(format!("{env_projects_str}/sqlite-only-no-id")),
-                },
+                // sqlite-only-no-id has never been live in LiteDB, so it's not a mismatch
                 ProjectListMismatch::OnlyInVrcGet {
                     path: normalize_path(format!("{env_projects_str}/sqlite-only-with-id")),
                 },
@@ -1084,10 +1082,9 @@ async fn sqlite_litedb_sync() {
                     //
                     &normalize_path(format!("{env_projects_str}/litedb-good")),
                 ],
-                &[
-                    &normalize_path(format!("{env_projects_str}/sqlite-only-no-id")),
-                    &normalize_path(format!("{env_projects_str}/sqlite-only-with-id")),
-                ],
+                &[&normalize_path(format!(
+                    "{env_projects_str}/sqlite-only-with-id"
+                ))],
                 &[],
                 &[&normalize_path(format!(
                     "{env_projects_str}/both-conflict-0-id-conflicter"
@@ -1101,11 +1098,10 @@ async fn sqlite_litedb_sync() {
         eprintln!("iteration: {iteration}");
         let manage = ProjectManagement::start(io).await.unwrap(); // does migration
 
-        let project_list = defined_projects_in_settings_json!(
+        let litedb_project_list = defined_projects_in_settings_json!(
             env_projects_str,
             additional_projects = [
                 format!("{env_projects_str}/litedb-good"),
-                format!("{env_projects_str}/sqlite-only-no-id"),
                 format!("{env_projects_str}/sqlite-only-with-id"),
                 format!("{env_projects_str}/id-mismatch"),
                 format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
@@ -1115,16 +1111,24 @@ async fn sqlite_litedb_sync() {
                 format!("{env_projects_str}/both-conflict-1-id-conflicter"),
             ],
         );
+        // sqlite-only-no-id is vrc-get only project so it's not in LiteDB
+        let sqlite_project_list = sorted(
+            (litedb_project_list.iter().cloned())
+                .chain([normalize_path(format!(
+                    "{env_projects_str}/sqlite-only-no-id"
+                ))])
+                .collect(),
+        );
 
         // check data
         assert_eq!(
             load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
-            project_list,
+            sqlite_project_list,
         );
 
         assert_eq!(
             load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
-            project_list,
+            litedb_project_list,
         );
 
         let get_project = |name: &str| {
@@ -1139,6 +1143,9 @@ async fn sqlite_litedb_sync() {
             Some(object_id(b"sqlite-only "))
         );
 
+        let sqlite_only_no_id = get_project("sqlite-only-no-id").unwrap();
+        assert_eq!(sqlite_only_no_id.litedb_objectid(), None);
+
         assert!(get_project("both-conflict-0-id-conflicter").is_none());
     }
 
@@ -1149,6 +1156,116 @@ async fn sqlite_litedb_sync() {
             vec![]
         );
     }
+}
+
+/// Projects without litedb_objectid have never been live in LiteDB, so they're vrc-get only
+/// projects rather than a mismatch. Automatic sync modes must neither remove them from SQLite
+/// nor add them to LiteDB.
+///
+/// `sqlite_only_with_id_kept`: whether projects once live in LiteDB but no longer exist there
+/// are restored (ProjectsUnion) or removed (TrustLitedb).
+async fn sqlite_litedb_sync_auto_mode(
+    env_dir: PathBuf,
+    env_projects: PathBuf,
+    mode: &str,
+    sqlite_only_with_id_kept: bool,
+) {
+    common::init_log();
+    let env_projects_str = env_projects.to_str().unwrap();
+    sqlite_migrations_with_projects_in_database_prepare(&env_dir, env_projects_str).await;
+    std::fs::write(
+        env_dir.join(VRC_GET_SETTINGS),
+        format!(r#"{{"projectListSyncMode": "{mode}"}}"#),
+    )
+    .unwrap();
+    let io = &DefaultEnvironmentIo::new(env_dir.clone().into());
+
+    for iteration in 0..2 {
+        eprintln!("iteration: {iteration}");
+        let manage = ProjectManagement::start(io).await.unwrap(); // does migration
+
+        let mut litedb_project_list = defined_projects_in_settings_json!(
+            env_projects_str,
+            additional_projects = [
+                format!("{env_projects_str}/litedb-good"),
+                format!("{env_projects_str}/id-mismatch"),
+                format!("{env_projects_str}/path-mismatch-0-sqlite-is-newer-sqlite"),
+                format!("{env_projects_str}/path-mismatch-1-litedb-is-newer-litedb"),
+                format!("{env_projects_str}/both-conflict-0-path-conflicter"),
+                format!("{env_projects_str}/both-conflict-1-path-conflicter"),
+                format!("{env_projects_str}/both-conflict-1-id-conflicter"),
+            ],
+        );
+        if sqlite_only_with_id_kept {
+            litedb_project_list.extend([
+                normalize_path(format!("{env_projects_str}/sqlite-only-with-id")),
+                normalize_path(format!("{env_projects_str}/both-conflict-0-id-conflicter")),
+            ]);
+            litedb_project_list.sort();
+        }
+        let sqlite_project_list = sorted(
+            (litedb_project_list.iter().cloned())
+                .chain([normalize_path(format!(
+                    "{env_projects_str}/sqlite-only-no-id"
+                ))])
+                .collect(),
+        );
+
+        assert_eq!(
+            load_projects_in_sqlite(env_dir.join(VRC_GET_SQLITE)),
+            sqlite_project_list,
+        );
+        assert_eq!(
+            load_projects_in_litedb(&std::fs::read(env_dir.join(VCC_LITEDB)).unwrap()),
+            litedb_project_list,
+        );
+        assert_eq!(
+            sorted(manage.find_project_list_mismatch().await.unwrap()),
+            vec![]
+        );
+
+        let get_project = |name: &str| {
+            manage
+                .find_project(&format!("{env_projects_str}/{name}"))
+                .unwrap()
+        };
+
+        // never been in LiteDB: kept as vrc-get only project
+        let sqlite_only_no_id = get_project("sqlite-only-no-id").unwrap();
+        assert_eq!(sqlite_only_no_id.litedb_objectid(), None);
+
+        // once been in LiteDB but no longer exists
+        assert_eq!(
+            get_project("sqlite-only-with-id").is_some(),
+            sqlite_only_with_id_kept
+        );
+        assert_eq!(
+            get_project("both-conflict-0-id-conflicter").is_some(),
+            sqlite_only_with_id_kept
+        );
+    }
+}
+
+#[tokio::test]
+async fn sqlite_litedb_sync_trust_litedb() {
+    sqlite_litedb_sync_auto_mode(
+        get_temp_path("environment"),
+        get_temp_path("env_projects"),
+        "TrustLitedb",
+        false,
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn sqlite_litedb_sync_projects_union() {
+    sqlite_litedb_sync_auto_mode(
+        get_temp_path("environment"),
+        get_temp_path("env_projects"),
+        "ProjectsUnion",
+        true,
+    )
+    .await;
 }
 
 /// Tests for how metadata is merged when a project exists on both SQLite and LiteDB.

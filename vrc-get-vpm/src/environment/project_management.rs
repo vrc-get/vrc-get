@@ -79,7 +79,8 @@ pub struct ProjectManagement<'io> {
 /// Therefore, we need to synchronize the project list between SQLite and LiteDB as necessary.
 /// This enum specifies the mode for synchronizing projects between SQLite and LiteDB.
 ///
-/// In both modes, projects that do not have `litedb_objectid` column will not be removed.
+/// In all modes, projects that do not have `litedb_objectid` column are not treated as
+/// a mismatch, so they will neither be removed nor added to LiteDB.
 /// `litedb_objectid` will be set when projects are live in LiteDB.
 #[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum SyncWithLitedbMode {
@@ -1219,8 +1220,16 @@ impl<'io> ProjectManagement<'io> {
 
             // this is read transaction
             let tx = conn.transaction().map_err(Error::SQLite)?;
+            // Projects without litedb_objectid have never been live in LiteDB, so their
+            // absence from LiteDB is not a mismatch. Such projects are vrc-get only projects.
+            // (If LiteDB has a project at the same path, sync_with_litedb has already
+            // set litedb_objectid, so we never miss projects existing on both sides.)
             let mut stmt = tx
-                .prepare("SELECT path FROM projects ORDER BY path COLLATE BINARY")
+                .prepare(
+                    "SELECT path FROM projects \
+                    WHERE litedb_objectid IS NOT NULL \
+                    ORDER BY path COLLATE BINARY",
+                )
                 .expect("prepare select projects");
 
             // both rows and litedb_iter are ordered lexicographicaly by path
