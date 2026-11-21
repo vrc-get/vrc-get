@@ -21,6 +21,8 @@ fn main() {
 fn build_templates() {
     let out_dir = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
 
+    println!("cargo::rerun-if-changed=project-templates/list.txt");
+
     let templates =
         std::fs::read_to_string(std::path::Path::new("project-templates/list.txt")).unwrap();
 

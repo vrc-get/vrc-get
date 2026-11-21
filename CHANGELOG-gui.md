@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog].
   - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
 - The position of the main window is now reserved `#3316`
   - This is not supported on Wayland since the position of windows is managed by the compositor.
+- VCC 2.5.0 Features compatibility `#3336`
+  - This release adds Unity 6000.0 VRCSDK support.
 - `alcom://` URL scheme as an ALCOM-specific alias of `vcc://` `#3334`
   - This is intended for repositories entirely depends on vrc-get extension of VPM.
   - This is registered automatically on macOS, Windows, and linux package manager distributions.
@@ -35,6 +37,8 @@ The format is based on [Keep a Changelog].
 - Show the backup file name in the toast shown after creating a backup `#3279`
 - Reverted part of logic for MSIX version of Unity Hub, that are no longer necessary for Unity Hub 4.0 `#3321`
   - ALCOM had support for sandboxed AppData, but Unity has disabled sandboxed AppData in Unity Hub 4.0.
+- VPM Repositories with invalid version name will be accepted `#3325`
+  - Package versions with invalid version names wll be ignored instead.
 
 ### Deprecated
 
@@ -49,6 +53,7 @@ The format is based on [Keep a Changelog].
 - GUI Crashes on error with "Reload Unity from Unity Hub" `#3322`
 - Unity 2021.3.45f2 could not be added because its version string was rejected as invalid `#3204`
 - AppImage doesn't function on distributions without systemd `#3323`
+- Project backups now honor the low and high ZIP compression settings `#3324`
 
 ### Security
 

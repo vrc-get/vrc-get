@@ -39,6 +39,7 @@
     "general:error:failed to create dir missing drive": "Не удалось создать каталог. Возможно, диск не подключен.",
 
     "general:created at": "Добавлено",
+
     "general:last modified": "Последнее изменение",
     "general:last modified:moments": "Только что",
     "general:last modified:minutes_one": "{{count}} минуту назад",
@@ -61,6 +62,7 @@
     "setup:entry:welcome description": "ALCOM - это помощник с открытым исходным кодом для авторов VRChat и других Unity-проектов.",
     "setup:next": "Далее",
     "setup:back": "Назад",
+//    "setup:new-setting-is-added": "Новая настройка добавлена!", // unused
 
     "setup:steps card:Appearance": "Внешний вид",
     "setup:appearance:heading": "Внешний вид",
@@ -117,7 +119,7 @@
     "projects:grid view": "Сетка",
     "projects:sort by": "Сортировать по:",
     "projects:error:load error": "Ошибка загрузки проектов: {{msg}}",
-    "projects:error:noexec filesystem": "Проект находится на файловой системе, смонтированной с флагом 'noexec'. Это не позволяет Unity загружать нативные плагины, что может привести к некорректной работе или повреждению ресурсов. Переместите проект на файловую систему без флага 'noexec'.",
+    "projects:error:noexec filesystem": "Проект находится на файловой системе, смонтированной с флагом 'noexec'. Это не позволяет Unity загружать нативные плагины, что может привести to некорректной работе или повреждению ресурсов. Переместите проект на файловую систему без флага 'noexec'.",
     "projects:toast:project added": "Проект успешно добавлен.",
     "projects:toast:project already exists": "Проект уже добавлен.",
 
@@ -147,7 +149,7 @@
     "projects:template-category:builtin": "Встроенные",
     "projects:template-category:alcom": "Пользовательские шаблоны",
     "projects:template-category:vcc": "Шаблоны VCC",
-    "projects:template-name:avatars": "VRChat Avatars",
+    "projects:template-name:avatars": "VRChat Avatары",
     "projects:template-name:worlds": "VRChat Worlds",
     "projects:template-name:blank": "Пустой",
     "projects:template:unity version": "Версия Unity:",
@@ -237,9 +239,12 @@
     "projects:manage:suggest unity migration": "Ваш проект использует Unity 2019, которая больше не поддерживается VRChat SDK. VRChat рекомендует мигрировать проект на Unity 2022.",
     "projects:manage:suggest unity patch migration": "Ваш проект использует немного устаревшую версию Unity 2022. VRChat рекомендует мигрировать проект на более новую версию Unity 2022.",
     "projects:manage:suggest unity china to international migration": "Ваш проект использует китайскую версию Unity. Для лучшей совместимости с VRChat рекомендуется использовать международную версию Unity.",
+    "projects:manage:suggest unity 6000.0 migration": "Ваш проект использует Unity 2022, которая больше не поддерживается VRChat SDK. VRChat рекомендует мигрировать проект на Unity 6000.0.",
+    "projects:manage:suggest unity 6000.0 patch migration": "Ваш проект использует немного устаревшую версию Unity 6000.0. VRChat рекомендует мигрировать проект на более новую версию Unity 6000.0.",
     "projects:manage:button:unity migrate": "Мигрировать проект",
 
     "projects:manage:manage packages": "Управление пакетами",
+    "projects:manage:hidden packages": "Скрытые пакеты",
     "projects:manage:tooltip:refresh packages": "Обновить пакеты",
     "projects:manage:button:upgrade all": "Обновить все (последние)",
     "projects:manage:button:upgrade all stable": "Обновить все (стабильные)",
@@ -247,7 +252,6 @@
     "projects:manage:button:package filters": "Фильтры пакетов",
     "projects:manage:menu:repository filter": "Фильтр репозиториев",
     "projects:manage:menu:other filters": "Другие фильтры",
-    "projects:manage:hidden packages": "Скрытые пакеты",
     "projects:manage:package": "Пакет",
     "projects:manage:installed": "Установлено",
     "projects:manage:latest": "Последняя версия",
@@ -533,6 +537,7 @@
 
     "settings:show prerelease": "Показывать предрелизные пакеты",
     "settings:show prerelease description": "При включении этой опции предрелизные пакеты будут отображаться в списке пакетов. Кроме того, предрелизные пакеты будут использоваться при разрешении зависимостей.",
+
     "settings:dialog:show prerelease packages": "Показать предрелизные пакеты",
     "settings:dialog:show prerelease packages description": "Предрелизные пакеты могут содержать больше ошибок, чем стабильные пакеты.<br>Вы уверены, что хотите показывать предрелизные пакеты?",
     "settings:dialog:enable show prerelease packages": "Показать",
@@ -565,6 +570,7 @@
 
     "check update:dialog:title": "Обновления ALCOM",
     "check update:dialog:new version description": "Доступна новая версия ALCOM.",
+    // note: мы можем удалить сборку для macOS x86_64 позже. Это подготовка к этому удалению
     "check update:dialog:new version no platform description": "Доступна новая версия ALCOM, но ваша платформа больше не поддерживается.<br>Если ваша система поддерживает сборку для другой платформы, загрузите ее вручную.",
     "check update:dialog:new version not updatable description": "Доступна новая версия ALCOM.<br>Однако это приложение нельзя обновить автоматически.<br>Пожалуйста, установите новую версию вручную.",
     "check update:dialog:new version updater disabled base description": "Доступна новая версия ALCOM.",

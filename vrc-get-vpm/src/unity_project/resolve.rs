@@ -163,14 +163,26 @@ impl UnityProject {
 
         for (name, range) in self.manifest.dependencies() {
             if self.manifest.get_locked(name).is_none() {
-                if let Some(pkg) = env.find_package_by_name(
-                    name,
-                    VersionSelector::range_for(
-                        Some(self.unity_version()),
-                        &range.as_range(),
-                        PrereleaseAcceptance::allow_or_minimum(range.as_range().contains_pre()),
-                    ),
-                ) {
+                if let Some(pkg) = env
+                    .find_package_by_name(
+                        name,
+                        VersionSelector::range_for(
+                            Some(self.unity_version()),
+                            &range.as_range(),
+                            PrereleaseAcceptance::allow_or_minimum(range.as_range().contains_pre()),
+                        ),
+                    )
+                    .or_else(|| {
+                        env.find_package_by_name(
+                            name,
+                            VersionSelector::range_for(
+                                Some(self.unity_version()),
+                                &range.as_range(),
+                                PrereleaseAcceptance::Allow,
+                            ),
+                        )
+                    })
+                {
                     to_install.push(pkg);
                 } else {
                     missing_dependencies.add(name, &range.as_range());

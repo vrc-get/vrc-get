@@ -7,16 +7,14 @@
  * file, You can obtain one at http://mozilla.org.
  */
 
-use crate::io::{BufReader, DefaultProjectIo, IoTrait};
-use crate::utils::walk_dir_relative;
+use crate::io::{DefaultProjectIo, IoTrait};
+use crate::utils::{Guid, find_assets, try_parse_meta};
 use crate::{PackageInfo, PackageManifest, UnityProject};
 use futures::StreamExt;
-use futures::prelude::*;
 use futures::stream::FuturesUnordered;
-use hex::FromHex;
 use log::debug;
 use std::collections::HashMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 
@@ -193,54 +191,23 @@ async fn check_guid(io: &DefaultProjectIo, path: &Path, guid: Option<Guid>) -> b
     true
 }
 
-async fn try_parse_meta(io: &DefaultProjectIo, path: &Path) -> Option<Guid> {
-    let mut file = BufReader::new(io.open(path).await.ok()?);
-    let mut buffer = String::new();
-    while file.read_line(&mut buffer).await.ok()? != 0 {
-        let line = buffer.as_str();
-        if let Some(guid) = line.strip_prefix("guid: ") {
-            // current line should be line for guid.
-            return Guid::parse(guid.trim());
-        }
-
-        buffer.clear()
-    }
-    None
-}
-
 async fn find_legacy_assets_by_guid<'a>(
     io: &DefaultProjectIo,
     mut find_guids: HashMap<Guid, (&'a str, bool)>,
     found_files: &mut HashMap<Box<Path>, &'a str>,
     found_folders: &mut HashMap<Box<Path>, &'a str>,
 ) {
-    async fn get_guid(io: &DefaultProjectIo, relative: PathBuf) -> Option<(Guid, bool, PathBuf)> {
-        if relative.extension() != Some(OsStr::new("meta")) {
-            None
-        } else if let Some(guid) = try_parse_meta(io, &relative).await {
-            // remove .meta extension
-            let mut path = relative;
-            path.set_extension("");
+    let mut stream = pin!(find_assets(io));
 
-            let is_file = io.metadata(&path).await.ok()?.is_file();
-            Some((guid, is_file, path))
-        } else {
-            None
-        }
-    }
-
-    let mut stream =
-        pin!(walk_dir_relative(io, [PathBuf::from("Assets")]).filter_map(|(x, _)| get_guid(io, x)));
-
-    while let Some((guid, is_file_actual, relative)) = stream.next().await {
-        if let Some(&(package_name, is_file)) = find_guids.get(&guid)
-            && is_file_actual == is_file
+    while let Some(asset) = stream.next().await {
+        if let Some(&(package_name, is_file)) = find_guids.get(&asset.guid)
+            && asset.is_file == is_file
         {
-            find_guids.remove(&guid);
+            find_guids.remove(&asset.guid);
             if is_file {
-                found_files.insert(relative.into_boxed_path(), package_name);
+                found_files.insert(asset.path.into_boxed_path(), package_name);
             } else {
-                found_folders.insert(relative.into_boxed_path(), package_name);
+                found_folders.insert(asset.path.into_boxed_path(), package_name);
             }
         }
     }
@@ -276,13 +243,4 @@ impl<'a> DefinedLegacyInfo<'a> {
 enum LegacySearchResult<'a> {
     FoundWithPath(&'a str, Box<Path>, bool),
     SearchWithGuid(&'a str, Guid, bool),
-}
-
-#[derive(Copy, Clone, Hash, Eq, PartialEq)]
-struct Guid([u8; 16]);
-
-impl Guid {
-    fn parse(guid: &str) -> Option<Guid> {
-        FromHex::from_hex(guid).ok().map(Guid)
-    }
 }
