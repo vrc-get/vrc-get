@@ -22,7 +22,13 @@ import { createProject } from "@/app/_main/projects/-create-project";
 import { MismatchDialogContent } from "@/app/_main/projects/-project-list-mismatch";
 import { ProjectsGridCard } from "@/app/_main/projects/-projects-grid-card";
 import Loading from "@/app/-loading";
-import { HNavBar, HNavBarText, VStack } from "@/components/layout";
+import {
+	HNavBar,
+	HNavBarButton,
+	HNavBarElementSlot,
+	HNavBarText,
+	VStack,
+} from "@/components/layout";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -226,8 +232,7 @@ function ProjectViewHeader({
 					<HNavBarText>{tc("projects")}</HNavBarText>
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<Button
-								className={"compact:h-10 compact:w-10"}
+							<HNavBarButton
 								variant={"ghost"}
 								size={"icon"}
 								onClick={() =>
@@ -240,20 +245,21 @@ function ProjectViewHeader({
 								) : (
 									<RefreshCw className={"w-5 h-5"} />
 								)}
-							</Button>
+							</HNavBarButton>
 						</TooltipTrigger>
 						<TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
 					</Tooltip>
 
-					<SearchBox
-						className={"w-max grow compact:h-10"}
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						ref={searchRef}
-					/>
+					<HNavBarElementSlot>
+						<SearchBox
+							className={"w-max grow"}
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							ref={searchRef}
+						/>
+					</HNavBarElementSlot>
 
-					<Button
-						className={"compact:h-10"}
+					<HNavBarButton
 						variant={"ghost"}
 						onClick={() => {
 							if (viewMode === "List") {
@@ -279,26 +285,28 @@ function ProjectViewHeader({
 								<p className="ml-2">{tc("projects:list view")}</p>
 							</>
 						)}
-					</Button>
+					</HNavBarButton>
 				</>
 			}
 			trailing={
 				<DropdownMenu>
 					<div className={"flex divide-x"}>
-						<Button
-							className={"rounded-r-none pl-4 pr-3 compact:h-10"}
+						<HNavBarButton
+							className={"rounded-r-none pl-4 pr-3"}
 							onClick={startCreateProject}
 						>
 							{tc("projects:create new project")}
-						</Button>
-						<DropdownMenuTrigger
-							asChild
-							className={"rounded-l-none pl-2 pr-2 compact:h-10"}
-						>
-							<Button>
-								<ChevronDown className={"w-4 h-4"} />
-							</Button>
-						</DropdownMenuTrigger>
+						</HNavBarButton>
+						<HNavBarElementSlot>
+							<DropdownMenuTrigger
+								asChild
+								className={"rounded-l-none pl-2 pr-2"}
+							>
+								<Button>
+									<ChevronDown className={"w-4 h-4"} />
+								</Button>
+							</DropdownMenuTrigger>
+						</HNavBarElementSlot>
 					</div>
 					<DropdownMenuContent>
 						<DropdownMenuItem onClick={() => addProjectWithPicker.mutate()}>

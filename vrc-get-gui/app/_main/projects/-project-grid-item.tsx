@@ -69,7 +69,7 @@ export function ProjectGridItem({
 		<ProjectContext.Provider
 			value={{ removed, is_valid, loading: Boolean(loading) }}
 		>
-			<Card className="relative p-4 bg-card flex flex-col gap-2 group compact:p-2 compact:pl-3 compact:gap-1">
+			<Card className="relative p-3 bg-card flex flex-col gap-2 group compact:p-2 compact:pl-3 compact:gap-1">
 				<div className={"absolute top-2 right-2 gap-2 flex"}>
 					<div className="relative content-center">
 						<FavoriteStarToggleButton

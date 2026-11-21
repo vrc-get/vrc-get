@@ -18,9 +18,13 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDownFromLine } from "lucide-react";
 import { useRef, useState } from "react";
-import { HNavBar, HNavBarText, VStack } from "@/components/layout";
+import {
+	HNavBar,
+	HNavBarButton,
+	HNavBarText,
+	VStack,
+} from "@/components/layout";
 import { SearchBox } from "@/components/SearchBox";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DropdownMenu,
@@ -178,9 +182,9 @@ function ManageLogsHeading({
 				<>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button className={"shrink-0 p-3 compact:h-10"}>
+							<HNavBarButton className={"shrink-0 p-3"}>
 								{tc("logs:manage:select logs level")}
-							</Button>
+							</HNavBarButton>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>
 							<LogLevelMenuItem
@@ -215,8 +219,7 @@ function ManageLogsHeading({
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					<Button
-						className={"compact:h-10"}
+					<HNavBarButton
 						onClick={() =>
 							commands.utilOpen(
 								`${globalInfo.vpmHomeFolder}/vrc-get/gui-logs`,
@@ -225,21 +228,21 @@ function ManageLogsHeading({
 						}
 					>
 						{tc("settings:button:open logs")}
-					</Button>
+					</HNavBarButton>
 
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<Button
+							<HNavBarButton
 								variant={"ghost"}
 								onClick={() => handleLogAutoScrollChange(!autoScroll)}
-								className={`compact:h-10 ${
+								className={
 									autoScroll
 										? "bg-secondary border border-primary"
 										: "bg-transparent"
-								}`}
+								}
 							>
 								<ArrowDownFromLine className={"w-5 h-5"} />
-							</Button>
+							</HNavBarButton>
 						</TooltipTrigger>
 						<TooltipContent>{tc("logs:manage:auto scroll")}</TooltipContent>
 					</Tooltip>

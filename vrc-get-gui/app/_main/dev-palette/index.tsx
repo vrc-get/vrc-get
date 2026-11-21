@@ -48,7 +48,7 @@ function Page() {
 			/>
 			<ScrollPageContainer>
 				<main className="flex flex-col gap-2 shrink grow">
-					<Card className={"shrink-0 p-4"}>
+					<Card className={"shrink-0 p-3"}>
 						<h2 className={"pb-2"}>File Selector</h2>
 						<div className={"flex gap-1 items-center"}>
 							<Input
