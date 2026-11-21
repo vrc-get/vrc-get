@@ -93,6 +93,12 @@ Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories"; ValueType: s
 Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
 Root: HKA; Subkey: "Software\Classes\Anatawa12.ALCOM.Repositories\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
 
+; alcom: URL scheme. This is unique to ALCOM so we always register, unlike vcc: which is registered by ALCOM itself on demand.
+Root: HKA; Subkey: "Software\Classes\alcom"; ValueType: string; ValueName: ""; ValueData: "URL:ALCOM Protocol"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\alcom"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\alcom\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKA; Subkey: "Software\Classes\alcom\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" link ""%1"""
+
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon

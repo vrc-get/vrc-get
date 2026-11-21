@@ -76,7 +76,9 @@ function Body({ environment }: BodyProps) {
 		},
 	});
 
-	const isMac = useGlobalInfo().osType === "Darwin";
+	const globalInfo = useGlobalInfo();
+	const isMac = globalInfo.osType === "Darwin";
+	const registersAlcomScheme = globalInfo.registersAlcomScheme;
 
 	return (
 		<>
@@ -89,10 +91,18 @@ function Body({ environment }: BodyProps) {
 								setUseAlcomForVccProtocol.mutate(e === true)
 							}
 						/>
-						{tc("settings:use alcom for vcc scheme")}
+						{tc(
+							registersAlcomScheme
+								? "settings:register vcc and alcom scheme handlers"
+								: "settings:use alcom for vcc scheme",
+						)}
 					</label>
 					<p className={"text-sm whitespace-normal text-muted-foreground"}>
-						{tc("setup:system-setting:vcc scheme description")}
+						{tc(
+							registersAlcomScheme
+								? "setup:system-setting:vcc and alcom scheme description"
+								: "setup:system-setting:vcc scheme description",
+						)}
 					</p>
 				</div>
 			) : (

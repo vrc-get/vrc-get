@@ -159,6 +159,7 @@ export type GlobalInfo = {
 	checkForUpdates: boolean,
 	setupPages: ([SetupPages, string])[],
 	shouldInstallDeepLink: boolean,
+	registersAlcomScheme: boolean,
 };
 
 /**  Errors that is expected to be handled on the GUI side */

@@ -92,6 +92,7 @@
     "setup:steps card:SystemSetting": "System Config",
     "setup:system-setting:heading": "System Configurations",
     "setup:system-setting:vcc scheme description": "You can use ALCOM for vcc:// scheme instead of VCC to install repository to your PC. ALCOM and VCC will shares the same repository list but using ALCOM will give you quick installation without opening VCC.",
+    "setup:system-setting:vcc and alcom scheme description": "You can use ALCOM for vcc:// and alcom:// schemes to install repository to your PC.",
     "setup:system-setting:macos bug message": "There is nothing to configure on macOS. (This page should not be shown, showing this page is a bug)",
     "setup:system-setting:hostname-with-non-ascii": "Your hostname (PC Name) contains non-ASCII characters. This may cause problems with Unity 2022.<br/>It's highly recommended to change your PC Name to ASCII characters.",
 
@@ -586,8 +587,11 @@
 
     "settings:use alcom for vcc scheme": "Use ALCOM for <code>vcc:</code> URL Scheme",
     "settings:use vcc scheme description": "The <code>vcc:</code> URL scheme is used to open VCC to add a repository from web browsers.<br>As an alternative to the VCC, you can use ALCOM as an application to add repository from web browsers.<br>If this is enabled, ALCOM will register <code>vcc:</code> URL scheme handler on startup.<br>After (re)installing/upgrading VCC, you need to re-start ALCOM or manually register with button above to override VCC's registration.",
+    "settings:register vcc and alcom scheme handlers": "Register <code>vcc:</code> and <code>alcom:</code> URL Scheme Handlers",
+    "settings:register vcc and alcom scheme handlers description": "The <code>vcc:</code> and <code>alcom:</code> URL schemes are used to add a repository from web browsers.<br>You can use ALCOM as an application to add repository from web browsers.<br>If this is enabled, ALCOM will register <code>vcc:</code> and <code>alcom:</code> URL scheme handlers on startup.",
     "settings:register vcc scheme now": "Register URL Scheme Handler Now",
     "settings:toast:vcc scheme installed": "ALCOM was registered as the <code>vcc:</code> URL scheme handler.",
+    "settings:toast:vcc and alcom scheme installed": "ALCOM was registered as the <code>vcc:</code> and <code>alcom:</code> URL scheme handler.",
 
     "settings:licenses": "Licenses",
     "settings:licenses description": "Click <l>here</l> to view licenses of the projects used in ALCOM.",

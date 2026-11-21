@@ -12,6 +12,7 @@
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>vcc</string>
+                <string>alcom</string>
             </array>
         </dict>
     </array>

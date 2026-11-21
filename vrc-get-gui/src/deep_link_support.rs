@@ -30,7 +30,7 @@ enum DeepLink {
 }
 
 fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
-    if deep_link.scheme() != "vcc" {
+    if deep_link.scheme() != "vcc" && deep_link.scheme() != "alcom" {
         log::error!("Invalid deep link: {deep_link}");
         return None;
     }
@@ -109,6 +109,16 @@ pub fn should_install_deep_link(app: &AppHandle) -> bool {
     cfg_select! {
         target_os = "macos" => false,
         target_os = "windows" => true,
+        target_os = "linux" => app.env().appimage.is_some(),
+    }
+}
+
+/// Whether [`deep_link_install_vcc`] registers the `alcom:` scheme together with the `vcc:` scheme.
+#[allow(unused_variables)]
+pub fn registers_alcom_scheme(app: &AppHandle) -> bool {
+    cfg_select! {
+        target_os = "macos" => false,
+        target_os = "windows" => false,
         target_os = "linux" => app.env().appimage.is_some(),
     }
 }
@@ -233,7 +243,7 @@ Name=ALCOM
 Exec="{appimage_path}" link %u
 NoDisplay=true
 Terminal=false
-MimeType=x-scheme-handler/vcc
+MimeType=x-scheme-handler/vcc;x-scheme-handler/alcom;
 Categories=Utility;
 "#,
                      appimage_path = escape(&appimage_path)

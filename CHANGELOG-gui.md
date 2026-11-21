@@ -21,6 +21,10 @@ The format is based on [Keep a Changelog].
   - This is not supported on Wayland since the position of windows is managed by the compositor.
 - VCC 2.5.0 Features compatibility `#3336`
   - This release adds Unity 6000.0 VRCSDK support.
+- `alcom://` URL scheme as an ALCOM-specific alias of `vcc://` `#3334`
+  - This is intended for repositories entirely depends on vrc-get extension of VPM.
+  - This is registered automatically on macOS, Windows, and linux package manager distributions.
+  - For AppImage, this is registered along with `vcc://` when you enable the URL scheme setting.
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
