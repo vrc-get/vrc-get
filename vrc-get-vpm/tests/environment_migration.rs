@@ -1062,7 +1062,12 @@ async fn sqlite_litedb_sync() {
             conflict_0_path_conflicter.litedb_objectid(),
             Some(object_id(b"bothconflic0"))
         );
-        assert_eq!(conflict_0_path_conflicter.unity_revision(), None);
+        // LiteDB does not have revision, but the release is the same as SQLite one,
+        // so the revision in SQLite is kept.
+        assert_eq!(
+            conflict_0_path_conflicter.unity_revision(),
+            Some("887be4894c44")
+        );
     }
 
     {
