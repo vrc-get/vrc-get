@@ -236,8 +236,8 @@
     "projects:manage:suggest resolve": "Algunos paquetes requeridos para este proyecto no están instalados.<br>Se recomienda encarecidamente instalar los paquetes.",
     "projects:manage:button:resolve": "Instalar paquetes",
 
-    "projects:manage:suggest unity migration": "Tu proyecto está usando Unity 2019, que ya no es compatible con VRChat SDK. VRChat recomienda que migres tu proyecto a Unity 2022.",
-    "projects:manage:suggest unity patch migration": "Tu proyecto está usando una versión un poco más antigua de Unity 2022. VRChat recomienda que migres tu proyecto a una versión más reciente de Unity 2022.",
+    "projects:manage:suggest unity migration": "Tu proyecto está usando Unity {{currentUnity}}, que ya no es compatible con VRChat SDK. VRChat recomienda que migres tu proyecto a Unity {{targetUnity}}.",
+    "projects:manage:suggest unity patch migration": "Tu proyecto está usando una versión un poco más antigua de Unity {{unityMajor}}. VRChat recomienda que migres tu proyecto a una versión más reciente de Unity {{unityMajor}}.",
     "projects:manage:suggest unity china to international migration": "Tu proyecto está usando la versión China de Unity. Recomendamos usar la versión internacional de Unity para una mejor compatibilidad con VRChat.",
     "projects:manage:button:unity migrate": "Migrar proyecto",
 
@@ -316,11 +316,11 @@
 
     "projects:manage:dialog:unity migrate header": "Migración de Unity",
     "projects:dialog:migrate unity2022 patch description": "El proyecto se migrará a Unity {{unity}}.",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "No se pudo encontrar la versión recomendada exacta de Unity 2022 para la migración de parches.<br/>Por favor, instala Unity {{unity}} con Unity Hub y reinicia ALCOM.",
-    "projects:manage:dialog:unity migrate finalizing...": "Iniciando Unity 2022 en segundo plano para finalizar la migración...",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "No se pudo encontrar la versión recomendada exacta de Unity {{unityMajor}} para la migración de parches.<br/>Por favor, instala Unity {{unity}} con Unity Hub y reinicia ALCOM.",
+    "projects:manage:dialog:unity migrate finalizing...": "Iniciando Unity {{unityMajor}} en segundo plano para finalizar la migración...",
     "projects:toast:unity migrate failed by unity not found": "Error al migrar el proyecto: Unity 2022 no encontrado",
     "projects:toast:unity migration finalize failed by unity not found": "Error al finalizar la migración: Unity 2022 no encontrado",
-    "projects:toast:unity migrated": "El proyecto se migró a Unity 2022",
+    "projects:toast:unity migrated": "El proyecto se migró a Unity {{unityMajor}}",
 
     "projects:manage:dialog:confirm changes description": "Estás aplicando los siguientes cambios al proyecto.",
     "projects:manage:dialog:note breaking changes": "Hay cambios que pueden afectar la compatibilidad. <br/>Algunos assets, configuraciones o herramientas podrían no funcionar como se espera. Revisa la información de compatibilidad y procede con cuidado.<br/>Si encuentras algún problema después de la actualización, intenta revertir a la versión anterior del paquete.",

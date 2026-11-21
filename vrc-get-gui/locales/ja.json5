@@ -231,11 +231,9 @@
     "projects:manage:suggest resolve": "このプロジェクトに必要なパッケージの一部がインストールされていません。不足しているパッケージをインストールすることを強くお勧めします。",
     "projects:manage:button:resolve": "パッケージをインストール",
 
-    "projects:manage:suggest unity migration": "このプロジェクトは、VRChat SDKによるサポートが終了したUnity 2019を使用しています。VRChatはUnity 2022に移行することを推奨しています。",
-    "projects:manage:suggest unity patch migration": "このプロジェクトは少し古いバージョンのUnity 2022を使用しています。VRChatはより新しいバージョンのUnity 2022に移行することを推奨しています。",
+    "projects:manage:suggest unity migration": "このプロジェクトは、VRChat SDKによるサポートが終了したUnity {{currentUnity}}を使用しています。VRChatはUnity {{targetUnity}}に移行することを推奨しています。",
+    "projects:manage:suggest unity patch migration": "このプロジェクトは少し古いバージョンのUnity {{unityMajor}}を使用しています。VRChatはより新しいバージョンのUnity {{unityMajor}}に移行することを推奨しています。",
     "projects:manage:suggest unity china to international migration": "このプロジェクトは中国版Unityを使用しています。VRChatとの互換性のために、通常版Unityを使用することを推奨します。",
-    "projects:manage:suggest unity 6000.0 migration": "このプロジェクトは、VRChat SDKによるサポートが終了したUnity 2022を使用しています。VRChatはUnity 6000.0に移行することを推奨しています。",
-    "projects:manage:suggest unity 6000.0 patch migration": "このプロジェクトは少し古いバージョンのUnity 6000.0を使用しています。VRChatはより新しいバージョンのUnity 6000.0に移行することを推奨しています。",
     "projects:manage:button:unity migrate": "プロジェクトを移行",
 
     "projects:manage:manage packages": "パッケージ管理",
@@ -313,11 +311,11 @@
 
     "projects:manage:dialog:unity migrate header": "Unityバージョンを移行",
     "projects:dialog:migrate unity2022 patch description": "プロジェクトをUnity {{unity}}に移行します。",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "推奨バージョンに一致するUnity 2022が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
-    "projects:manage:dialog:unity migrate finalizing...": "Unity 2022をバックグラウンドで起動し、移行の完了処理を行っています...",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "推奨バージョンに一致するUnity {{unityMajor}}が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
+    "projects:manage:dialog:unity migrate finalizing...": "Unity {{unityMajor}}をバックグラウンドで起動し、移行の完了処理を行っています...",
     "projects:toast:unity migrate failed by unity not found": "プロジェクト移行に失敗しました: Unity 2022がありません",
     "projects:toast:unity migration finalize failed by unity not found": "プロジェクト移行の完了処理を行えませんでした: Unity 2022がありません",
-    "projects:toast:unity migrated": "プロジェクトをUnity 2022に移行しました。",
+    "projects:toast:unity migrated": "プロジェクトをUnity {{unityMajor}}に移行しました。",
 
     "projects:manage:dialog:confirm changes description": "このプロジェクトに以下の変更を加えようとしています。",
     "projects:manage:dialog:note breaking changes": "互換性に影響を与える変更が含まれています。<br>アセットや設定、その他のツールなどの動作が変化する可能性があるため、更新の際は、当該パッケージの互換性に関する情報にご注意ください。<br>更新後に何らかの問題が発生した場合は、パッケージのバージョンを元に戻してみてください。",
