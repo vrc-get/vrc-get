@@ -11,14 +11,16 @@ use crate::utils;
 use crate::utils::command::{CommandExt, create_command};
 use anyhow::{Context, Result, bail};
 use std::io::{IsTerminal, Read, Write};
-use std::net::TcpStream;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, TcpListener, TcpStream};
 use std::path::Path;
 use std::process::{Child, Stdio};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-/// The address of vite dev server. Must be same as `devUrl` in Tauri.toml and vite.config.ts
-const DEV_SERVER_ADDR: &str = "localhost:3030";
+/// The default port of vite dev server. Must be same as `devUrl` in Tauri.toml
+const DEFAULT_DEV_SERVER_PORT: u16 = 3030;
+/// The number of ports we try when the default port is in use.
+const DEV_SERVER_PORT_CANDIDATES: u16 = 20;
 const POLL_INTERVAL: Duration = Duration::from_millis(100);
 const DEV_SERVER_TIMEOUT: Duration = Duration::from_secs(60);
 const PROMPT: &str = "enter 'r' to restart ALCOM, 'q' to quit";
@@ -49,21 +51,18 @@ impl crate::Command for Command {
                 .run_checked("npm install for vrc-get-gui")?;
         }
 
-        // If another server is already listening, vite will fail to start (strictPort) but
-        // wait_for_dev_server would wrongly treat that server as ours.
-        if TcpStream::connect(DEV_SERVER_ADDR).is_ok() {
-            bail!("{DEV_SERVER_ADDR} is already in use. is another dev server running?");
-        }
+        let port = find_dev_server_port()?;
 
         let mut children = Children {
-            vite: spawn_vite(&gui_dir)?,
+            vite: spawn_vite(&gui_dir, port)?,
             alcom: None,
             build: None,
         };
 
         // build ALCOM while the dev server is starting
-        build_command(workspace_root, self.verbose).run_checked("building vrc-get-gui for dev")?;
-        wait_for_dev_server(&mut children.vite)?;
+        build_command(workspace_root, self.verbose, port)
+            .run_checked("building vrc-get-gui for dev")?;
+        wait_for_dev_server(&mut children.vite, port)?;
 
         children.alcom = Some(spawn_alcom(&gui_dir)?);
         // declared after `children` so the terminal is restored before killing children
@@ -84,7 +83,7 @@ impl crate::Command for Command {
                             status_line.log("will rebuild again after the current build");
                         } else {
                             children.kill_alcom();
-                            children.build = Some(spawn_build(workspace_root, self.verbose)?);
+                            children.build = Some(spawn_build(workspace_root, self.verbose, port)?);
                             status_line.set("building", "rebuilding ALCOM");
                         }
                     }
@@ -119,7 +118,7 @@ impl crate::Command for Command {
             {
                 children.build = None;
                 if std::mem::take(&mut rebuild_requested) {
-                    children.build = Some(spawn_build(workspace_root, self.verbose)?);
+                    children.build = Some(spawn_build(workspace_root, self.verbose, port)?);
                     status_line.log("rebuilding ALCOM again");
                 } else if status.success() {
                     children.alcom = Some(spawn_alcom(&gui_dir)?);
@@ -173,11 +172,59 @@ impl Drop for Children {
     }
 }
 
-fn spawn_vite(gui_dir: &Path) -> Result<Child> {
+/// Finds the port for the dev server.
+///
+/// We use the default port if possible, but if it's in use, e.g. by dev server of another
+/// working copy, we use another port to avoid conflict.
+///
+/// The URL of the dev server is embedded to ALCOM so changing port needs rebuilding ALCOM.
+/// Therefore, we try the following ports in order instead of asking a free port to the OS,
+/// which is likely to be different every time, to reduce the number of rebuilds.
+fn find_dev_server_port() -> Result<u16> {
+    let candidates =
+        DEFAULT_DEV_SERVER_PORT..DEFAULT_DEV_SERVER_PORT.saturating_add(DEV_SERVER_PORT_CANDIDATES);
+    for port in candidates.clone() {
+        if is_port_available(port) {
+            if port != DEFAULT_DEV_SERVER_PORT {
+                eprintln!(
+                    "dev-alcom: port {DEFAULT_DEV_SERVER_PORT} is in use. using port {port} for dev server"
+                );
+            }
+            return Ok(port);
+        }
+    }
+    bail!(
+        "no ports are available for dev server in {}..={}",
+        candidates.start,
+        candidates.end - 1
+    );
+}
+
+fn is_port_available(port: u16) -> bool {
+    // vite listens on localhost, which can be either IPv4 or IPv6
+    // If another server is listening, vite fails to start, and wait_for_dev_server would wrongly
+    // treat that server as ours.
+    if TcpStream::connect(("localhost", port)).is_ok() {
+        return false;
+    }
+    // This detects the ports bound but not (yet) accepting connections
+    let can_bind = |addr: IpAddr| match TcpListener::bind((addr, port)) {
+        Ok(_) => true,
+        // e.g. IPv6 is not available on the machine. It's not because the port is in use.
+        Err(e) => e.kind() != std::io::ErrorKind::AddrInUse,
+    };
+    can_bind(Ipv4Addr::LOCALHOST.into()) && can_bind(Ipv6Addr::LOCALHOST.into())
+}
+
+fn spawn_vite(gui_dir: &Path, port: u16) -> Result<Child> {
     // We launch vite directly instead of `npm run dev` to make sure we can kill vite;
     // killing npm does not kill the vite launched by the npm.
     create_command("node")
         .arg("node_modules/vite/bin/vite.js")
+        // ALCOM connects to the port so vite must not choose another port.
+        // This is ensured by `strictPort` in vite.config.ts.
+        .arg("--port")
+        .arg(port.to_string())
         .current_dir(gui_dir)
         // vite exits on EOF of the stdin so we have to keep the stdin open.
         // The pipe is kept open since it's owned by the `Child`.
@@ -188,17 +235,17 @@ fn spawn_vite(gui_dir: &Path) -> Result<Child> {
         .context("starting vite dev server")
 }
 
-fn wait_for_dev_server(vite: &mut Child) -> Result<()> {
+fn wait_for_dev_server(vite: &mut Child, port: u16) -> Result<()> {
     let start = Instant::now();
     loop {
-        if TcpStream::connect(DEV_SERVER_ADDR).is_ok() {
+        if TcpStream::connect(("localhost", port)).is_ok() {
             return Ok(());
         }
         if let Some(status) = vite.try_wait().context("waiting vite")? {
             bail!("vite dev server exited unexpectedly with {status}");
         }
         if start.elapsed() > DEV_SERVER_TIMEOUT {
-            bail!("vite dev server did not start listening on {DEV_SERVER_ADDR}");
+            bail!("vite dev server did not start listening on localhost:{port}");
         }
         std::thread::sleep(POLL_INTERVAL);
     }
@@ -207,7 +254,11 @@ fn wait_for_dev_server(vite: &mut Child) -> Result<()> {
 /// Creates `cargo build -p vrc-get-gui` command for dev build.
 ///
 /// Unlike build-alcom, we don't enable `custom-protocol` feature, so ALCOM will use the dev server.
-fn build_command(workspace_root: &Path, verbose: bool) -> std::process::Command {
+///
+/// The URL of the dev server is embedded to the binary at build time, so when we use non-default
+/// port, we override `devUrl` with `TAURI_CONFIG`, which is merged to Tauri.toml by tauri.
+/// We don't set it for the default port to share the build cache with normal `cargo build`.
+fn build_command(workspace_root: &Path, verbose: bool, port: u16) -> std::process::Command {
     let mut cmd = utils::cargo::command();
     cmd.current_dir(workspace_root)
         .arg("build")
@@ -218,11 +269,17 @@ fn build_command(workspace_root: &Path, verbose: bool) -> std::process::Command 
         cmd.arg("--verbose");
     }
 
+    if port != DEFAULT_DEV_SERVER_PORT {
+        let config =
+            serde_json::json!({ "build": { "devUrl": format!("http://localhost:{port}") } });
+        cmd.env("TAURI_CONFIG", config.to_string());
+    }
+
     cmd
 }
 
-fn spawn_build(workspace_root: &Path, verbose: bool) -> Result<Child> {
-    build_command(workspace_root, verbose)
+fn spawn_build(workspace_root: &Path, verbose: bool, port: u16) -> Result<Child> {
+    build_command(workspace_root, verbose, port)
         // cargo must not read the keys for us
         .stdin(Stdio::null())
         .stdout(Stdio::inherit())

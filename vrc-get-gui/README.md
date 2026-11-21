@@ -111,6 +111,7 @@ ALCOM is currently based on tauri and next.js.
 
 Run `cargo xtask dev-alcom` to start the development server and gui.
 While it's running, enter `r` to rebuild and restart ALCOM, or `q` to quit.
+If the port 3030 for the development server is in use, it automatically uses another free port.
 
 Alternatively, you can use `npm run tauri dev` to use tauri cli for development.
 
