@@ -92,6 +92,7 @@
     "setup:steps card:SystemSetting": "Системные настройки",
     "setup:system-setting:heading": "Системные настройки",
     "setup:system-setting:vcc scheme description": "Вы можете использовать ALCOM для обработки схемы vcc:// вместо VCC, чтобы устанавливать репозитории на ПК. ALCOM и VCC используют один и тот же список репозиториев, но с ALCOM можно быстро устанавливать без открытия VCC.",
+    "setup:system-setting:vcc and alcom scheme description": "Вы можете использовать ALCOM для схем vcc:// и alcom://, чтобы устанавливать репозитории на ПК.",
     "setup:system-setting:macos bug message": "В macOS здесь нечего настраивать. (Эта страница не должна отображаться, если она отображается - это ошибка)",
     "setup:system-setting:hostname-with-non-ascii": "В имени хоста (имени ПК) есть символы не из ASCII. Это может вызывать проблемы с Unity 2022.<br/>Настоятельно рекомендуется изменить имя ПК на ASCII-символы.",
 
@@ -149,7 +150,7 @@
     "projects:template-category:builtin": "Встроенные",
     "projects:template-category:alcom": "Пользовательские шаблоны",
     "projects:template-category:vcc": "Шаблоны VCC",
-    "projects:template-name:avatars": "VRChat Avatары",
+    "projects:template-name:avatars": "VRChat Avатары",
     "projects:template-name:worlds": "VRChat Worlds",
     "projects:template-name:blank": "Пустой",
     "projects:template:unity version": "Версия Unity:",
@@ -586,8 +587,11 @@
 
     "settings:use alcom for vcc scheme": "Использовать ALCOM для схемы URL <code>vcc:</code>",
     "settings:use vcc scheme description": "Схема URL <code>vcc:</code> используется для открытия VCC и добавления репозитория из браузера.<br>Как альтернативу VCC вы можете использовать ALCOM как приложение для добавления репозиториев из браузера.<br>Если включено, ALCOM будет регистрировать обработчик схемы URL <code>vcc:</code> при запуске.<br>После (пере)установки/обновления VCC нужно перезапустить ALCOM или вручную зарегистрировать обработчик кнопкой выше, чтобы переопределить регистрацию VCC.",
+    "settings:register vcc and alcom scheme handlers": "Зарегистрировать обработчики схем URL <code>vcc:</code> и <code>alcom:</code>",
+    "settings:register vcc and alcom scheme handlers description": "Схемы URL <code>vcc:</code> и <code>alcom:</code> используются для добавления репозиториев из браузеров.<br>Вы можете использовать ALCOM как приложение для добавления репозиториев из браузеров.<br>Если эта настройка включена, ALCOM будет регистрировать обработчики схем URL <code>vcc:</code> и <code>alcom:</code> при запуске.",
     "settings:register vcc scheme now": "Зарегистрировать обработчик URL сейчас",
     "settings:toast:vcc scheme installed": "ALCOM зарегистрирован как обработчик схемы URL <code>vcc:</code>.",
+    "settings:toast:vcc and alcom scheme installed": "ALCOM зарегистрирован как обработчик схем URL <code>vcc:</code> и <code>alcom:</code>.",
 
     "settings:licenses": "Лицензии",
     "settings:licenses description": "Нажмите <l>здесь</l>, чтобы посмотреть лицензии проектов, используемых в ALCOM.",
