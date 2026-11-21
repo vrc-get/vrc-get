@@ -156,7 +156,7 @@ export function unityMajorName(version: string): string {
 	const parsed = parseUnityVersion(version);
 	if (parsed == null) return version;
 	// Since Unity 6, minor version is a separate release stream.
-	if (parsed.major >= 6000) return `${parsed.major}.${parsed.minor}`;
+	if (parsed.major >= 6000) return (parsed.major % 1000) === 0 ? `${parsed.major / 1000}.${parsed.minor}` : `${parsed.major}.${parsed.minor}`;
 	return `${parsed.major}`;
 }
 
