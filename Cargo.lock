@@ -6884,11 +6884,13 @@ dependencies = [
  "flate2",
  "fs_extra",
  "itertools 0.15.0",
+ "libc",
  "minisign",
  "object 0.41.0",
  "plist",
  "serde_json",
  "tar",
+ "windows-sys 0.61.2",
  "zip",
 ]
 
