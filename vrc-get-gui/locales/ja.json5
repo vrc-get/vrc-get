@@ -567,7 +567,7 @@
     "settings:use alcom for vcc scheme": "ALCOMと <code>vcc:</code> URLを紐付ける",
     "settings:use vcc scheme description": "<code>vcc:</code>から始まるURLは、ブラウザからVCCを起動してVPMリポジトリを追加するためのリンクです。<br>ALCOMとVCCはリポジトリ一覧を共有していますが、ALCOMを <code>vcc:</code> URLと紐付けることで、ブラウザからALCOMを起動してVPMリポジトリを追加することができるようになります。<br>この設定を有効にすると、ALCOMの起動時に紐付けが行われるようになりますが、VCCを(再)インストールしたりアップデートしたりした場合は、ALCOMを再起動するか「今すぐ紐付ける」ボタンを押してVCCによる紐付けを上書きする必要があります。",
     "settings:register vcc and alcom scheme handlers": "ALCOMと <code>vcc:</code> / <code>alcom:</code> URLを紐付ける",
-    "settings:register vcc and alcom scheme handlers description": "<code>vcc:</code>や <code>alcom:</code>から始まるURLは、ブラウザからVPMリポジトリを追加するためのリンクです。<br>この設定を有効にすると、ALCOMの起動時にこれらのURLとの紐付けが行われ、ブラウザからALCOMを起動してVPMリポジトリを追加することができるようになります。",
+    "settings:register vcc and alcom scheme handlers description": "<code>vcc:</code>や<code>alcom:</code>から始まるURLは、ブラウザからVPMリポジトリを追加するためのリンクです。<br>この設定を有効にすると、ALCOMの起動時にこれらのURLとの紐付けが行われ、ブラウザからALCOMを起動してVPMリポジトリを追加することができるようになります。",
     "settings:register vcc scheme now": "今すぐ紐付ける",
     "settings:toast:vcc scheme installed": "ALCOMと <code>vcc:</code> URLを紐付けました。",
     "settings:toast:vcc and alcom scheme installed": "ALCOMと <code>vcc:</code> / <code>alcom:</code> URLを紐付けました。",
