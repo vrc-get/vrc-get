@@ -66,7 +66,11 @@ import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
+import {
+	compareUnityVersionString,
+	parseUnityVersion,
+	unityMajorName,
+} from "@/lib/version";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
@@ -401,8 +405,8 @@ function MigrationCards({
 		<>
 			{isMigrationTo2022Recommended && (
 				<SuggestMajorMigrationCard
-					currentUnity="2019"
-					targetUnity="2022"
+					currentUnity={unityMajorName(currentUnity)}
+					targetUnity={unityMajorName(unityVersionsResult.recommended_version)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -414,7 +418,7 @@ function MigrationCards({
 			)}
 			{is2022PatchMigrationRecommended && (
 				<SuggestPatchMigrationCard
-					unityMajor="2022"
+					unityMajor={unityMajorName(unityVersionsResult.recommended_version)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -426,8 +430,10 @@ function MigrationCards({
 			)}
 			{isMigrationTo6000_0Recommended && (
 				<SuggestMajorMigrationCard
-					currentUnity="2022"
-					targetUnity="6.0"
+					currentUnity={unityMajorName(currentUnity)}
+					targetUnity={unityMajorName(
+						unityVersionsResult.recommended_6000_0_version,
+					)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -439,7 +445,9 @@ function MigrationCards({
 			)}
 			{is6000_0PatchMigrationRecommended && (
 				<SuggestPatchMigrationCard
-					unityMajor="6.0"
+					unityMajor={unityMajorName(
+						unityVersionsResult.recommended_6000_0_version,
+					)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
