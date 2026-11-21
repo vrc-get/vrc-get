@@ -85,7 +85,8 @@
 
     "setup:steps card:SystemSetting": "系统配置",
     "setup:system-setting:heading": "系统配置",
-    "setup:system-setting:vcc scheme description": "您可以使 ALCOM 代替 VCC 来处理 <code>vcc://</code> 快捷方式，以将存储库安装到您的电脑上。ALCOM 和 VCC 将共享相同的存储库列表，但使用 ALCOM 可以让您在不打开 VCC 的情况下快速安装存储库。",
+    "setup:system-setting:vcc scheme description": "ALCOM 将代替 VCC 来处理 <code>vcc://</code> 快捷方式，以添加存储库到您的电脑上。ALCOM 和 VCC 将共享相同的存储库列表，但使用 ALCOM 可以让您在不打开 VCC 的情况下快速安装存储库。",
+    "setup:system-setting:vcc and alcom scheme description": "ALCOM 将同时处理 vcc:// 和 alcom:// 快捷方式，以添加存储库到您的电脑上。",
     "setup:system-setting:macos bug message": "在 macOS 上无需配置此功能。 (这个页面不应该被显示，显示此页面是一个错误)",
     "setup:system-setting:hostname-with-non-ascii": "您在设备名称中使用了非 ASCII 字符。<br/>这可能会导致 Unity 2022 出现问题。<br/>强烈建议您使用 ASCII 字符来命名设备。",
 
@@ -574,10 +575,13 @@
     "check update:dialog:downloading...": "正在下载更新...",
     "check update:dialog:relaunching...": "正在重启 ALCOM...",
 
-    "settings:use alcom for vcc scheme": "使 ALCOM 关联 URL 快捷方式 <code>vcc://</code>",
-    "settings:use vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为 URL 快捷方式 <code>vcc://</code> 唤起的默认应用程序，以从浏览器快捷添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式。<code>vcc://</code><br>每当 VCC 安装/重装/更新时，您都需要重启 ALCOM 或通过手动点击设置界面的按钮来覆盖 VCC 的对 URL 快捷方式的注册。",
+    "settings:use alcom for vcc scheme": "使 ALCOM 处理 URL 快捷方式 <code>vcc://</code>",
+    "settings:use vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，您可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为处理 URL 快捷方式 <code>vcc://</code> 的默认应用程序，以快捷从浏览器添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式 <code>vcc://</code>。<br>每当 VCC 安装/重装/更新时，您都需要重启 ALCOM 或通过手动点击设置界面的按钮来覆盖 VCC 的对 URL 快捷方式的注册。",
+    "settings:register vcc and alcom scheme handlers": "使 ALCOM 处理 URL 快捷方式 <code>vcc:</code> 和 <code>alcom:</code>",
+    "settings:register vcc and alcom scheme handlers description": "通过 URL 快捷方式 <code>vcc:</code> 和 <code>alcom:</code> ，您可以从浏览器启动 ALCOM 来添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式 <code>vcc:</code> 和 <code>alcom:</code>。",
     "settings:register vcc scheme now": "立即注册 URL 快捷方式",
     "settings:toast:vcc scheme installed": "ALCOM 已被注册为 URL 快捷方式 <code>vcc://</code> 的默认启动程序。",
+    "settings:toast:vcc and alcom scheme installed": "ALCOM 已被注册为 URL 快捷方式 <code>vcc:</code> 和 <code>alcom:</code> 的默认启动程序。",
 
     "settings:licenses": "许可证",
     "settings:licenses description": "单击 <l>此处</l> 查看 ALCOM 中使用的相关组件的许可证",
