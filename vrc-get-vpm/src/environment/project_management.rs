@@ -1006,26 +1006,61 @@ impl<'a> LiteDBProject<'a> {
     }
 
     fn update(&self, tx: &rusqlite::Connection, path: &str) -> Result<usize, Error> {
-        tx.prepare_cached(
-            "\
-            UPDATE projects SET \
-                unity_version_with_revision = COALESCE(?, unity_version_with_revision), \
-                created_at = ?, \
-                last_modified = ?, \
-                type = ?, \
-                favorite = ? \
-            WHERE path = ?",
-        )
-        .unwrap()
-        .execute((
-            self.unity_version_with_revision.clone(),
-            self.created_at.as_unix_milliseconds() / 1000,
-            self.last_modified.as_unix_milliseconds() / 1000,
-            ProjectType::from_i32(self.project_type).unwrap_or(ProjectType::Unknown) as i32,
-            self.favorite,
-            path,
-        ))
-        .map_err(Error::SQLite)
+        // We compare last_modified of both databases and use values from the newer one.
+        // If last_modified is the same, we prefer SQLite (ALCOM) one.
+        //
+        // unity_version_with_revision is a bit special:
+        //   The format is `<release>(<revision>)` or `<release>`.
+        //   If the release part is the same on both databases, we use the one with revision
+        //   (prefers SQLite one) since it has more information.
+        //   Otherwise, we use the newer one as same as other columns.
+        #[rustfmt::skip]
+        macro_rules! release {
+            ($value: literal) => {
+                concat!(
+                    "CASE WHEN instr(", $value, ", '(') > 0 ",
+                    "THEN rtrim(substr(", $value, ", 1, instr(", $value, ", '(') - 1)) ",
+                    "ELSE ", $value, " END"
+                )
+            };
+        }
+        // use LiteDB value ($param) if LiteDB is strictly newer, otherwise keep SQLite value ($column)
+        #[rustfmt::skip]
+        macro_rules! newer {
+            ($param: literal, $column: literal) => {
+                concat!("CASE WHEN ?3 > last_modified THEN ", $param, " ELSE ", $column, " END")
+            };
+        }
+        #[rustfmt::skip]
+        let sql = concat!(
+            "UPDATE projects SET ",
+            "unity_version_with_revision = CASE ",
+            "    WHEN ?1 IS NULL THEN unity_version_with_revision ",
+            "    WHEN unity_version_with_revision IS NULL THEN ?1 ",
+            "    WHEN (", release!("unity_version_with_revision"), ") = (", release!("?1"), ") ",
+            "        THEN CASE ",
+            "            WHEN instr(unity_version_with_revision, '(') > 0 THEN unity_version_with_revision ",
+            "            ELSE ?1 ",
+            "        END ",
+            "    ELSE ", newer!("?1", "unity_version_with_revision"), " ",
+            "END, ",
+            "created_at = ", newer!("?2", "created_at"), ", ",
+            "last_modified = ", newer!("?3", "last_modified"), ", ",
+            "type = ", newer!("?4", "type"), ", ",
+            "favorite = ", newer!("?5", "favorite"), " ",
+            "WHERE path = ?6",
+        );
+        tx.prepare_cached(sql)
+            .unwrap()
+            .execute((
+                self.unity_version_with_revision.clone(),
+                self.created_at.as_unix_milliseconds() / 1000,
+                self.last_modified.as_unix_milliseconds() / 1000,
+                ProjectType::from_i32(self.project_type).unwrap_or(ProjectType::Unknown) as i32,
+                self.favorite,
+                path,
+            ))
+            .map_err(Error::SQLite)
     }
 }
 
@@ -1092,10 +1127,11 @@ impl SQLiteConnection {
                             // However, we see path disagree so we assume either has changed the path.
                             // We assume moving project would update the 'last modified' column and
                             // use newer path.
-                            if db_last_modified < proj.last_modified {
+                            // Compare in seconds, as same as LiteDBProject::update does.
+                            if on_sqlite.last_modified < proj.last_modified.as_unix_milliseconds() / 1000 {
                                 trace!("Litedb last_modified is newer than SQLite last_modified. updating sqlite");
 
-                                tx.execute("UPDATE projects SET path = ?, last_modified = unixepoch('now') WHERE id = ?", (&proj.path, on_sqlite.id))
+                                tx.execute("UPDATE projects SET path = ? WHERE id = ?", (&proj.path, on_sqlite.id))
                                     .map_err(Error::SQLite)?;
                                 path = Some(proj.path.as_str());
                             } else {
