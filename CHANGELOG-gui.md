@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog].
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
 - Changed license of this project to MPL-2.0 `#3231`
-- Changed how the Project List is managed `#3184`
+- Changed how the Project List is managed `#3184` `#3347`
   - Added a project list for ALCOM and logic to sync it with VCC's project list.
   - Added a configuration option for the project list syncing mode.
 - Use display name from Unity Hub on the Project List `#2657`
