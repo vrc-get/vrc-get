@@ -1698,4 +1698,60 @@ fn install_conflict_with_unlocked() {
     })
 }
 
+#[test]
+fn install_multiple_packages_replacing_unlocked() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_file(
+                "Packages/tool/package.json",
+                r#"{"name":"com.anatawa12.tool","version":"1.0.0"}"#,
+            )
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.tool",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 1, 0));
+        let avatars = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
+        let base = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
+
+        // The requested package must be installed over the unlocked one regardless of
+        // the order of packages even if the other package installs their dependencies.
+        for packages in [[tool, avatars], [avatars, tool]] {
+            let result = project
+                .add_package_request(
+                    &collection,
+                    &packages,
+                    AddPackageOperation::InstallToDependencies,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            // all requested packages and their dependencies are installed
+            assert_installing_to_both(&result, &tool);
+            assert_installing_to_both(&result, &avatars);
+            assert_installing_to_locked_only(&result, &base);
+
+            assert_eq!(result.package_changes().len(), 3);
+            assert_eq!(result.remove_legacy_folders().len(), 0);
+            assert_eq!(result.remove_legacy_files().len(), 0);
+        }
+    })
+}
+
 // endregion

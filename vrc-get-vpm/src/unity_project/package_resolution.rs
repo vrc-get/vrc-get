@@ -30,7 +30,7 @@ impl<'a> PackageQueue<'a> {
     pub(crate) fn next_package(&mut self) -> Option<(PackageInfo<'a>, bool)> {
         let force = self.force_count > 0;
         self.force_count = self.force_count.saturating_sub(1);
-        self.pending_queue.pop_back().map(|x| (x, force))
+        self.pending_queue.pop_front().map(|x| (x, force))
     }
 
     fn find_pending_package(&self, name: &str) -> Option<&PackageInfo<'a>> {
