@@ -301,6 +301,52 @@ fn dependencies_only_package_require_newer_version_than_locked_version() {
     })
 }
 
+#[test]
+fn dependencies_only_package_require_older_version_than_locked_version() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_locked("com.anatawa12.locked", Version::new(1, 1, 0), &[])
+            .add_dependency("com.anatawa12.dependency", Version::new(1, 1, 0))
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.locked",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.locked",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.dependency", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.anatawa12.locked", "1.0.x"),
+            )
+            .build();
+
+        let result = project.resolve_request(&collection).await.unwrap();
+
+        // the locked package must not be downgraded on resolve
+        assert_eq!(result.package_changes().len(), 2);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 1);
+
+        let locked = collection.get_package("com.anatawa12.locked", Version::new(1, 1, 0));
+        let dependency = collection.get_package("com.anatawa12.dependency", Version::new(1, 1, 0));
+        assert_install_only(&result, &locked);
+        assert_installing_to_both(&result, &dependency);
+
+        let locked_conflict = result.conflicts().get("com.anatawa12.locked").unwrap();
+        assert_eq!(
+            locked_conflict.conflicting_packages(),
+            &["com.anatawa12.dependency".into()]
+        )
+    })
+}
+
 // relates to https://github.com/vrc-get/vrc-get/issues/2728 but not exactly the what reported
 #[test]
 fn dependencies_of_unlocked_package_require_newer_version_than_locked_version() {

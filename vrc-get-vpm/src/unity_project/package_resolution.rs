@@ -66,6 +66,8 @@ impl Default for Legacy<'_> {
 struct DependencyInfo<'env, 'a> {
     using: Option<PackageInfo<'env>>,
     current: Option<&'a Version>,
+    // The version installed before this resolution. Unlike `current`, this never changes.
+    installed: Option<&'a Version>,
     // "" key for root dependencies
     requirements: HashMap<&'a str, &'a VersionRange>,
     dependencies: HashSet<&'a str>,
@@ -87,6 +89,7 @@ where
         DependencyInfo {
             using: None,
             current: None,
+            installed: None,
             requirements,
             dependencies: HashSet::new(),
 
@@ -125,6 +128,7 @@ where
     pub(crate) fn set_using_info(&mut self, version: &'a Version, dependencies: HashSet<&'a str>) {
         self.allow_pre |= !version.pre.is_empty();
         self.current = Some(version);
+        self.installed = Some(version);
         self.dependencies = dependencies;
     }
 }
@@ -335,6 +339,14 @@ where
 
         install
     }
+
+    /// Returns true if installing the `version` lowers the version of the installed package.
+    pub(crate) fn is_downgrade(&self, name: &str, version: &Version) -> bool {
+        self.dependencies
+            .get(name)
+            .and_then(|info| info.installed)
+            .is_some_and(|installed| version < installed)
+    }
 }
 
 impl<'env> ResolutionContext<'env, '_> {
@@ -500,6 +512,10 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
         log::debug!("processing package {} version {}", x.name(), x.version());
         let name = x.name();
         let vpm_dependencies = &x.vpm_dependencies();
+        // Dependencies are downgraded only along with the package that requires them.
+        // Installing or upgrading a package never downgrades other packages;
+        // the unsatisfied requirement is reported as a conflict instead.
+        let allow_downgrade = context.is_downgrade(name, x.version());
 
         if context.add_package(x, force) {
             // add new dependencies
@@ -569,7 +585,15 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
                     };
 
                     if let Some(found) = found {
-                        context.pending_queue.add_pending_package(found);
+                        if !allow_downgrade && context.is_downgrade(dependency, found.version()) {
+                            log::debug!(
+                                "processing package {name}: dependency {dependency} version {range}: \
+                                keeping installed version since {} is downgrade",
+                                found.version()
+                            );
+                        } else {
+                            context.pending_queue.add_pending_package(found);
+                        }
                     } else {
                         missing_dependencies.add(dependency, range);
                     }

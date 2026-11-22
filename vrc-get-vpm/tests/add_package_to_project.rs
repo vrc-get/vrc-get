@@ -1011,9 +1011,276 @@ fn downgrade_dependencies() {
     })
 }
 
+fn downgrade_with_dependencies(operation: AddPackageOperation) {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 1, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 1, 0),
+                &[("com.vrchat.base", "1.1.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(1, 1, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.1.0"),
+            )
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
+            .build();
+
+        let avatars_1_0_0 = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
+        let base_1_0_0 = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(&collection, &[avatars_1_0_0], operation, false)
+            .await
+            .unwrap();
+
+        // Downgrading a package is the only way to downgrade its dependencies
+        assert_eq!(result.package_changes().len(), 2);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_installing_to_both(&result, &avatars_1_0_0);
+        assert_installing_to_locked_only(&result, &base_1_0_0);
+    })
+}
+
+#[test]
+fn downgrade_downgrades_dependencies_of_the_package() {
+    downgrade_with_dependencies(AddPackageOperation::Downgrade);
+}
+
+#[test]
+fn auto_detected_downgrade_downgrades_dependencies_of_the_package() {
+    downgrade_with_dependencies(AddPackageOperation::AutoDetected);
+}
+
 // endregion
 
 // region conflicts
+
+fn do_not_downgrade_installed_package_on_install(operation: AddPackageOperation) {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 1, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 1, 0),
+                &[("com.vrchat.base", "1.1.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(1, 1, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.1.0"),
+            )
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.avatars", "1.0.x"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(&collection, &[tool], operation, false)
+            .await
+            .unwrap();
+
+        // avatars (and base) must not be downgraded to satisfy the requirement of the tool.
+        assert_eq!(resolve.package_changes().len(), 1);
+        assert_eq!(resolve.remove_legacy_folders().len(), 0);
+        assert_eq!(resolve.remove_legacy_files().len(), 0);
+        assert_eq!(resolve.conflicts().len(), 1);
+
+        assert_installing_to_both(&resolve, &tool);
+
+        let avatars_conflict = resolve.conflicts().get("com.vrchat.avatars").unwrap();
+        assert_eq!(
+            avatars_conflict.conflicting_packages(),
+            &["com.anatawa12.tool".into()]
+        )
+    })
+}
+
+#[test]
+fn install_does_not_downgrade_installed_package() {
+    do_not_downgrade_installed_package_on_install(AddPackageOperation::InstallToDependencies);
+}
+
+#[test]
+fn auto_detected_install_does_not_downgrade_installed_package() {
+    do_not_downgrade_installed_package_on_install(AddPackageOperation::AutoDetected);
+}
+
+fn do_not_downgrade_installed_package_on_upgrade(operation: AddPackageOperation) {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.tool", Version::new(1, 0, 0))
+            .add_dependency("com.vrchat.base", Version::new(1, 1, 0))
+            .add_locked(
+                "com.anatawa12.tool",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "^1.0.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(1, 1, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.x"),
+            )
+            .build();
+
+        let tool_1_1_0 = collection.get_package("com.anatawa12.tool", Version::new(1, 1, 0));
+
+        let resolve = project
+            .add_package_request(&collection, &[tool_1_1_0], operation, false)
+            .await
+            .unwrap();
+
+        // base must not be downgraded to satisfy the requirement of the upgraded tool.
+        assert_eq!(resolve.package_changes().len(), 1);
+        assert_eq!(resolve.remove_legacy_folders().len(), 0);
+        assert_eq!(resolve.remove_legacy_files().len(), 0);
+        assert_eq!(resolve.conflicts().len(), 1);
+
+        assert_installing_to_locked_only(&resolve, &tool_1_1_0);
+
+        let base_conflict = resolve.conflicts().get("com.vrchat.base").unwrap();
+        assert_eq!(
+            base_conflict.conflicting_packages(),
+            &["com.anatawa12.tool".into()]
+        )
+    })
+}
+
+#[test]
+fn upgrade_does_not_downgrade_installed_package() {
+    do_not_downgrade_installed_package_on_upgrade(AddPackageOperation::UpgradeLocked);
+}
+
+#[test]
+fn auto_detected_upgrade_does_not_downgrade_installed_package() {
+    do_not_downgrade_installed_package_on_upgrade(AddPackageOperation::AutoDetected);
+}
+
+#[test]
+fn upgrade_dependency_even_if_another_requirement_needs_downgrade() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.base", Version::new(1, 1, 0))
+            .add_locked("com.vrchat.base", Version::new(1, 1, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 2, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.new", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "^1.2.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.old", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.x"),
+            )
+            .build();
+
+        let new = collection.get_package("com.anatawa12.new", Version::new(1, 0, 0));
+        let old = collection.get_package("com.anatawa12.old", Version::new(1, 0, 0));
+        let base_1_2_0 = collection.get_package("com.vrchat.base", Version::new(1, 2, 0));
+
+        // The result must not depend on the order of packages
+        for packages in [[new, old], [old, new]] {
+            let resolve = project
+                .add_package_request(
+                    &collection,
+                    &packages,
+                    AddPackageOperation::InstallToDependencies,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            // base is upgraded for 'new' but never downgraded for 'old'.
+            assert_eq!(resolve.package_changes().len(), 3);
+            assert_eq!(resolve.remove_legacy_folders().len(), 0);
+            assert_eq!(resolve.remove_legacy_files().len(), 0);
+            assert_eq!(resolve.conflicts().len(), 1);
+
+            assert_installing_to_both(&resolve, &new);
+            assert_installing_to_both(&resolve, &old);
+            assert_installing_to_locked_only(&resolve, &base_1_2_0);
+
+            let base_conflict = resolve.conflicts().get("com.vrchat.base").unwrap();
+            assert_eq!(
+                base_conflict.conflicting_packages(),
+                &["com.anatawa12.old".into()]
+            )
+        }
+    })
+}
 
 #[test]
 fn conflict_requirements_of_installed_and_installing() {
