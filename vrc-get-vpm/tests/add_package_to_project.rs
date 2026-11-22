@@ -1451,6 +1451,298 @@ fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
     })
 }
 
+#[test]
+fn prefer_version_satisfies_installed_packages() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "^1.0.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", ">=1.1.0"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+        let base_1_1_0 = collection.get_package("com.vrchat.base", Version::new(1, 1, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // 2.0.0 is the newest version for the tool, but that conflicts with installed avatars.
+        // 1.1.0 satisfies both so it should be used.
+        assert_eq!(resolve.package_changes().len(), 2);
+        assert_eq!(resolve.remove_legacy_folders().len(), 0);
+        assert_eq!(resolve.remove_legacy_files().len(), 0);
+        assert_eq!(resolve.conflicts().len(), 0);
+
+        assert_installing_to_both(&resolve, &tool);
+        assert_installing_to_locked_only(&resolve, &base_1_1_0);
+    })
+}
+
+#[test]
+fn prefer_version_satisfies_all_installing_packages() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.base", Version::new(1, 0, 0))
+            .add_locked("com.vrchat.base", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.new", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", ">=1.1.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.old", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "^1.0.0"),
+            )
+            .build();
+
+        let new = collection.get_package("com.anatawa12.new", Version::new(1, 0, 0));
+        let old = collection.get_package("com.anatawa12.old", Version::new(1, 0, 0));
+        let base_1_1_0 = collection.get_package("com.vrchat.base", Version::new(1, 1, 0));
+
+        // The result must not depend on the order of packages
+        for packages in [[new, old], [old, new]] {
+            let resolve = project
+                .add_package_request(
+                    &collection,
+                    &packages,
+                    AddPackageOperation::InstallToDependencies,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            // 1.1.0 is the only version satisfies both 'new' and 'old'
+            assert_eq!(resolve.package_changes().len(), 3);
+            assert_eq!(resolve.remove_legacy_folders().len(), 0);
+            assert_eq!(resolve.remove_legacy_files().len(), 0);
+            assert_eq!(resolve.conflicts().len(), 0);
+
+            assert_installing_to_both(&resolve, &new);
+            assert_installing_to_both(&resolve, &old);
+            assert_installing_to_locked_only(&resolve, &base_1_1_0);
+        }
+    })
+}
+
+fn ignore_requirements_already_not_satisfied(upgrade_capped: bool) {
+    block_on(async {
+        // 'capped' doesn't support base 2.x, but the user is already ignoring that.
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.capped", Version::new(1, 0, 0))
+            .add_dependency("com.vrchat.avatars", Version::new(2, 0, 0))
+            .add_locked(
+                "com.anatawa12.capped",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "^1.0.0")],
+            )
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(2, 0, 0),
+                &[("com.vrchat.base", "^2.0.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(2, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(3, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(2, 1, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.capped", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.vrchat.base", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", ">=2.1.0"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+        let capped_1_1_0 = collection.get_package("com.anatawa12.capped", Version::new(1, 1, 0));
+        let base_2_1_0 = collection.get_package("com.vrchat.base", Version::new(2, 1, 0));
+
+        let requests = if upgrade_capped {
+            // The requirement is still ignored even if we upgrade the package at the same time.
+            vec![vec![capped_1_1_0, tool], vec![tool, capped_1_1_0]]
+        } else {
+            vec![vec![tool]]
+        };
+
+        for packages in requests {
+            let resolve = project
+                .add_package_request(
+                    &collection,
+                    &packages,
+                    AddPackageOperation::InstallToDependencies,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            // No version satisfies everyone. The requirement of 'capped' is ignored and
+            // 2.1.0 satisfies all others, where the newest 3.0.0 doesn't satisfy avatars.
+            assert_installing_to_both(&resolve, &tool);
+            assert_installing_to_locked_only(&resolve, &base_2_1_0);
+            if upgrade_capped {
+                assert_installing_to_both(&resolve, &capped_1_1_0);
+            }
+
+            assert_eq!(resolve.package_changes().len(), packages.len() + 1);
+            assert_eq!(resolve.remove_legacy_folders().len(), 0);
+            assert_eq!(resolve.remove_legacy_files().len(), 0);
+
+            // The ignored requirement is the only conflict
+            assert_eq!(resolve.conflicts().len(), 1);
+            let base_conflict = resolve.conflicts().get("com.vrchat.base").unwrap();
+            assert_eq!(
+                base_conflict.conflicting_packages(),
+                &["com.anatawa12.capped".into()]
+            );
+        }
+    })
+}
+
+#[test]
+fn ignore_requirements_already_not_satisfied_on_install() {
+    ignore_requirements_already_not_satisfied(false);
+}
+
+#[test]
+fn ignore_requirements_already_not_satisfied_of_upgrading_package() {
+    ignore_requirements_already_not_satisfied(true);
+}
+
+#[test]
+fn satisfy_requirements_already_not_satisfied_if_possible() {
+    block_on(async {
+        // base is older than avatars requires
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(2, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(2, 0, 0),
+                &[("com.vrchat.base", "^2.0.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(3, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", ">=1.1.0"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+        let base_2_0_0 = collection.get_package("com.vrchat.base", Version::new(2, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The requirement of avatars is not satisfied now, but 2.0.0 satisfies both
+        // so that is not ignored: the newest 3.0.0 must not be used.
+        assert_installing_to_both(&resolve, &tool);
+        assert_installing_to_locked_only(&resolve, &base_2_0_0);
+
+        assert_eq!(resolve.package_changes().len(), 2);
+        assert_eq!(resolve.remove_legacy_folders().len(), 0);
+        assert_eq!(resolve.remove_legacy_files().len(), 0);
+        assert_eq!(resolve.conflicts().len(), 0);
+    })
+}
+
 // endregion
 
 // region rollback on error
