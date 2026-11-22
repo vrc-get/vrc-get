@@ -54,7 +54,6 @@ The format is based on [Keep a Changelog].
 - Unity 2021.3.45f2 could not be added because its version string was rejected as invalid `#3204`
 - AppImage doesn't function on distributions without systemd `#3323`
 - Project backups now honor the low and high ZIP compression settings `#3324`
-- Use smaller text for the project list sync mode description
 
 ### Security
 
