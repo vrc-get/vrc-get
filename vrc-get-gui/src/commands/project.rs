@@ -435,28 +435,84 @@ pub async fn project_call_unity_for_migration(
                 stdout: impl tokio::io::AsyncRead + Unpin,
                 context: AsyncCommandContext<String>,
             ) {
-                let stdout = BufReader::new(stdout);
-                let mut stdout = stdout.lines();
-                loop {
-                    match stdout.next_line().await {
-                        Err(e) => {
-                            error!("error reading unity output: {e}");
-                            break;
-                        }
-                        Ok(None) => break,
-                        Ok(Some(line)) => {
-                            log::debug!(target: "vrc_get_gui::unity", "{line}");
-                            let line = line.trim().to_string();
-                            if let Err(e) = context.emit(line) {
-                                error!("error sending stdout: {e}")
-                            }
-                        }
+                read_unity_output_lines(stdout, |line| {
+                    if let Err(e) = context.emit(line.trim().to_string()) {
+                        error!("error sending stdout: {e}")
                     }
-                }
+                })
+                .await
             }
         })
     })
     .await
+}
+
+/// Reads the output of Unity line by line until EOF.
+///
+/// The output of Unity is not guaranteed to be valid UTF-8.
+/// Unity itself writes its log in UTF-8, but child processes of Unity write to the same pipe
+/// in the system code page. Therefore, we decode each line lossy.
+/// We must keep reading even if we found invalid lines; Unity never exits if we stop reading.
+async fn read_unity_output_lines(
+    output: impl tokio::io::AsyncRead + Unpin,
+    mut on_line: impl FnMut(&str),
+) {
+    let mut output = BufReader::new(output);
+    let mut buffer = Vec::new();
+    loop {
+        buffer.clear();
+        match output.read_until(b'\n', &mut buffer).await {
+            Err(e) => {
+                error!("error reading unity output: {e}");
+                break;
+            }
+            Ok(0) => break,
+            Ok(_) => {
+                let line = buffer.strip_suffix(b"\n").unwrap_or(&buffer);
+                let line = line.strip_suffix(b"\r").unwrap_or(line);
+                match std::str::from_utf8(line) {
+                    Ok(line) => {
+                        log::debug!(target: "vrc_get_gui::unity", "{line}");
+                        on_line(line);
+                    }
+                    Err(_) => {
+                        // The GUI receives lossy one, so we keep the original bytes in the log.
+                        // We use a different target to distinguish escaped lines from
+                        // normal lines exactly.
+                        log::debug!(
+                            target: "vrc_get_gui::unity::escaped",
+                            "{}",
+                            escape_non_utf8_line(line)
+                        );
+                        on_line(&String::from_utf8_lossy(line));
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Escapes the non UTF-8 line without losing information.
+///
+/// Bytes of invalid UTF-8 sequences become `\xNN`, and `\` becomes `\\` to make it unambiguous.
+/// Valid UTF-8 parts are kept as-is, to keep the log small and readable.
+fn escape_non_utf8_line(line: &[u8]) -> String {
+    use std::fmt::Write as _;
+
+    let mut escaped = String::with_capacity(line.len() + 16);
+    for chunk in line.utf8_chunks() {
+        for c in chunk.valid().chars() {
+            if c == '\\' {
+                escaped.push_str("\\\\");
+            } else {
+                escaped.push(c);
+            }
+        }
+        for byte in chunk.invalid() {
+            write!(escaped, "\\x{byte:02x}").unwrap();
+        }
+    }
+    escaped
 }
 
 #[tauri::command]
@@ -925,4 +981,50 @@ pub async fn project_set_display_name(
             .await?;
     }
     Ok(success)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn read_lines(output: &[u8]) -> Vec<String> {
+        let mut lines = Vec::new();
+        read_unity_output_lines(output, |line| lines.push(line.to_string())).await;
+        lines
+    }
+
+    #[tokio::test]
+    async fn unity_output_lines() {
+        assert_eq!(
+            read_lines(b"lf\ncrlf\r\n\nno newline at end").await,
+            ["lf", "crlf", "", "no newline at end"]
+        );
+        assert_eq!(read_lines(b"").await, [] as [&str; 0]);
+    }
+
+    #[tokio::test]
+    async fn unity_output_non_utf8_line_does_not_stop_reading() {
+        // "日本語" in UTF-8, in CP932 (as child processes of Unity write), and in UTF-8 again
+        let output =
+            b"utf8 \xE6\x97\xA5\xE6\x9C\xAC\xE8\xAA\x9E\r\ncp932 \x93\xFA\x96\x7B\x8C\xEA\r\nafter \xE6\x97\xA5\r\n";
+        assert_eq!(
+            read_lines(output).await,
+            [
+                "utf8 \u{65E5}\u{672C}\u{8A9E}",
+                "cp932 \u{FFFD}\u{FFFD}\u{FFFD}{\u{FFFD}\u{FFFD}",
+                "after \u{65E5}",
+            ]
+        );
+    }
+
+    #[test]
+    fn escape_non_utf8_line_escapes_only_invalid_bytes_and_backslash() {
+        // CP932 bytes, a backslash, and valid UTF-8 "日"
+        assert_eq!(
+            escape_non_utf8_line(b"cp932 \x93\xFA\x96\x7B\x8C\xEA C:\\dir \xE6\x97\xA5"),
+            r"cp932 \x93\xfa\x96{\x8c\xea C:\\dir 日"
+        );
+        // truncated UTF-8 sequence at the end of the line
+        assert_eq!(escape_non_utf8_line(b"\xE6\x97"), r"\xe6\x97");
+    }
 }
