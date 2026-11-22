@@ -54,6 +54,8 @@ The format is based on [Keep a Changelog].
 - Unity 2021.3.45f2 could not be added because its version string was rejected as invalid `#3204`
 - AppImage doesn't function on distributions without systemd `#3323`
 - Project backups now honor the low and high ZIP compression settings `#3324`
+- Migrating Unity version hangs forever when Unity outputs non UTF-8 text `#3356`
+  - This typically happens on Windows with non-English system locale.
 
 ### Security
 
