@@ -28,10 +28,10 @@ fn basic_remove() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_removed(&result, "com.anatawa12.gists", RemoveReason::Requested);
     })
@@ -57,10 +57,10 @@ fn transitive_unused_remove() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
         assert_removed(&result, "com.vrchat.base", RemoveReason::Unused);
@@ -92,10 +92,10 @@ fn do_not_remove_transitively_when_untouched() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
         assert_removed(&result, "com.vrchat.base", RemoveReason::Unused);
@@ -134,10 +134,10 @@ fn remove_referenced_legacy_package() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_removed(
             &result,

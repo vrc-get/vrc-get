@@ -50,10 +50,10 @@ fn add_to_dependencies() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_both(&result, &avatars_package);
         assert_installing_to_locked_only(&result, &base_package);
@@ -98,10 +98,10 @@ fn install_already_installed_in_locked_to_locked() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 0);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 0);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
     })
 }
 
@@ -143,10 +143,10 @@ fn install_already_installed_in_locked_to_dependencies() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_dependencies_only(&result, "com.vrchat.base", Version::new(1, 0, 0));
     })
@@ -190,10 +190,10 @@ fn install_already_installed_in_dependencies_to_dependencies() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 0);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 0);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
     })
 }
 
@@ -235,10 +235,10 @@ fn upgrading_unused_packages() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_locked_only(&result, &avatars_package);
         assert_installing_to_locked_only(&result, &base_package);
@@ -283,10 +283,10 @@ fn transitive_unused_remove_with_upgrade() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_locked_only(&result, &package);
         assert_removed(&result, "com.anatawa12.library", RemoveReason::Unused);
@@ -332,10 +332,10 @@ fn do_not_remove_transitively_when_untouched() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_locked_only(&result, &package);
         assert_removed(&result, "com.anatawa12.library", RemoveReason::Unused);
@@ -371,10 +371,10 @@ fn remove_legacy_package_when_install() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_both(&result, &package);
         assert_removed(
@@ -415,10 +415,10 @@ fn remove_legacy_package_when_upgrade() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_locked_only(&result, &package);
         assert_removed(
@@ -464,10 +464,10 @@ fn remove_referenced_legacy_package_when_install() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_both(&result, &package);
         assert_removed(
@@ -515,8 +515,8 @@ fn legacy_assets_by_path() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.conflicts(), 0);
 
         assert_eq!(
             result
@@ -588,8 +588,8 @@ fn legacy_assets_by_guid() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.conflicts(), 0);
 
         assert_eq!(
             result
@@ -649,8 +649,8 @@ fn deny_remove_files_not_in_assets_or_packages() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.conflicts(), 0);
 
         assert_eq!(result.remove_legacy_folders(), &[]);
         assert_eq!(result.remove_legacy_files(), &[]);
@@ -683,8 +683,8 @@ fn deny_remove_parent_folders() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.conflicts(), 0);
 
         assert_eq!(result.remove_legacy_folders(), &[]);
         assert_eq!(result.remove_legacy_files(), &[]);
@@ -715,8 +715,8 @@ fn deny_absolute_legacy_assets() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.conflicts(), 0);
 
         assert_eq!(result.remove_legacy_folders(), &[]);
         assert_eq!(result.remove_legacy_files(), &[]);
@@ -785,8 +785,8 @@ fn do_remove_legacy_files_that_guid_mismatches() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.conflicts(), 0);
 
         assert_eq!(
             result
@@ -857,10 +857,10 @@ fn do_not_remove_udonsharp_folder_if_guid_mismatch() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.conflicts().len(), 0);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.conflicts(), 0);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
     })
 }
 
@@ -964,10 +964,10 @@ fn downgrade_basic() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_locked_only(&result, &base_package);
     })
@@ -1002,10 +1002,10 @@ fn downgrade_dependencies() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_both(&result, &base_package);
     })
@@ -1053,10 +1053,10 @@ fn downgrade_with_dependencies(operation: AddPackageOperation) {
             .unwrap();
 
         // Downgrading a package is the only way to downgrade its dependencies
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_both(&result, &avatars_1_0_0);
         assert_installing_to_locked_only(&result, &base_1_0_0);
@@ -1122,10 +1122,10 @@ fn do_not_downgrade_installed_package_on_install(operation: AddPackageOperation)
             .unwrap();
 
         // avatars (and base) must not be downgraded to satisfy the requirement of the tool.
-        assert_eq!(resolve.package_changes().len(), 1);
-        assert_eq!(resolve.remove_legacy_folders().len(), 0);
-        assert_eq!(resolve.remove_legacy_files().len(), 0);
-        assert_eq!(resolve.conflicts().len(), 1);
+        assert_len!(resolve.package_changes(), 1);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 1);
 
         assert_installing_to_both(&resolve, &tool);
 
@@ -1189,10 +1189,10 @@ fn do_not_downgrade_installed_package_on_upgrade(operation: AddPackageOperation)
             .unwrap();
 
         // base must not be downgraded to satisfy the requirement of the upgraded tool.
-        assert_eq!(resolve.package_changes().len(), 1);
-        assert_eq!(resolve.remove_legacy_folders().len(), 0);
-        assert_eq!(resolve.remove_legacy_files().len(), 0);
-        assert_eq!(resolve.conflicts().len(), 1);
+        assert_len!(resolve.package_changes(), 1);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 1);
 
         assert_installing_to_locked_only(&resolve, &tool_1_1_0);
 
@@ -1264,10 +1264,10 @@ fn upgrade_dependency_even_if_another_requirement_needs_downgrade() {
                 .unwrap();
 
             // base is upgraded for 'new' but never downgraded for 'old'.
-            assert_eq!(resolve.package_changes().len(), 3);
-            assert_eq!(resolve.remove_legacy_folders().len(), 0);
-            assert_eq!(resolve.remove_legacy_files().len(), 0);
-            assert_eq!(resolve.conflicts().len(), 1);
+            assert_len!(resolve.package_changes(), 3);
+            assert_len!(resolve.remove_legacy_folders(), 0);
+            assert_len!(resolve.remove_legacy_files(), 0);
+            assert_len!(resolve.conflicts(), 1);
 
             assert_installing_to_both(&resolve, &new);
             assert_installing_to_both(&resolve, &old);
@@ -1329,10 +1329,10 @@ fn conflict_requirements_of_installed_and_installing() {
             .await
             .unwrap();
 
-        assert_eq!(resolve.package_changes().len(), 2);
-        assert_eq!(resolve.remove_legacy_folders().len(), 0);
-        assert_eq!(resolve.remove_legacy_files().len(), 0);
-        assert_eq!(resolve.conflicts().len(), 1);
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 1);
 
         assert_installing_to_both(&resolve, &tool);
         assert_installing_to_locked_only(&resolve, &base_1_1_0);
@@ -1391,10 +1391,10 @@ fn conflict_already_conflicted_and_no_new_conflict() {
             .await
             .unwrap();
 
-        assert_eq!(resolve.package_changes().len(), 1);
-        assert_eq!(resolve.remove_legacy_folders().len(), 0);
-        assert_eq!(resolve.remove_legacy_files().len(), 0);
-        assert_eq!(resolve.conflicts().len(), 0);
+        assert_len!(resolve.package_changes(), 1);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
 
         assert_installing_to_both(&resolve, &tool);
     })
@@ -1442,10 +1442,10 @@ fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
             .await
             .unwrap();
 
-        assert_eq!(resolve.package_changes().len(), 1);
-        assert_eq!(resolve.remove_legacy_folders().len(), 0);
-        assert_eq!(resolve.remove_legacy_files().len(), 0);
-        assert_eq!(resolve.conflicts().len(), 0);
+        assert_len!(resolve.package_changes(), 1);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
 
         assert_installing_to_both(&resolve, &tool);
     })
@@ -1501,10 +1501,10 @@ fn prefer_version_satisfies_installed_packages() {
 
         // 2.0.0 is the newest version for the tool, but that conflicts with installed avatars.
         // 1.1.0 satisfies both so it should be used.
-        assert_eq!(resolve.package_changes().len(), 2);
-        assert_eq!(resolve.remove_legacy_folders().len(), 0);
-        assert_eq!(resolve.remove_legacy_files().len(), 0);
-        assert_eq!(resolve.conflicts().len(), 0);
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
 
         assert_installing_to_both(&resolve, &tool);
         assert_installing_to_locked_only(&resolve, &base_1_1_0);
@@ -1562,10 +1562,10 @@ fn prefer_version_satisfies_all_installing_packages() {
                 .unwrap();
 
             // 1.1.0 is the only version satisfies both 'new' and 'old'
-            assert_eq!(resolve.package_changes().len(), 3);
-            assert_eq!(resolve.remove_legacy_folders().len(), 0);
-            assert_eq!(resolve.remove_legacy_files().len(), 0);
-            assert_eq!(resolve.conflicts().len(), 0);
+            assert_len!(resolve.package_changes(), 3);
+            assert_len!(resolve.remove_legacy_folders(), 0);
+            assert_len!(resolve.remove_legacy_files(), 0);
+            assert_len!(resolve.conflicts(), 0);
 
             assert_installing_to_both(&resolve, &new);
             assert_installing_to_both(&resolve, &old);
@@ -1653,12 +1653,12 @@ fn ignore_requirements_already_not_satisfied(upgrade_capped: bool) {
                 assert_installing_to_both(&resolve, &capped_1_1_0);
             }
 
-            assert_eq!(resolve.package_changes().len(), packages.len() + 1);
-            assert_eq!(resolve.remove_legacy_folders().len(), 0);
-            assert_eq!(resolve.remove_legacy_files().len(), 0);
+            assert_len!(resolve.package_changes(), packages.len() + 1);
+            assert_len!(resolve.remove_legacy_folders(), 0);
+            assert_len!(resolve.remove_legacy_files(), 0);
 
             // The ignored requirement is the only conflict
-            assert_eq!(resolve.conflicts().len(), 1);
+            assert_len!(resolve.conflicts(), 1);
             let base_conflict = resolve.conflicts().get("com.vrchat.base").unwrap();
             assert_eq!(
                 base_conflict.conflicting_packages(),
@@ -1736,10 +1736,10 @@ fn satisfy_requirements_already_not_satisfied_if_possible() {
         assert_installing_to_both(&resolve, &tool);
         assert_installing_to_locked_only(&resolve, &base_2_0_0);
 
-        assert_eq!(resolve.package_changes().len(), 2);
-        assert_eq!(resolve.remove_legacy_folders().len(), 0);
-        assert_eq!(resolve.remove_legacy_files().len(), 0);
-        assert_eq!(resolve.conflicts().len(), 0);
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
     })
 }
 
@@ -1935,10 +1935,10 @@ fn install_depends_on_unlocked() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_installing_to_both(&result, &avatars_package);
     })
@@ -1975,10 +1975,10 @@ fn install_conflict_with_unlocked() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 1);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 1);
 
         assert_installing_to_both(&result, &avatars_package);
 
@@ -2039,9 +2039,9 @@ fn install_multiple_packages_replacing_unlocked() {
             assert_installing_to_both(&result, &avatars);
             assert_installing_to_locked_only(&result, &base);
 
-            assert_eq!(result.package_changes().len(), 3);
-            assert_eq!(result.remove_legacy_folders().len(), 0);
-            assert_eq!(result.remove_legacy_files().len(), 0);
+            assert_len!(result.package_changes(), 3);
+            assert_len!(result.remove_legacy_folders(), 0);
+            assert_len!(result.remove_legacy_files(), 0);
         }
     })
 }

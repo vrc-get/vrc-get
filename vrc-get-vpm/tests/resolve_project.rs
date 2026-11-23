@@ -41,10 +41,10 @@ fn simple_resolve_fully_locked() {
 
         let result = project.resolve_request(&collection).await.unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
         let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
@@ -75,10 +75,10 @@ fn resolve_ranged() {
 
         let result = project.resolve_request(&collection).await.unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
         let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
@@ -116,10 +116,10 @@ fn resolve_dependencies_of_unlocked() {
 
         let result = project.resolve_request(&collection).await.unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
         assert_installing_to_locked_only(&result, &library);
@@ -162,10 +162,10 @@ fn resolve_unlocked_satisfies_all() {
 
         let result = project.resolve_request(&collection).await.unwrap();
 
-        assert_eq!(result.package_changes().len(), 0);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 0);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
     })
 }
 
@@ -203,10 +203,10 @@ fn resolve_both_dependencies_of_unlocked_and_locked() {
 
         let result = project.resolve_request(&collection).await.unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
         let library2 = collection.get_package("com.anatawa12.library2", Version::new(1, 0, 0));
@@ -249,10 +249,10 @@ fn resolve_both_dependencies_of_unlocked_and_dependencies() {
 
         let result = project.resolve_request(&collection).await.unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
         let library2 = collection.get_package("com.anatawa12.library2", Version::new(1, 0, 0));
@@ -289,10 +289,10 @@ fn dependencies_only_package_require_newer_version_than_locked_version() {
 
         let result = project.resolve_request(&collection).await.unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         let library = collection.get_package("com.anatawa12.locked", Version::new(1, 1, 0));
         let library2 = collection.get_package("com.anatawa12.dependency", Version::new(1, 1, 0));
@@ -329,10 +329,10 @@ fn dependencies_only_package_require_older_version_than_locked_version() {
         let result = project.resolve_request(&collection).await.unwrap();
 
         // the locked package must not be downgraded on resolve
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 1);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 1);
 
         let locked = collection.get_package("com.anatawa12.locked", Version::new(1, 1, 0));
         let dependency = collection.get_package("com.anatawa12.dependency", Version::new(1, 1, 0));
@@ -386,10 +386,10 @@ fn dependencies_of_unlocked_package_require_newer_version_than_locked_version() 
 
         let result = project.resolve_request(&collection).await.unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         let library = collection.get_package("com.anatawa12.locked", Version::new(1, 1, 0));
         let library2 = collection.get_package("com.anatawa12.dependency", Version::new(1, 1, 0));
