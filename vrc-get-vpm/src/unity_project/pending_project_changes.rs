@@ -519,6 +519,8 @@ impl<'env> Builder<'env> {
                     Either::Right(
                         unity_project
                             .get_locked(dep_name)
+                            // The packages we remove don't require anything anymore.
+                            .filter(|_| !self.is_removing(dep_name))
                             .into_iter()
                             .flat_map(|dep| dep.dependencies.keys())
                             .map(Box::as_ref),
