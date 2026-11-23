@@ -39,6 +39,19 @@ The format is based on [Keep a Changelog].
   - ALCOM had support for sandboxed AppData, but Unity has disabled sandboxed AppData in Unity Hub 4.0.
 - VPM Repositories with invalid version name will be accepted `#3325`
   - Package versions with invalid version names wll be ignored instead.
+- Improved how packages and their dependencies are installed, upgraded, and removed `#3358`
+  - Versions of packages no longer change unexpectedly when installing or upgrading packages.
+    - Other packages in your project are no longer downgraded, unless you downgrade the package that requires them.
+    - Packages are always installed with the version you selected.
+    - You'll see a version conflict instead if those versions don't work together.
+  - You'll see fewer version conflicts.
+    - If some version of a dependency works with all packages in your project, that version is installed instead of the newest one.
+    - Conflicts with packages that are removed together as unused are no longer reported.
+  - Installed packages are kept more consistent with what your project requires.
+    - Packages you don't need are no longer installed or reinstalled when installing packages.
+    - Packages are no longer removed as unused while another package in your project still requires them.
+    - Dependencies of the removed package are now removed even if another package still requires the removed package.
+  - Installing multiple packages at once no longer skips a package installed as an unlocked package.
 
 ### Deprecated
 
