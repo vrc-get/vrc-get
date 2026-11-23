@@ -145,6 +145,45 @@ fn do_not_remove_dependency_of_locked_only_package() {
 }
 
 #[test]
+fn do_not_conflict_with_package_removed_as_unused() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_dependency("com.vrchat.core", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.core", "1.0.0")],
+            )
+            .add_locked("com.vrchat.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let result = project
+            .remove_request(&["com.vrchat.avatars", "com.vrchat.core"])
+            .await
+            .unwrap();
+
+        // The base requires the core, but the base is removed together since only
+        // the avatars requires it. So removing the core doesn't conflict with the base.
+        assert_len!(result.package_changes(), 3);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
+
+        assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
+        assert_removed(&result, "com.vrchat.core", RemoveReason::Requested);
+        assert_removed(&result, "com.vrchat.base", RemoveReason::Unused);
+    })
+}
+
+#[test]
 fn remove_referenced_legacy_package() {
     block_on(async {
         let project = VirtualProjectBuilder::new()

@@ -322,6 +322,10 @@ impl<'env> Builder<'env> {
         })
     }
 
+    pub(crate) fn is_removing(&self, name: &str) -> bool {
+        (self.package_changes.get(name)).is_some_and(|change| change.as_remove().is_some())
+    }
+
     pub(crate) fn get_installing(&self, name: &str) -> Option<PackageInfo<'env>> {
         self.package_changes
             .get(name)
