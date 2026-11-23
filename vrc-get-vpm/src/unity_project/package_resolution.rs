@@ -14,6 +14,17 @@ use crate::{PackageInfo, PackageManifest, VersionSelector};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 
+/// The package that requires another package.
+struct Requirer<'a> {
+    name: &'a str,
+    // We allow prerelease versions for dependencies of prerelease packages.
+    allow_prerelease: bool,
+    // Dependencies are downgraded only along with the package that requires them.
+    // Installing or upgrading a package never downgrades other packages;
+    // the unsatisfied requirement is reported as a conflict instead.
+    allow_downgrade: bool,
+}
+
 struct PackageQueue<'a> {
     force_count: usize,
     pending_queue: VecDeque<PackageInfo<'a>>,
@@ -693,6 +704,106 @@ impl MissingDependencies {
     }
 }
 
+impl<'env, 'a> ResolutionContext<'env, 'a>
+where
+    'env: 'a,
+{
+    /// Selects the version of the `dependency` for the `requirer`,
+    /// and adds it to the queue if we have to install it.
+    fn add_dependency(
+        &mut self,
+        requirer: &Requirer,
+        dependency: &'a str,
+        range: &'a VersionRange,
+        env: &'env impl PackageCollection,
+        unity_version: Option<UnityVersion>,
+        missing_dependencies: &mut MissingDependencies,
+    ) {
+        let name = requirer.name;
+        log::debug!("processing package {name}: dependency {dependency} version {range}");
+
+        if !self.should_add_package(dependency, range) {
+            return;
+        }
+
+        struct PackageFinder<'env, 'a, C: PackageCollection> {
+            dependency: &'a str,
+            env: &'env C,
+            ranges: &'a [&'a VersionRange],
+        }
+
+        impl<'env, C: PackageCollection> PackageFinder<'env, '_, C> {
+            fn find(
+                &self,
+                unity_version: Option<UnityVersion>,
+                allow_prerelease: PrereleaseAcceptance,
+            ) -> Option<PackageInfo<'env>> {
+                self.env.find_package_by_name(
+                    self.dependency,
+                    VersionSelector::ranges_for(unity_version, self.ranges, allow_prerelease),
+                )
+            }
+        }
+
+        let allow_prerelease = self.allow_prerelease;
+        let find = |ranges: &[&VersionRange]| -> Option<PackageInfo<'env>> {
+            let finder = PackageFinder {
+                dependency,
+                env,
+                ranges,
+            };
+
+            if allow_prerelease {
+                // prerelease is allowed, so we find the best match
+                (finder.find(unity_version, PrereleaseAcceptance::Allow))
+                    .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
+            } else if requirer.allow_prerelease {
+                // if the package is prerelease, allow prerelease, but prefer stable
+                (finder.find(unity_version, PrereleaseAcceptance::Deny))
+                    .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Minimum))
+                    .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Allow))
+                    .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
+                    .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
+                    .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
+            } else {
+                // if the package is stable, prefer stable, and allow minimum
+                (finder.find(unity_version, PrereleaseAcceptance::Deny))
+                    .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Minimum))
+                    .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
+                    .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
+            }
+        };
+
+        // Prefer the version that satisfies the requirements from all packages we know,
+        // not to make a conflict when some version satisfies everyone.
+        // If there is no such version, try without the requirements the user is already ignoring,
+        // and finally, the requirement of this package wins.
+        let allow_downgrade = requirer.allow_downgrade;
+        let not_downgrade = |found: &PackageInfo<'env>| {
+            allow_downgrade || !self.is_downgrade(dependency, found.version())
+        };
+        let found = (find(&self.requirements_for(dependency)).filter(not_downgrade))
+            .or_else(|| {
+                find(&self.unignored_requirements_for(dependency, name)).filter(not_downgrade)
+            })
+            .or_else(|| find(&[range]));
+
+        if let Some(found) = found {
+            if !allow_downgrade && self.is_downgrade(dependency, found.version()) {
+                log::debug!(
+                    "processing package {name}: dependency {dependency} version {range}: \
+                    keeping installed version since {} is downgrade",
+                    found.version()
+                );
+            } else {
+                self.pending_queue.add_pending_package(found);
+            }
+        } else {
+            missing_dependencies.add(dependency, range);
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn collect_adding_packages<'a, 'env>(
     dependencies: impl Iterator<Item = (&'a str, &'a DependencyRange)>,
@@ -754,102 +865,24 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
 
     while let Some((x, force)) = context.pending_queue.next_package() {
         log::debug!("processing package {} version {}", x.name(), x.version());
-        let name = x.name();
         let vpm_dependencies = &x.vpm_dependencies();
-        // Dependencies are downgraded only along with the package that requires them.
-        // Installing or upgrading a package never downgrades other packages;
-        // the unsatisfied requirement is reported as a conflict instead.
-        let allow_downgrade = context.is_downgrade(name, x.version());
+        let requirer = Requirer {
+            name: x.name(),
+            allow_prerelease: x.version().is_pre(),
+            allow_downgrade: context.is_downgrade(x.name(), x.version()),
+        };
 
         if context.add_package(x, force) {
             // add new dependencies
             for (dependency, range) in vpm_dependencies.iter() {
-                log::debug!("processing package {name}: dependency {dependency} version {range}");
-
-                if context.should_add_package(dependency, range) {
-                    struct PackageFinder<'env, 'a, C: PackageCollection> {
-                        dependency: &'a str,
-                        env: &'env C,
-                        ranges: &'a [&'a VersionRange],
-                    }
-
-                    impl<'env, C: PackageCollection> PackageFinder<'env, '_, C> {
-                        fn find(
-                            &self,
-                            unity_version: Option<UnityVersion>,
-                            allow_prerelease: PrereleaseAcceptance,
-                        ) -> Option<PackageInfo<'env>> {
-                            self.env.find_package_by_name(
-                                self.dependency,
-                                VersionSelector::ranges_for(
-                                    unity_version,
-                                    self.ranges,
-                                    allow_prerelease,
-                                ),
-                            )
-                        }
-                    }
-
-                    let find = |ranges: &[&VersionRange]| -> Option<PackageInfo<'env>> {
-                        let finder = PackageFinder {
-                            dependency,
-                            env,
-                            ranges,
-                        };
-
-                        if allow_prerelease {
-                            // prerelease is allowed, so we find the best match
-                            (finder.find(unity_version, PrereleaseAcceptance::Allow))
-                                .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
-                        } else if x.version().is_pre() {
-                            // if the package is prerelease, allow prerelease, but prefer stable
-                            (finder.find(unity_version, PrereleaseAcceptance::Deny))
-                                .or_else(|| {
-                                    finder.find(unity_version, PrereleaseAcceptance::Minimum)
-                                })
-                                .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Allow))
-                                .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
-                                .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
-                                .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
-                        } else {
-                            // if the package is stable, prefer stable, and allow minimum
-                            (finder.find(unity_version, PrereleaseAcceptance::Deny))
-                                .or_else(|| {
-                                    finder.find(unity_version, PrereleaseAcceptance::Minimum)
-                                })
-                                .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
-                                .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
-                        }
-                    };
-
-                    // Prefer the version that satisfies the requirements from all packages we know,
-                    // not to make a conflict when some version satisfies everyone.
-                    // If there is no such version, try without the requirements the user is already ignoring,
-                    // and finally, the requirement of this package wins.
-                    let not_downgrade = |found: &PackageInfo<'env>| {
-                        allow_downgrade || !context.is_downgrade(dependency, found.version())
-                    };
-                    let found = (find(&context.requirements_for(dependency)).filter(not_downgrade))
-                        .or_else(|| {
-                            find(&context.unignored_requirements_for(dependency, name))
-                                .filter(not_downgrade)
-                        })
-                        .or_else(|| find(&[range]));
-
-                    if let Some(found) = found {
-                        if !allow_downgrade && context.is_downgrade(dependency, found.version()) {
-                            log::debug!(
-                                "processing package {name}: dependency {dependency} version {range}: \
-                                keeping installed version since {} is downgrade",
-                                found.version()
-                            );
-                        } else {
-                            context.pending_queue.add_pending_package(found);
-                        }
-                    } else {
-                        missing_dependencies.add(dependency, range);
-                    }
-                }
+                context.add_dependency(
+                    &requirer,
+                    dependency,
+                    range,
+                    env,
+                    unity_version,
+                    missing_dependencies,
+                );
             }
         }
     }
