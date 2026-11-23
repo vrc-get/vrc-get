@@ -2199,7 +2199,7 @@ fn package_adding_to_dependencies_is_not_unused() {
 }
 
 #[test]
-fn installing_older_version_than_adding_to_dependencies_is_conflict() {
+fn requested_package_is_not_replaced_with_older_version() {
     block_on(async {
         let project = VirtualProjectBuilder::new().build().await.unwrap();
 
@@ -2219,48 +2219,95 @@ fn installing_older_version_than_adding_to_dependencies_is_conflict() {
             )
             .build();
 
-        let library_2_0_0 = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
-        let library_1_0_0 = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
+        let library = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
         let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
 
         let resolve = project
             .add_package_request(
                 &collection,
-                &[library_2_0_0, tool],
+                &[library, tool],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
             .await
             .unwrap();
 
-        // The library is replaced with 1.0.0 for the tool, but we add the library 2.0.0 to
-        // dependencies of the project as requested.
-        assert_installing_to_both_as(&resolve, &library_1_0_0, Version::new(2, 0, 0));
+        // The tool requires the library 1.x, but the library 2.0.0 is requested.
+        // We install the requested version, and tell the conflict to the user.
+        assert_installing_to_both(&resolve, &library);
         assert_installing_to_both(&resolve, &tool);
 
         assert_len!(resolve.package_changes(), 2);
         assert_len!(resolve.remove_legacy_folders(), 0);
         assert_len!(resolve.remove_legacy_files(), 0);
 
-        // The version we install doesn't satisfy the dependencies of the project.
-        // The project is the empty name in conflicts.
         assert_len!(resolve.conflicts(), 1);
         let library_conflict = resolve.conflicts().get("com.anatawa12.library").unwrap();
-        assert_eq!(library_conflict.conflicting_packages(), &["".into()]);
+        assert_eq!(
+            library_conflict.conflicting_packages(),
+            &["com.anatawa12.tool".into()]
+        );
     })
 }
 
 #[test]
-fn requested_package_kept_as_installed_can_be_unused() {
+fn requested_package_is_not_replaced_with_newer_version() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^2.0.0"),
+            )
+            .build();
+
+        let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[library, tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The tool requires the library 2.x, but the library 1.0.0 is requested.
+        // We install the requested version, and tell the conflict to the user.
+        assert_installing_to_both(&resolve, &library);
+        assert_installing_to_both(&resolve, &tool);
+
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+
+        assert_len!(resolve.conflicts(), 1);
+        let library_conflict = resolve.conflicts().get("com.anatawa12.library").unwrap();
+        assert_eq!(
+            library_conflict.conflicting_packages(),
+            &["com.anatawa12.tool".into()]
+        );
+    })
+}
+
+#[test]
+fn requested_upgrade_is_not_skipped() {
     block_on(async {
         let project = VirtualProjectBuilder::new()
             .add_dependency("com.anatawa12.library", Version::new(1, 0, 0))
-            .add_locked(
-                "com.anatawa12.library",
-                Version::new(1, 0, 0),
-                &[("com.anatawa12.core", "1.0.0")],
-            )
-            .add_locked("com.anatawa12.core", Version::new(1, 0, 0), &[])
+            .add_locked("com.anatawa12.library", Version::new(1, 0, 0), &[])
             .build()
             .await
             .unwrap();
@@ -2271,50 +2318,44 @@ fn requested_package_kept_as_installed_can_be_unused() {
                 "com.anatawa12.library",
                 Version::new(2, 0, 0),
             ))
-            .add(
-                PackageManifest::new("com.anatawa12.library", Version::new(1, 0, 0))
-                    .add_vpm_dependency("com.anatawa12.core", "1.0.0"),
-            )
             .add(PackageManifest::new(
-                "com.anatawa12.core",
-                Version::new(1, 1, 0),
-            ))
-            .add(PackageManifest::new(
-                "com.anatawa12.core",
+                "com.anatawa12.library",
                 Version::new(1, 0, 0),
             ))
             .add(
-                PackageManifest::new("com.anatawa12.app", Version::new(1, 0, 0))
-                    .add_vpm_dependency("com.anatawa12.library", "^2.0.0"),
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
             )
             .build();
 
-        let library_1_0_0 = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
-        let library_2_0_0 = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
-        let core_1_1_0 = collection.get_package("com.anatawa12.core", Version::new(1, 1, 0));
-        let app = collection.get_package("com.anatawa12.app", Version::new(1, 0, 0));
+        let library = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
 
         let resolve = project
             .add_package_request(
                 &collection,
-                &[library_1_0_0, core_1_1_0, app],
+                &[library, tool],
                 AddPackageOperation::AutoDetected,
                 false,
             )
             .await
             .unwrap();
 
-        // The core is requested to upgrade, but it gets back to the installed version for
-        // the library 1.0.0. Then, the library is upgraded to 2.0.0 for the app, and that
-        // doesn't need the core. We don't install the core so it's unused even if requested.
-        assert_installing_to_both(&resolve, &app);
-        assert_installing_to_locked_only(&resolve, &library_2_0_0);
-        assert_removed(&resolve, "com.anatawa12.core", RemoveReason::Unused);
+        // The installed library satisfies the tool, but upgrading the library is requested.
+        // We must not keep the installed version silently.
+        assert_installing_to_locked_only(&resolve, &library);
+        assert_installing_to_both(&resolve, &tool);
 
-        assert_len!(resolve.package_changes(), 3);
+        assert_len!(resolve.package_changes(), 2);
         assert_len!(resolve.remove_legacy_folders(), 0);
         assert_len!(resolve.remove_legacy_files(), 0);
-        assert_len!(resolve.conflicts(), 0);
+
+        assert_len!(resolve.conflicts(), 1);
+        let library_conflict = resolve.conflicts().get("com.anatawa12.library").unwrap();
+        assert_eq!(
+            library_conflict.conflicting_packages(),
+            &["com.anatawa12.tool".into()]
+        );
     })
 }
 

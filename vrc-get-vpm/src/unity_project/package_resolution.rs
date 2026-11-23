@@ -51,8 +51,8 @@ where
     pub pending_queue: PackageQueue<'env>,
     dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
     unlocked_names: HashSet<&'a str>,
-    // The packages requested to add and their versions.
-    requested: HashMap<&'a str, &'a Version>,
+    // The packages requested to add. We never replace them with another version.
+    requested: HashSet<&'a str>,
     // The installed packages that become unused and should be removed.
     unused: Vec<&'a str>,
 }
@@ -143,9 +143,7 @@ where
 
 impl<'env> ResolutionContext<'env, '_> {
     fn new(allow_prerelease: bool, packages: Vec<PackageInfo<'env>>) -> Self {
-        let requested = (packages.iter())
-            .map(|pkg| (pkg.name(), pkg.version()))
-            .collect();
+        let requested = packages.iter().map(|pkg| pkg.name()).collect();
         let mut this = Self {
             dependencies: HashMap::new(),
             pending_queue: PackageQueue::new(packages),
@@ -326,6 +324,15 @@ where
             return false;
         }
 
+        // The user requested the version so we must not replace it with another version.
+        // The requirement is reported as a conflict if the requested version doesn't satisfy it.
+        if self.requested.contains(name) {
+            log::debug!(
+                "processing package {name}: dependency {name} version {range}: requested package"
+            );
+            return false;
+        }
+
         let mut install = true;
         let allow_prerelease =
             PrereleaseAcceptance::allow_or_minimum(entry.allow_pre || self.allow_prerelease);
@@ -437,10 +444,8 @@ where
         // Requesting the installed version means reinstalling it, so we keep that.
         let reverted = (self.dependencies.iter())
             .filter(|&(name, info)| {
-                info.using.is_some_and(|using| {
-                    info.installed == Some(using.version())
-                        && self.requested.get(name) != Some(&using.version())
-                })
+                !self.requested.contains(name)
+                    && (info.using).is_some_and(|using| info.installed == Some(using.version()))
             })
             .map(|(&name, _)| name)
             .collect::<Vec<_>>();
@@ -453,7 +458,7 @@ where
         // unlocked packages, and the packages required by necessary packages.
         // Installed packages are not always necessary since they can be unused after this.
         let necessary = self.collect_required(
-            (self.requested.keys().copied())
+            (self.requested.iter().copied())
                 .chain(self.dependencies[""].requirements.keys().copied())
                 .chain(self.unlocked_names.iter().copied()),
         );
@@ -549,7 +554,6 @@ where
         // Collect the packages in use: dependencies of the project, unlocked packages,
         // the packages we install, the installed packages we never remove,
         // and the packages required by them.
-        // A requested package is not in use if we keep the installed version of it.
         let in_use = self.collect_required(
             (self.dependencies[""].requirements.keys().copied())
                 .chain(self.unlocked_names.iter().copied())
