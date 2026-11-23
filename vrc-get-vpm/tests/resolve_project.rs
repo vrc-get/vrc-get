@@ -88,6 +88,118 @@ fn resolve_ranged() {
 }
 
 #[test]
+fn resolve_ranged_to_prerelease_if_no_stable_version() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency_range("com.anatawa12.package", "^1.0.0")
+            .build()
+            .await
+            .unwrap();
+
+        let prerelease = "1.2.0-beta.1".parse::<Version>().unwrap();
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.package",
+                prerelease.clone(),
+            ))
+            .build();
+
+        let result = project.resolve_request(&collection).await.unwrap();
+
+        // The range doesn't have prerelease versions, but a prerelease version is better than nothing.
+        let package = collection.get_package("com.anatawa12.package", prerelease);
+        assert_installing_to_both(&result, &package);
+
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
+    })
+}
+
+#[test]
+fn resolve_prerelease_dependency_to_newest_version() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency(
+                "com.anatawa12.package",
+                "1.0.0-beta.1".parse::<Version>().unwrap(),
+            )
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let newest = "1.1.0-beta.1".parse::<Version>().unwrap();
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.package",
+                newest.clone(),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.package",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.package",
+                "1.0.0-beta.1".parse::<Version>().unwrap(),
+            ))
+            .build();
+
+        let result = project.resolve_request(&collection).await.unwrap();
+
+        // The project requires a prerelease version, so we select the newest version
+        // even if it's a prerelease version and there is a stable version.
+        let package = collection.get_package("com.anatawa12.package", newest);
+        assert_installing_to_both(&result, &package);
+
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
+    })
+}
+
+#[test]
+fn resolve_dependency_installed_as_unlocked() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.package", Version::new(1, 0, 0))
+            .add_file(
+                "Packages/unlocked/package.json",
+                r#"
+            {
+                "name": "com.anatawa12.package",
+                "version": "1.0.0"
+            }
+            "#,
+            )
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.package",
+                Version::new(1, 0, 0),
+            ))
+            .build();
+
+        let result = project.resolve_request(&collection).await.unwrap();
+
+        // The project requires the package to be locked,
+        // so we install it even if it's installed as an unlocked package.
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
+        assert_installing_to_both(&result, &package);
+
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
+    })
+}
+
+#[test]
 fn resolve_dependencies_of_unlocked() {
     block_on(async {
         let project = VirtualProjectBuilder::new()
@@ -123,6 +235,47 @@ fn resolve_dependencies_of_unlocked() {
 
         let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
         assert_installing_to_locked_only(&result, &library);
+    })
+}
+
+#[test]
+fn resolve_dependencies_of_prerelease_unlocked() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_file(
+                "Packages/unlocked/package.json",
+                r#"
+            {
+                "name": "com.anatawa12.package",
+                "version": "1.0.0-beta.1",
+                "vpmDependencies": {
+                    "com.anatawa12.library": "^1.0.0"
+                }
+            }
+            "#,
+            )
+            .build()
+            .await
+            .unwrap();
+
+        let prerelease = "1.2.0-beta.1".parse::<Version>().unwrap();
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                prerelease.clone(),
+            ))
+            .build();
+
+        let result = project.resolve_request(&collection).await.unwrap();
+
+        // We allow prerelease versions for dependencies of prerelease packages.
+        let library = collection.get_package("com.anatawa12.library", prerelease);
+        assert_installing_to_locked_only(&result, &library);
+
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
     })
 }
 
@@ -298,6 +451,48 @@ fn dependencies_only_package_require_newer_version_than_locked_version() {
         let library2 = collection.get_package("com.anatawa12.dependency", Version::new(1, 1, 0));
         assert_installing_to_locked_only(&result, &library);
         assert_installing_to_both(&result, &library2);
+    })
+}
+
+#[test]
+fn dependencies_only_package_is_replaced_for_another_dependencies_only_package() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency_range("com.anatawa12.library", "^1.0.0")
+            .add_dependency("com.anatawa12.tool", Version::new(1, 0, 0))
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 5, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 2, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "<1.3.0"),
+            )
+            .build();
+
+        let result = project.resolve_request(&collection).await.unwrap();
+
+        // We select the library 1.5.0 at first since it's the newest, but nobody requested
+        // the version. So we replace it with 1.2.0 since it satisfies both the project and the tool.
+        let library = collection.get_package("com.anatawa12.library", Version::new(1, 2, 0));
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+        assert_installing_to_both(&result, &library);
+        assert_installing_to_both(&result, &tool);
+
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
     })
 }
 

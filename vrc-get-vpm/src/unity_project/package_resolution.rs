@@ -14,11 +14,31 @@ use crate::{PackageInfo, PackageManifest, VersionSelector};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 
-/// The package that requires another package.
+/// The package requested to install from outside of the dependency resolution.
+pub(crate) enum Request<'env, 'a> {
+    /// The package the user selected the version of.
+    ///
+    /// We always install this version, and never replace it with another version.
+    Package(PackageInfo<'env>),
+    /// The package required by the project or installed packages, but not installed.
+    ///
+    /// We select the version in the same way as dependencies of installing packages,
+    /// so we can replace it with another version to satisfy other packages.
+    Range {
+        name: &'a str,
+        range: VersionRange,
+        // The acceptances of prerelease versions we try in order.
+        // We select the newest version with the first acceptance some version satisfies.
+        prerelease: &'a [PrereleaseAcceptance],
+    },
+}
+
+/// The one that requires a package; an installing package or the one that made a request.
 struct Requirer<'a> {
+    // The name of the package. This is empty for requests.
     name: &'a str,
-    // We allow prerelease versions for dependencies of prerelease packages.
-    allow_prerelease: bool,
+    // The acceptances of prerelease versions we try in order to select the dependencies.
+    prerelease: &'a [PrereleaseAcceptance],
     // Dependencies are downgraded only along with the package that requires them.
     // Installing or upgrading a package never downgrades other packages;
     // the unsatisfied requirement is reported as a conflict instead.
@@ -62,7 +82,8 @@ where
     pub pending_queue: PackageQueue<'env>,
     dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
     unlocked_names: HashSet<&'a str>,
-    // The packages requested to add. We never replace them with another version.
+    // The packages the user selected the version of.
+    // We never replace them with another version.
     requested: HashSet<&'a str>,
     // The installed packages that become unused and should be removed.
     unused: Vec<&'a str>,
@@ -728,52 +749,23 @@ where
             return;
         }
 
-        struct PackageFinder<'env, 'a, C: PackageCollection> {
-            dependency: &'a str,
-            env: &'env C,
-            ranges: &'a [&'a VersionRange],
-        }
-
-        impl<'env, C: PackageCollection> PackageFinder<'env, '_, C> {
-            fn find(
-                &self,
-                unity_version: Option<UnityVersion>,
-                allow_prerelease: PrereleaseAcceptance,
-            ) -> Option<PackageInfo<'env>> {
-                self.env.find_package_by_name(
-                    self.dependency,
-                    VersionSelector::ranges_for(unity_version, self.ranges, allow_prerelease),
-                )
-            }
-        }
-
-        let allow_prerelease = self.allow_prerelease;
+        let prerelease = if self.allow_prerelease {
+            // prerelease is allowed, so we find the best match
+            &[PrereleaseAcceptance::Allow]
+        } else {
+            requirer.prerelease
+        };
         let find = |ranges: &[&VersionRange]| -> Option<PackageInfo<'env>> {
-            let finder = PackageFinder {
-                dependency,
-                env,
-                ranges,
-            };
-
-            if allow_prerelease {
-                // prerelease is allowed, so we find the best match
-                (finder.find(unity_version, PrereleaseAcceptance::Allow))
-                    .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
-            } else if requirer.allow_prerelease {
-                // if the package is prerelease, allow prerelease, but prefer stable
-                (finder.find(unity_version, PrereleaseAcceptance::Deny))
-                    .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Minimum))
-                    .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Allow))
-                    .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
-                    .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
-                    .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
-            } else {
-                // if the package is stable, prefer stable, and allow minimum
-                (finder.find(unity_version, PrereleaseAcceptance::Deny))
-                    .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Minimum))
-                    .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
-                    .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
-            }
+            // We prefer the versions compatible with the unity of the project,
+            // but we use incompatible versions if there are no compatible versions.
+            [unity_version, None].into_iter().find_map(|unity_version| {
+                prerelease.iter().find_map(|&prerelease| {
+                    env.find_package_by_name(
+                        dependency,
+                        VersionSelector::ranges_for(unity_version, ranges, prerelease),
+                    )
+                })
+            })
         };
 
         // Prefer the version that satisfies the requirements from all packages we know,
@@ -814,11 +806,24 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
     get_locked: impl Fn(&str) -> Option<LockedDependencyInfo<'a>>,
     unity_version: Option<UnityVersion>,
     env: &'env impl PackageCollection,
-    packages: Vec<PackageInfo<'env>>,
+    requests: Vec<Request<'env, 'a>>,
     allow_prerelease: bool,
     remove_unused: bool,
     missing_dependencies: &mut MissingDependencies,
 ) -> PackageResolutionResult<'env> {
+    let mut packages = vec![];
+    let mut range_requests = vec![];
+    for request in requests {
+        match request {
+            Request::Package(package) => packages.push(package),
+            Request::Range {
+                name,
+                range,
+                prerelease,
+            } => range_requests.push((name, range, prerelease)),
+        }
+    }
+
     let mut context = ResolutionContext::<'env, '_>::new(allow_prerelease, packages);
 
     // first, add dependencies
@@ -865,12 +870,39 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
 
     context.mark_ignored_requirements();
 
+    // Select the versions for the requests with ranges like dependencies of installing packages.
+    for (name, range, prerelease) in &range_requests {
+        let requirer = Requirer {
+            name: "",
+            prerelease,
+            allow_downgrade: false,
+        };
+        context.add_dependency(
+            &requirer,
+            name,
+            range,
+            env,
+            unity_version,
+            missing_dependencies,
+        );
+    }
+
     while let Some((x, force)) = context.pending_queue.next_package() {
         log::debug!("processing package {} version {}", x.name(), x.version());
         let vpm_dependencies = &x.vpm_dependencies();
         let requirer = Requirer {
             name: x.name(),
-            allow_prerelease: x.version().is_pre(),
+            prerelease: if x.version().is_pre() {
+                // if the package is prerelease, allow prerelease, but prefer stable
+                &[
+                    PrereleaseAcceptance::Deny,
+                    PrereleaseAcceptance::Minimum,
+                    PrereleaseAcceptance::Allow,
+                ]
+            } else {
+                // if the package is stable, prefer stable, and allow minimum
+                &[PrereleaseAcceptance::Deny, PrereleaseAcceptance::Minimum]
+            },
             allow_downgrade: context.is_downgrade(x.name(), x.version()),
         };
 

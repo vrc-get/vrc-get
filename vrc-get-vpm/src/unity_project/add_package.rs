@@ -7,7 +7,7 @@
  * file, You can obtain one at http://mozilla.org.
  */
 
-use crate::unity_project::package_resolution::MissingDependencies;
+use crate::unity_project::package_resolution::{MissingDependencies, Request};
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::unity_project::{PendingProjectChanges, package_resolution};
@@ -311,7 +311,9 @@ impl UnityProject {
             |pkg| self.manifest.get_locked(pkg),
             Some(self.unity_version()),
             env,
-            adding_packages,
+            (adding_packages.into_iter())
+                .map(Request::Package)
+                .collect(),
             allow_prerelease,
             true,
             &mut missing_dependencies,
