@@ -1065,11 +1065,8 @@ fn downgrade_with_dependencies(operation: AddPackageOperation) {
 
 #[test]
 fn downgrade_downgrades_dependencies_of_the_package() {
+    // Those share the directory of the project so we must not run them in parallel.
     downgrade_with_dependencies(AddPackageOperation::Downgrade);
-}
-
-#[test]
-fn auto_detected_downgrade_downgrades_dependencies_of_the_package() {
     downgrade_with_dependencies(AddPackageOperation::AutoDetected);
 }
 
@@ -1139,11 +1136,8 @@ fn do_not_downgrade_installed_package_on_install(operation: AddPackageOperation)
 
 #[test]
 fn install_does_not_downgrade_installed_package() {
+    // Those share the directory of the project so we must not run them in parallel.
     do_not_downgrade_installed_package_on_install(AddPackageOperation::InstallToDependencies);
-}
-
-#[test]
-fn auto_detected_install_does_not_downgrade_installed_package() {
     do_not_downgrade_installed_package_on_install(AddPackageOperation::AutoDetected);
 }
 
@@ -1206,11 +1200,8 @@ fn do_not_downgrade_installed_package_on_upgrade(operation: AddPackageOperation)
 
 #[test]
 fn upgrade_does_not_downgrade_installed_package() {
+    // Those share the directory of the project so we must not run them in parallel.
     do_not_downgrade_installed_package_on_upgrade(AddPackageOperation::UpgradeLocked);
-}
-
-#[test]
-fn auto_detected_upgrade_does_not_downgrade_installed_package() {
     do_not_downgrade_installed_package_on_upgrade(AddPackageOperation::AutoDetected);
 }
 
@@ -1669,12 +1660,9 @@ fn ignore_requirements_already_not_satisfied(upgrade_capped: bool) {
 }
 
 #[test]
-fn ignore_requirements_already_not_satisfied_on_install() {
+fn ignore_requirements_already_not_satisfied_in_project() {
+    // Those share the directory of the project so we must not run them in parallel.
     ignore_requirements_already_not_satisfied(false);
-}
-
-#[test]
-fn ignore_requirements_already_not_satisfied_of_upgrading_package() {
     ignore_requirements_already_not_satisfied(true);
 }
 
@@ -1737,6 +1725,593 @@ fn satisfy_requirements_already_not_satisfied_if_possible() {
         assert_installing_to_locked_only(&resolve, &base_2_0_0);
 
         assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn dependency_of_replaced_package_is_not_installed() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.base", Version::new(2, 0, 0))
+            .add_locked("com.vrchat.base", Version::new(2, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.extra", "^1.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.extra", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.app", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=1.0.0")
+                    .add_vpm_dependency("com.anatawa12.helper", "^1.0.0"),
+            )
+            .build();
+
+        let app = collection.get_package("com.anatawa12.app", Version::new(1, 0, 0));
+        let helper = collection.get_package("com.anatawa12.helper", Version::new(1, 0, 0));
+        let library = collection.get_package("com.anatawa12.library", Version::new(1, 1, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[app],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library 2.0.0 is selected for the app at first, and replaced with 1.1.0 for
+        // the helper. The 'extra' is only for the library 2.0.0 so it must not be installed,
+        // and its requirement for the base must not be reported as a conflict.
+        assert_installing_to_both(&resolve, &app);
+        assert_installing_to_locked_only(&resolve, &helper);
+        assert_installing_to_locked_only(&resolve, &library);
+
+        assert_len!(resolve.package_changes(), 3);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn package_got_back_to_installed_version_is_not_reinstalled() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.library", Version::new(1, 1, 0))
+            .add_locked("com.anatawa12.library", Version::new(1, 1, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.app", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=2.0.0")
+                    .add_vpm_dependency("com.anatawa12.helper", "^1.0.0"),
+            )
+            .build();
+
+        let app = collection.get_package("com.anatawa12.app", Version::new(1, 0, 0));
+        let helper = collection.get_package("com.anatawa12.helper", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[app],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library 2.0.0 is selected for the app at first, and it gets back to 1.1.0 for
+        // the helper. That is the installed version so the library must not be reinstalled.
+        assert_installing_to_both(&resolve, &app);
+        assert_installing_to_locked_only(&resolve, &helper);
+
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+
+        // No version of the library satisfies both the app and the helper
+        assert_len!(resolve.conflicts(), 1);
+        let library_conflict = resolve.conflicts().get("com.anatawa12.library").unwrap();
+        assert_eq!(
+            library_conflict.conflicting_packages(),
+            &["com.anatawa12.app".into()]
+        );
+    })
+}
+
+#[test]
+fn package_only_for_replaced_package_is_removed_as_unused() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.library", Version::new(1, 0, 0))
+            .add_locked(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.core", "^1.0.0")],
+            )
+            .add_locked("com.anatawa12.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(3, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.core", "^2.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.core", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.core", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.extra", "^1.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.anatawa12.core",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.extra",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^2.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.app", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=2.0.0")
+                    .add_vpm_dependency("com.anatawa12.helper", "^1.0.0"),
+            )
+            .build();
+
+        let app = collection.get_package("com.anatawa12.app", Version::new(1, 0, 0));
+        let helper = collection.get_package("com.anatawa12.helper", Version::new(1, 0, 0));
+        let library = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[app],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library 3.0.0 is selected for the app at first, and replaced with 2.0.0 for
+        // the helper. The core is upgraded for the library 3.0.0, but the library 2.0.0
+        // doesn't need the core, so the core must be removed instead of upgraded.
+        assert_installing_to_both(&resolve, &app);
+        assert_installing_to_locked_only(&resolve, &helper);
+        assert_installing_to_locked_only(&resolve, &library);
+        assert_removed(&resolve, "com.anatawa12.core", RemoveReason::Unused);
+
+        assert_len!(resolve.package_changes(), 4);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn locked_only_package_is_kept_as_is() {
+    block_on(async {
+        // The core is locked but nobody requires it since the manifest is inconsistent.
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.library", Version::new(1, 0, 0))
+            .add_locked("com.anatawa12.library", Version::new(1, 0, 0), &[])
+            .add_locked("com.anatawa12.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(3, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.core", "^2.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.core", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.extra", "^1.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.anatawa12.core",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.extra",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^2.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.app", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=2.0.0")
+                    .add_vpm_dependency("com.anatawa12.helper", "^1.0.0"),
+            )
+            .build();
+
+        let app = collection.get_package("com.anatawa12.app", Version::new(1, 0, 0));
+        let helper = collection.get_package("com.anatawa12.helper", Version::new(1, 0, 0));
+        let library = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[app],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library 3.0.0 is selected for the app at first, and replaced with 2.0.0 for
+        // the helper. The core is upgraded for the library 3.0.0, but the library 2.0.0
+        // doesn't need the core. The core was not for the library so we must not touch it:
+        // it must not be upgraded, and must not be removed.
+        assert_installing_to_both(&resolve, &app);
+        assert_installing_to_locked_only(&resolve, &helper);
+        assert_installing_to_locked_only(&resolve, &library);
+        assert!(!(resolve.package_changes()).contains_key("com.anatawa12.core"));
+
+        assert_len!(resolve.package_changes(), 3);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn dependency_of_locked_only_package_is_not_unused() {
+    block_on(async {
+        // The tool is locked but nobody requires it since the manifest is inconsistent.
+        // Both the library 1.0.0 and the tool require the core, and the core requires the base.
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.library", Version::new(1, 0, 0))
+            .add_locked(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.core", "^1.0.0")],
+            )
+            .add_locked(
+                "com.anatawa12.tool",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.core", "^1.0.0")],
+            )
+            .add_locked(
+                "com.anatawa12.core",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.base", "^1.0.0")],
+            )
+            .add_locked("com.anatawa12.base", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .build();
+
+        let library = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[library],
+                AddPackageOperation::UpgradeLocked,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library 2.0.0 doesn't need the core, but we keep the tool so the tool needs it.
+        assert_installing_to_locked_only(&resolve, &library);
+
+        assert_len!(resolve.package_changes(), 1);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn requirement_of_unused_package_is_not_conflict() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.library", Version::new(1, 0, 0))
+            .add_locked(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.core", "^1.0.0")],
+            )
+            .add_locked(
+                "com.anatawa12.core",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "^1.0.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "^2.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .build();
+
+        let library = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+        let base = collection.get_package("com.vrchat.base", Version::new(2, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[library],
+                AddPackageOperation::UpgradeLocked,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library 2.0.0 doesn't need the core so the core is removed.
+        // The base 2.0.0 doesn't satisfy the core, but that's not a conflict.
+        assert_installing_to_locked_only(&resolve, &library);
+        assert_installing_to_locked_only(&resolve, &base);
+        assert_removed(&resolve, "com.anatawa12.core", RemoveReason::Unused);
+
+        assert_len!(resolve.package_changes(), 3);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn package_adding_to_dependencies_is_not_unused() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.library", Version::new(1, 0, 0))
+            .add_locked(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.core", "^1.0.0")],
+            )
+            .add_locked("com.anatawa12.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.core",
+                Version::new(1, 0, 0),
+            ))
+            .build();
+
+        let library = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+        let core = collection.get_package("com.anatawa12.core", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[library, core],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library 2.0.0 doesn't need the core, but the core is requested to be added to
+        // dependencies of the project. The core is already installed so it's kept as is.
+        assert_installing_to_both(&resolve, &library);
+        assert_installing_to_dependencies_only(
+            &resolve,
+            "com.anatawa12.core",
+            Version::new(1, 0, 0),
+        );
+
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn installing_older_version_than_adding_to_dependencies_is_conflict() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
+            )
+            .build();
+
+        let library_2_0_0 = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+        let library_1_0_0 = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[library_2_0_0, tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library is replaced with 1.0.0 for the tool, but we add the library 2.0.0 to
+        // dependencies of the project as requested.
+        assert_installing_to_both_as(&resolve, &library_1_0_0, Version::new(2, 0, 0));
+        assert_installing_to_both(&resolve, &tool);
+
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+
+        // The version we install doesn't satisfy the dependencies of the project.
+        // The project is the empty name in conflicts.
+        assert_len!(resolve.conflicts(), 1);
+        let library_conflict = resolve.conflicts().get("com.anatawa12.library").unwrap();
+        assert_eq!(library_conflict.conflicting_packages(), &["".into()]);
+    })
+}
+
+#[test]
+fn requested_package_kept_as_installed_can_be_unused() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.library", Version::new(1, 0, 0))
+            .add_locked(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.core", "1.0.0")],
+            )
+            .add_locked("com.anatawa12.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.core", "1.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.anatawa12.core",
+                Version::new(1, 1, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.core",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.app", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^2.0.0"),
+            )
+            .build();
+
+        let library_1_0_0 = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
+        let library_2_0_0 = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+        let core_1_1_0 = collection.get_package("com.anatawa12.core", Version::new(1, 1, 0));
+        let app = collection.get_package("com.anatawa12.app", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[library_1_0_0, core_1_1_0, app],
+                AddPackageOperation::AutoDetected,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The core is requested to upgrade, but it gets back to the installed version for
+        // the library 1.0.0. Then, the library is upgraded to 2.0.0 for the app, and that
+        // doesn't need the core. We don't install the core so it's unused even if requested.
+        assert_installing_to_both(&resolve, &app);
+        assert_installing_to_locked_only(&resolve, &library_2_0_0);
+        assert_removed(&resolve, "com.anatawa12.core", RemoveReason::Unused);
+
+        assert_len!(resolve.package_changes(), 3);
         assert_len!(resolve.remove_legacy_folders(), 0);
         assert_len!(resolve.remove_legacy_files(), 0);
         assert_len!(resolve.conflicts(), 0);

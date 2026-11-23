@@ -161,12 +161,24 @@ pub fn assert_installing_to_locked_only(result: &PendingProjectChanges, package:
 
 #[track_caller]
 pub fn assert_installing_to_both(result: &PendingProjectChanges, package: &PackageInfo) {
+    assert_installing_to_both_as(result, package, package.version().clone());
+}
+
+/// Asserts the `package` is installed, and added to dependencies as the `version`.
+///
+/// Unlike `assert_installing_to_both`, the `version` can differ from the version of the `package`.
+#[track_caller]
+pub fn assert_installing_to_both_as(
+    result: &PendingProjectChanges,
+    package: &PackageInfo,
+    version: Version,
+) {
     let name = package.name();
     let install = find_install(result, name);
     if !install.is_adding_to_locked() {
         fail!(result, "{name} is not adding to locked");
     }
-    assert_adding_to_dependencies(result, install, name, package.version());
+    assert_adding_to_dependencies(result, install, name, &version);
     assert_installing_package(result, install, package);
 }
 

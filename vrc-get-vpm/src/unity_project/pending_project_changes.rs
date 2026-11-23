@@ -315,6 +315,13 @@ impl<'env> Builder<'env> {
             .and_then(|x| x.to_dependencies.as_ref())
     }
 
+    pub(crate) fn adding_dependencies(&self) -> impl Iterator<Item = (&str, &DependencyRange)> {
+        self.package_changes.iter().filter_map(|(name, change)| {
+            let range = change.as_install()?.to_dependencies.as_ref()?;
+            Some((name.as_ref(), range))
+        })
+    }
+
     pub(crate) fn get_installing(&self, name: &str) -> Option<PackageInfo<'env>> {
         self.package_changes
             .get(name)
@@ -376,10 +383,6 @@ impl<'env> Builder<'env> {
             self.conflicts_unity(package);
         }
 
-        debug!("Finding unused packages");
-
-        self.mark_and_sweep_packages(unity_project);
-
         debug!("Collecting legacy assets");
 
         let legacy_assets =
@@ -396,7 +399,10 @@ impl<'env> Builder<'env> {
         }
     }
 
-    fn mark_and_sweep_packages(&mut self, unity_project: &UnityProject) {
+    /// Removes the packages that become unused by the changes.
+    ///
+    /// Adding packages doesn't need this since the dependency resolution finds them.
+    pub(crate) fn remove_unused_packages(&mut self, unity_project: &UnityProject) {
         fn mark_recursive<'a, F, I>(
             entrypoint: impl Iterator<Item = &'a str>,
             get_dependencies: F,
@@ -485,9 +491,17 @@ impl<'env> Builder<'env> {
             // keep installing packages even if the package is not used by any dependencies
             let package_changes = installing_packages.iter().map(Box::as_ref);
 
+            // We never remove the packages that are not removable even if nobody requires them,
+            // so we have to keep the packages they require.
+            let kept_packages = unity_project
+                .locked_packages()
+                .map(|locked| locked.name())
+                .filter(|name| !removable.contains(name));
+
             let entry_points = unlocked_dependencies
                 .chain(dependencies)
-                .chain(package_changes);
+                .chain(package_changes)
+                .chain(kept_packages);
 
             mark_recursive(entry_points, |dep_name| {
                 if let Some(to_install) = self

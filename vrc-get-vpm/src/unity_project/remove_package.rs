@@ -70,6 +70,8 @@ impl UnityProject {
             changes.remove(x.into(), RemoveReason::Requested);
         }
 
+        changes.remove_unused_packages(self);
+
         Ok(changes.build_resolve(self).await)
     }
 }

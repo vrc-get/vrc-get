@@ -51,6 +51,10 @@ where
     pub pending_queue: PackageQueue<'env>,
     dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
     unlocked_names: HashSet<&'a str>,
+    // The packages requested to add and their versions.
+    requested: HashMap<&'a str, &'a Version>,
+    // The installed packages that become unused and should be removed.
+    unused: Vec<&'a str>,
 }
 
 struct Legacy<'env>(&'env [Box<str>]);
@@ -139,11 +143,16 @@ where
 
 impl<'env> ResolutionContext<'env, '_> {
     fn new(allow_prerelease: bool, packages: Vec<PackageInfo<'env>>) -> Self {
+        let requested = (packages.iter())
+            .map(|pkg| (pkg.name(), pkg.version()))
+            .collect();
         let mut this = Self {
             dependencies: HashMap::new(),
             pending_queue: PackageQueue::new(packages),
             allow_prerelease,
             unlocked_names: HashSet::new(),
+            requested,
+            unused: Vec::new(),
         };
 
         for pkg in &this.pending_queue.pending_queue {
@@ -413,6 +422,167 @@ where
             .and_then(|info| info.installed)
             .is_some_and(|installed| version < installed)
     }
+
+    /// Stops using the packages that became unnecessary while resolving.
+    ///
+    /// A package can be replaced with another version after we process its dependencies.
+    /// The packages only the replaced version requires are still marked as using then.
+    /// A package can also get back to the installed version, which needs no installation.
+    pub(crate) fn remove_unnecessary_packages<'l: 'a>(
+        &mut self,
+        get_locked: &impl Fn(&str) -> Option<LockedDependencyInfo<'l>>,
+        env: &'env impl PackageCollection,
+    ) {
+        // Stop using the packages that got back to the installed version.
+        // Requesting the installed version means reinstalling it, so we keep that.
+        let reverted = (self.dependencies.iter())
+            .filter(|&(name, info)| {
+                info.using.is_some_and(|using| {
+                    info.installed == Some(using.version())
+                        && self.requested.get(name) != Some(&using.version())
+                })
+            })
+            .map(|(&name, _)| name)
+            .collect::<Vec<_>>();
+
+        for name in reverted {
+            self.stop_using(name, get_locked, env);
+        }
+
+        // Collect necessary packages: requested packages, dependencies of the project,
+        // unlocked packages, and the packages required by necessary packages.
+        // Installed packages are not always necessary since they can be unused after this.
+        let necessary = self.collect_required(
+            (self.requested.keys().copied())
+                .chain(self.dependencies[""].requirements.keys().copied())
+                .chain(self.unlocked_names.iter().copied()),
+        );
+
+        // Stop using the other packages since nobody requires them.
+        let unnecessary = (self.dependencies.iter())
+            .filter(|&(name, info)| info.using.is_some() && !necessary.contains(name))
+            .map(|(&name, _)| name)
+            .collect::<Vec<_>>();
+
+        for name in unnecessary {
+            log::debug!("package {name} is not necessary anymore");
+            self.stop_using(name, get_locked, env);
+        }
+    }
+
+    /// Collects the packages required by the `roots`. The result includes the `roots`.
+    fn collect_required(&self, roots: impl Iterator<Item = &'a str>) -> HashSet<&'a str> {
+        let mut required = HashSet::new();
+        let mut queue = roots.collect::<VecDeque<_>>();
+
+        while let Some(name) = queue.pop_front() {
+            if !required.insert(name) {
+                continue;
+            }
+            let Some(info) = self.dependencies.get(name) else {
+                continue;
+            };
+            if info.is_legacy() {
+                // modern packages are used instead of the legacy package
+                queue.extend(&info.modern_packages);
+            } else {
+                queue.extend(&info.dependencies);
+            }
+        }
+
+        required
+    }
+
+    /// Stops using the new version of the package, and gets back to as it was installed.
+    fn stop_using<'l: 'a>(
+        &mut self,
+        name: &'a str,
+        get_locked: &impl Fn(&str) -> Option<LockedDependencyInfo<'l>>,
+        env: &'env impl PackageCollection,
+    ) {
+        let info = self.dependencies.get_mut(name).unwrap();
+        info.using = None;
+        info.current = info.installed;
+        let dependencies = std::mem::take(&mut info.dependencies);
+        let legacy_packages = std::mem::take(&mut info.legacy_packages);
+
+        // The version is not used so its requirements must not be reported as conflicts.
+        for dependency in dependencies {
+            let dependency = self.dependencies.get_mut(dependency).unwrap();
+            dependency.requirements.remove(name);
+        }
+        for legacy in legacy_packages.0 {
+            let legacy = self.dependencies.get_mut(legacy.as_ref()).unwrap();
+            legacy.modern_packages.remove(name);
+        }
+
+        if let Some(locked) = get_locked(name) {
+            self.add_locked_dependency(locked, env);
+        }
+    }
+
+    /// Finds the installed packages that become unused, and forgets their requirements.
+    ///
+    /// The package is unused if nobody requires it anymore, and it was required by
+    /// the packages we replace or remove. We never remove other packages nobody requires.
+    /// Such packages exist if the manifest is inconsistent, and they might be necessary.
+    /// We keep them as they are, so the packages they require are not unused.
+    pub(crate) fn remove_unused_packages<'l: 'a>(
+        &mut self,
+        get_locked: &impl Fn(&str) -> Option<LockedDependencyInfo<'l>>,
+    ) {
+        // Collect the packages that were required by the packages we replace or remove.
+        let mut removable = HashSet::<&'a str>::new();
+        let mut queue = (self.dependencies.iter())
+            .filter(|(_, info)| info.using.is_some() || info.is_legacy())
+            .map(|(&name, _)| name)
+            .collect::<VecDeque<_>>();
+
+        while let Some(name) = queue.pop_front() {
+            if let Some(locked) = get_locked(name)
+                && removable.insert(name)
+            {
+                queue.extend(locked.dependencies().keys().map(|x| x.as_ref()));
+            }
+        }
+
+        // Collect the packages in use: dependencies of the project, unlocked packages,
+        // the packages we install, the installed packages we never remove,
+        // and the packages required by them.
+        // A requested package is not in use if we keep the installed version of it.
+        let in_use = self.collect_required(
+            (self.dependencies[""].requirements.keys().copied())
+                .chain(self.unlocked_names.iter().copied())
+                .chain(
+                    (self.dependencies.iter())
+                        .filter(|&(name, info)| {
+                            info.using.is_some()
+                                || (info.installed.is_some() && !removable.contains(name))
+                        })
+                        .map(|(&name, _)| name),
+                ),
+        );
+
+        // The package we replace or remove are not unused packages.
+        let unused = (removable.into_iter())
+            .filter(|name| !in_use.contains(name))
+            .filter(|name| !self.dependencies[name].is_legacy())
+            .collect::<Vec<_>>();
+
+        for name in unused {
+            log::debug!("package {name} is unused");
+
+            // The package will be removed so its requirements must not be reported as conflicts.
+            let info = self.dependencies.get_mut(name).unwrap();
+            info.current = None;
+            for dependency in std::mem::take(&mut info.dependencies) {
+                let dependency = self.dependencies.get_mut(dependency).unwrap();
+                dependency.requirements.remove(name);
+            }
+
+            self.unused.push(name);
+        }
+    }
 }
 
 impl<'env> ResolutionContext<'env, '_> {
@@ -459,6 +629,8 @@ impl<'env> ResolutionContext<'env, '_> {
             .map(|(&name, _)| name.into())
             .collect();
 
+        let unused_packages = self.unused.iter().map(|&name| name.into()).collect();
+
         let new_packages = self
             .dependencies
             .into_values()
@@ -470,6 +642,7 @@ impl<'env> ResolutionContext<'env, '_> {
             new_packages,
             conflicts,
             found_legacy_packages,
+            unused_packages,
         }
     }
 }
@@ -480,6 +653,9 @@ pub struct PackageResolutionResult<'env> {
     pub conflicts: HashMap<Box<str>, Vec<Box<str>>>,
     // list of names of legacy packages we found
     pub found_legacy_packages: Vec<Box<str>>,
+    // list of names of installed packages that become unused.
+    // This is always empty unless `remove_unused` is specified.
+    pub unused_packages: Vec<Box<str>>,
 }
 
 pub struct MissingDependencies {
@@ -523,6 +699,7 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
     env: &'env impl PackageCollection,
     packages: Vec<PackageInfo<'env>>,
     allow_prerelease: bool,
+    remove_unused: bool,
     missing_dependencies: &mut MissingDependencies,
 ) -> PackageResolutionResult<'env> {
     let mut context = ResolutionContext::<'env, '_>::new(allow_prerelease, packages);
@@ -671,6 +848,11 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
                 }
             }
         }
+    }
+
+    context.remove_unnecessary_packages(&get_locked, env);
+    if remove_unused {
+        context.remove_unused_packages(&get_locked);
     }
 
     context.build_result()

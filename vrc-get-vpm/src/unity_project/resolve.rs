@@ -206,6 +206,7 @@ impl UnityProject {
             env,
             to_install,
             allow_prerelease,
+            false,
             missing_dependencies,
         );
 
@@ -332,6 +333,7 @@ impl UnityProject {
             env,
             unlocked_dependencies,
             allow_prerelease,
+            false,
             missing_dependencies,
         );
 

@@ -103,6 +103,48 @@ fn do_not_remove_transitively_when_untouched() {
 }
 
 #[test]
+fn do_not_remove_dependency_of_locked_only_package() {
+    block_on(async {
+        // The tool is locked but nobody requires it since the manifest is inconsistent.
+        // Both the avatars and the tool require the base, and the base requires the core.
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked(
+                "com.anatawa12.tool",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.core", "1.0.0")],
+            )
+            .add_locked("com.vrchat.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let result = project
+            .remove_request(&["com.vrchat.avatars"])
+            .await
+            .unwrap();
+
+        // We keep the tool so the tool needs the base.
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
+
+        assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
+    })
+}
+
+#[test]
 fn remove_referenced_legacy_package() {
     block_on(async {
         let project = VirtualProjectBuilder::new()
