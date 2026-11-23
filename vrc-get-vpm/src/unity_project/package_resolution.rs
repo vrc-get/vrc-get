@@ -277,6 +277,8 @@ where
         let legacy_packages = package.legacy_packages();
         let name = package.name();
 
+        // We selected the prerelease version for someone, so it must not be a conflict.
+        entry.allow_pre |= package.version().is_pre();
         entry.current = Some(package.version());
         entry.using = Some(package);
 

@@ -1206,6 +1206,50 @@ fn upgrade_does_not_downgrade_installed_package() {
 }
 
 #[test]
+fn prerelease_dependency_of_prerelease_package_is_not_conflict() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        let library_version = "1.2.0-beta.1".parse::<Version>().unwrap();
+        let tool_version = "1.0.0-beta.1".parse::<Version>().unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                library_version.clone(),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", tool_version.clone())
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
+            )
+            .build();
+
+        let library = collection.get_package("com.anatawa12.library", library_version);
+        let tool = collection.get_package("com.anatawa12.tool", tool_version);
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // There is no stable version of the library, so we select the prerelease version
+        // since the tool is prerelease. We selected it for the tool, so it's not a conflict.
+        assert_installing_to_both(&resolve, &tool);
+        assert_installing_to_locked_only(&resolve, &library);
+
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
 fn upgrade_dependency_even_if_another_requirement_needs_downgrade() {
     block_on(async {
         let project = VirtualProjectBuilder::new()
