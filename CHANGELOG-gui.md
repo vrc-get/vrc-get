@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog].
   - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
 
 ### Changed
-- Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
+- Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143) `#3313`
 - Changed license of this project to MPL-2.0 `#3231`
 - Changed how the Project List is managed `#3184`
   - Added a project list for ALCOM and logic to sync it with VCC's project list.
