@@ -2459,6 +2459,75 @@ fn requested_upgrade_is_not_skipped() {
     })
 }
 
+/// Adds the tool and the user, and checks the packages we always install.
+///
+/// The tool requires any library so the library 2.0.0 is selected first,
+/// and then the helper, which the user requires, requires the library 1.x
+/// so the library is replaced with 1.0.0.
+async fn add_tool_and_user<'env>(
+    project: &vrc_get_vpm::unity_project::UnityProject,
+    collection: &'env PackageCollection,
+) -> vrc_get_vpm::unity_project::PendingProjectChanges<'env> {
+    let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+    let user = collection.get_package("com.anatawa12.user", Version::new(1, 0, 0));
+
+    let resolve = project
+        .add_package_request(
+            collection,
+            &[tool, user],
+            AddPackageOperation::InstallToDependencies,
+            false,
+        )
+        .await
+        .unwrap();
+
+    let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
+    let helper = collection.get_package("com.anatawa12.helper", Version::new(1, 0, 0));
+    assert_installing_to_both(&resolve, &tool);
+    assert_installing_to_both(&resolve, &user);
+    assert_installing_to_locked_only(&resolve, &helper);
+    assert_installing_to_locked_only(&resolve, &library);
+
+    resolve
+}
+
+#[test]
+fn missing_dependency_of_replaced_version_is_not_reported() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        // The library 2.0.0 requires the missing package, but the library 1.0.0 is installed.
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.missing", "^1.0.0"),
+            )
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.user", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.helper", "^1.0.0"),
+            )
+            .build();
+
+        let resolve = add_tool_and_user(&project, &collection).await;
+
+        assert_len!(resolve.package_changes(), 4);
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
 // endregion
 
 // region rollback on error

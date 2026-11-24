@@ -91,6 +91,10 @@ where
     requested: HashSet<&'a str>,
     // The installed packages that become unused and should be removed.
     unused: Vec<&'a str>,
+    // The dependencies we couldn't find, with the requirer ("" for requests).
+    // The requirer can be replaced or stop being used later, so we keep the requirer
+    // to report only the dependencies of the packages we actually install.
+    missing: Vec<(&'a str, &'a str, &'a VersionRange)>,
 }
 
 struct Legacy<'env>(&'env [Box<str>]);
@@ -187,6 +191,7 @@ impl<'env> ResolutionContext<'env, '_> {
             unlocked_names: HashSet::new(),
             requested,
             unused: Vec::new(),
+            missing: Vec::new(),
         };
 
         for pkg in &this.pending_queue.pending_queue {
@@ -319,6 +324,7 @@ where
         for dep in &old_dependencies {
             self.dependencies.get_mut(*dep).unwrap().remove_range(name);
         }
+        self.missing.retain(|&(requirer, _, _)| requirer != name);
         for (dependency, range) in vpm_dependencies.iter() {
             self.dependencies
                 .entry(dependency)
@@ -739,12 +745,11 @@ where
     /// and adds it to the queue if we have to install it.
     fn add_dependency(
         &mut self,
-        requirer: &Requirer,
+        requirer: &Requirer<'a>,
         dependency: &'a str,
         range: &'a VersionRange,
         env: &'env impl PackageCollection,
         unity_version: Option<UnityVersion>,
-        missing_dependencies: &mut MissingDependencies,
     ) {
         let name = requirer.name;
         log::debug!("processing package {name}: dependency {dependency} version {range}");
@@ -797,7 +802,7 @@ where
                 self.pending_queue.add_pending_package(found);
             }
         } else {
-            missing_dependencies.add(dependency, range);
+            self.missing.push((name, dependency, range));
         }
     }
 }
@@ -884,14 +889,7 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
             prerelease,
             allow_downgrade: false,
         };
-        context.add_dependency(
-            &requirer,
-            name,
-            range,
-            env,
-            unity_version,
-            missing_dependencies,
-        );
+        context.add_dependency(&requirer, name, range, env, unity_version);
     }
 
     while let Some((x, force)) = context.pending_queue.next_package() {
@@ -916,14 +914,7 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
         if context.add_package(x, force) {
             // add new dependencies
             for (dependency, range) in vpm_dependencies.iter() {
-                context.add_dependency(
-                    &requirer,
-                    dependency,
-                    range,
-                    env,
-                    unity_version,
-                    missing_dependencies,
-                );
+                context.add_dependency(&requirer, dependency, range, env, unity_version);
             }
         }
     }
@@ -931,6 +922,15 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
     context.remove_unnecessary_packages(&get_locked, env);
     if remove_unused {
         context.remove_unused_packages(&get_locked);
+    }
+
+    // Report only the missing dependencies of the packages we actually install.
+    for &(requirer, dependency, range) in &context.missing {
+        let installing = (context.dependencies.get(requirer))
+            .is_some_and(|info| info.using.is_some() && !info.is_legacy());
+        if requirer.is_empty() || installing {
+            missing_dependencies.add(dependency, range);
+        }
     }
 
     context.build_result()
