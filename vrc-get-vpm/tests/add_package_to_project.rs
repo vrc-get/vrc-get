@@ -2528,6 +2528,56 @@ fn missing_dependency_of_replaced_version_is_not_reported() {
     })
 }
 
+#[test]
+fn cyclic_version_replacement_terminates() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        // Each version of the library and the helper requires the version of the other
+        // that requires another version, so replacing versions never settles.
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.helper", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.helper", "^2.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^2.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=1.0.0"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // No combination satisfies everyone, so we must stop with a conflict.
+        assert_installing_to_both(&resolve, &tool);
+        assert_len!(resolve.package_changes(), 3);
+        assert!(!resolve.conflicts().is_empty());
+    })
+}
+
 // endregion
 
 // region rollback on error

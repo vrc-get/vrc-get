@@ -892,7 +892,15 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
         context.add_dependency(&requirer, name, range, env, unity_version);
     }
 
+    // Replacing versions can cycle forever, so we give up after enough iterations.
+    // Each package is usually processed once or twice.
+    let mut iterations = 0;
     while let Some((x, force)) = context.pending_queue.next_package() {
+        iterations += 1;
+        if iterations > context.dependencies.len() * 5 {
+            log::warn!("package resolution did not settle; giving up");
+            break;
+        }
         log::debug!("processing package {} version {}", x.name(), x.version());
         let vpm_dependencies = &x.vpm_dependencies();
         let requirer = Requirer {
