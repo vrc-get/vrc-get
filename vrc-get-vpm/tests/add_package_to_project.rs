@@ -2347,6 +2347,62 @@ fn requested_package_is_not_replaced_with_newer_version() {
 }
 
 #[test]
+fn requested_installed_version_is_not_replaced_with_newer_version() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.library", Version::new(1, 0, 0))
+            .add_locked("com.anatawa12.library", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^2.0.0"),
+            )
+            .build();
+
+        let library = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[library, tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The library 1.0.0 is requested and installed, so we keep it as same as
+        // we do when it's not installed, and tell the conflict to the user.
+        assert_installing_to_both(&resolve, &tool);
+
+        assert_len!(resolve.package_changes(), 1);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+
+        assert_len!(resolve.conflicts(), 1);
+        let library_conflict = resolve.conflicts().get("com.anatawa12.library").unwrap();
+        assert_eq!(
+            library_conflict.conflicting_packages(),
+            &["com.anatawa12.tool".into()]
+        );
+    })
+}
+
+#[test]
 fn requested_upgrade_is_not_skipped() {
     block_on(async {
         let project = VirtualProjectBuilder::new()

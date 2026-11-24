@@ -20,6 +20,10 @@ pub(crate) enum Request<'env, 'a> {
     ///
     /// We always install this version, and never replace it with another version.
     Package(PackageInfo<'env>),
+    /// The locked package the user selected the locked version of.
+    ///
+    /// We keep the locked version, and never replace it with another version.
+    KeepLocked(&'a str),
     /// The package required by the project or installed packages, but not installed.
     ///
     /// We select the version in the same way as dependencies of installing packages,
@@ -812,10 +816,12 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
     missing_dependencies: &mut MissingDependencies,
 ) -> PackageResolutionResult<'env> {
     let mut packages = vec![];
+    let mut keep_locked = vec![];
     let mut range_requests = vec![];
     for request in requests {
         match request {
             Request::Package(package) => packages.push(package),
+            Request::KeepLocked(name) => keep_locked.push(name),
             Request::Range {
                 name,
                 range,
@@ -825,6 +831,7 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
     }
 
     let mut context = ResolutionContext::<'env, '_>::new(allow_prerelease, packages);
+    context.requested.extend(keep_locked);
 
     // first, add dependencies
     let root_dependencies = dependencies

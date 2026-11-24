@@ -292,6 +292,17 @@ impl UnityProject {
 
         debug!("Resolving dependencies");
 
+        // The user selected the locked version of these packages, so we keep the version
+        // as we do for the packages we install.
+        let keep_locked = (packages.iter())
+            .filter(|request| (adding_packages.iter()).all(|x| x.name() != request.name()))
+            .filter(|request| {
+                (self.manifest.get_locked(request.name()))
+                    .is_some_and(|locked| locked.version() == request.version())
+            })
+            .map(|request| Request::KeepLocked(request.name()))
+            .collect::<Vec<_>>();
+
         let mut missing_dependencies = MissingDependencies::new();
         let result = package_resolution::collect_adding_packages(
             (self.manifest.dependencies())
@@ -313,6 +324,7 @@ impl UnityProject {
             env,
             (adding_packages.into_iter())
                 .map(Request::Package)
+                .chain(keep_locked)
                 .collect(),
             allow_prerelease,
             true,
