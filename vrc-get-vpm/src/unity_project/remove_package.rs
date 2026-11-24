@@ -40,34 +40,42 @@ impl UnityProject {
 
         let mut changes = pending_project_changes::Builder::new();
 
-        // check for conflicts: if some package requires some packages to be removed, it's conflict.
-
         let remove = remove.iter().copied().collect::<HashSet<_>>();
+
+        for &x in &remove {
+            changes.remove(x.into(), RemoveReason::Requested);
+        }
+
+        changes.remove_unused_packages(self);
+
+        // check for conflicts: if some package we keep requires some packages to be removed, it's conflict.
+        // We check this after finding unused packages since they are removed together.
+
         let mut may_conflict = remove.clone();
 
         for name in (self.all_installed_packages())
-            .filter(|dep| !remove.contains(&dep.name()))
+            .filter(|dep| !changes.is_removing(dep.name()))
             .flat_map(|x| x.legacy_packages())
         {
             may_conflict.remove(name.as_ref());
         }
 
+        let mut conflicts = Vec::new();
+
         for dep in self
             .all_packages()
-            .filter(|dep| !remove.contains(&dep.name()))
+            .filter(|dep| !changes.is_removing(dep.name()))
         {
             // TODO: do not conflict if this package is legacy package of installed packages
             for &to_remove in &may_conflict {
                 if dep.dependencies().contains_key(to_remove) {
-                    changes.conflicts(to_remove.into(), dep.name().into());
+                    conflicts.push((to_remove, dep.name()));
                 }
             }
         }
 
-        // there's no conflicts. So do remove
-
-        for x in remove {
-            changes.remove(x.into(), RemoveReason::Requested);
+        for (to_remove, name) in conflicts {
+            changes.conflicts(to_remove.into(), name.into());
         }
 
         Ok(changes.build_resolve(self).await)
