@@ -19,7 +19,7 @@
 		"@dnd-kit/utilities": "^3.2.2",
 		"@tanstack/react-query": "^5",
 		"@tanstack/react-router": "^1.170.46",
-		"@tanstack/router-devtools": "^1.167.3",
+		"@tanstack/router-devtools": "^1.167.4",
 		"@tauri-apps/api": "2.12.4",
 		"@uidotdev/usehooks": "^2",
 		"class-variance-authority": "^0.7",
