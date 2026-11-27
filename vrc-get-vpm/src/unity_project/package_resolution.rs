@@ -11,6 +11,7 @@ use crate::traits::PackageCollection;
 use crate::unity_project::LockedDependencyInfo;
 use crate::version::{DependencyRange, PrereleaseAcceptance, UnityVersion, Version, VersionRange};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
+use std::cmp::Reverse;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -758,53 +759,201 @@ where
             return;
         }
 
+        let selected = self.selected_version(dependency);
+        let Some(found) =
+            self.select_version(requirer, dependency, range, env, unity_version, selected)
+        else {
+            self.missing.push((name, dependency, range));
+            return;
+        };
+
+        if selected == Some(found.version()) {
+            log::debug!(
+                "processing package {name}: dependency {dependency} version {range}: \
+                keeping selected version {}",
+                found.version()
+            );
+        } else if !requirer.allow_downgrade && self.is_downgrade(dependency, found.version()) {
+            log::debug!(
+                "processing package {name}: dependency {dependency} version {range}: \
+                keeping installed version since {} is downgrade",
+                found.version()
+            );
+        } else {
+            self.pending_queue.add_pending_package(found);
+        }
+    }
+
+    /// Returns the version we selected for the package, or the installed version.
+    fn selected_version(&self, name: &str) -> Option<&'a Version> {
+        (self.pending_queue.find_pending_package(name))
+            .map(|package| package.version())
+            .or(self.dependencies[name].current)
+    }
+
+    /// Selects the most preferable version of the `dependency` for the `requirer`.
+    /// See [`Preference`] for how we compare versions.
+    ///
+    /// Returns None if no version satisfies the requirer even if we ignore the unity.
+    fn select_version(
+        &self,
+        requirer: &Requirer<'a>,
+        dependency: &'a str,
+        range: &'a VersionRange,
+        env: &'env impl PackageCollection,
+        unity_version: Option<UnityVersion>,
+        selected: Option<&Version>,
+    ) -> Option<PackageInfo<'env>> {
         let prerelease = if self.allow_prerelease {
             // prerelease is allowed, so we find the best match
             &[PrereleaseAcceptance::Allow]
         } else {
             requirer.prerelease
         };
-        let find = |ranges: &[&VersionRange]| -> Option<PackageInfo<'env>> {
-            // We prefer the versions compatible with the unity of the project,
-            // but we use incompatible versions if there are no compatible versions.
-            [unity_version, None].into_iter().find_map(|unity_version| {
-                prerelease.iter().find_map(|&prerelease| {
-                    env.find_package_by_name(
-                        dependency,
-                        VersionSelector::ranges_for(unity_version, ranges, prerelease),
-                    )
-                })
-            })
-        };
+        // === Whether we can resolve the dependency ===
+        // This is the only place we return None. After this check, some version satisfies
+        // the requirer, so the last requirements below accept it and we always select a version.
 
-        // Prefer the version that satisfies the requirements from all packages we know,
-        // not to make a conflict when some version satisfies everyone.
-        // If there is no such version, try without the requirements the user is already ignoring,
-        // and finally, the requirement of this package wins.
-        let allow_downgrade = requirer.allow_downgrade;
-        let not_downgrade = |found: &PackageInfo<'env>| {
-            allow_downgrade || !self.is_downgrade(dependency, found.version())
-        };
-        let found = (find(&self.requirements_for(dependency)).filter(not_downgrade))
-            .or_else(|| {
-                find(&self.unignored_requirements_for(dependency, name)).filter(not_downgrade)
-            })
-            .or_else(|| find(&[range]));
+        let candidates = (env.find_packages(dependency))
+            .filter(|package| !package.is_yanked())
+            .collect::<Vec<_>>();
 
-        if let Some(found) = found {
-            if !allow_downgrade && self.is_downgrade(dependency, found.version()) {
-                log::debug!(
-                    "processing package {name}: dependency {dependency} version {range}: \
-                    keeping installed version since {} is downgrade",
-                    found.version()
-                );
-            } else {
-                self.pending_queue.add_pending_package(found);
-            }
-        } else {
-            self.missing.push((name, dependency, range));
+        // We can't resolve if no version satisfies the requirer, even if we ignore the unity.
+        let satisfies_requirer = |package: &PackageInfo| {
+            (prerelease.iter()).any(|&acceptance| range.match_pre(package.version(), acceptance))
+        };
+        if !candidates.iter().any(satisfies_requirer) {
+            return None;
         }
+
+        // === Which version we select ===
+
+        // We prefer a conflict with other packages to a conflict with the unity, so we ignore
+        // the requirements no version compatible with the unity satisfies.
+        // If no version is compatible with the unity, we ignore nothing and use incompatible ones.
+        let is_unity_compatible = |package: &PackageInfo| {
+            unity_version.is_none_or(|unity| crate::unity_compatible(package.package_json(), unity))
+        };
+        let compatible = candidates
+            .iter()
+            .filter(|x| is_unity_compatible(x))
+            .collect::<Vec<_>>();
+        let satisfiable = |range: &VersionRange| {
+            compatible.is_empty()
+                || (compatible.iter())
+                    .any(|package| range.match_pre(package.version(), PrereleaseAcceptance::Allow))
+        };
+        let requirements = |ranges: Vec<&'a VersionRange>, allow_downgrade| {
+            let mut ranges = (ranges.into_iter())
+                .filter(|range| satisfiable(range))
+                .collect::<Vec<_>>();
+            // An empty list of ranges accepts prerelease versions regardless of the acceptance,
+            // so we use a range accepting any version instead.
+            if ranges.is_empty() {
+                ranges.push(VersionRange::any());
+            }
+            Requirements {
+                ranges,
+                allow_downgrade,
+            }
+        };
+
+        // The requirements we try to satisfy, from the most preferable one.
+        let allow_downgrade = requirer.allow_downgrade;
+        let requirements = [
+            // The requirements from all packages we know, not to make a conflict if possible.
+            requirements(self.requirements_for(dependency), allow_downgrade),
+            // Without the requirements the user is already ignoring.
+            requirements(
+                self.unignored_requirements_for(dependency, requirer.name),
+                allow_downgrade,
+            ),
+            // Only the requirement of the requirer.
+            // We allow downgrade here, but `add_dependency` keeps the installed version
+            // if the requirer doesn't allow downgrade.
+            requirements(vec![range], true),
+        ];
+
+        (candidates.into_iter())
+            .filter_map(|package| {
+                let version = package.version();
+                let is_downgrade = self.is_downgrade(dependency, version);
+                let accepts = |acceptances: &[PrereleaseAcceptance]| {
+                    (requirements.iter().enumerate()).find_map(|(index, requirements)| {
+                        Some((
+                            index,
+                            requirements.accepts(version, is_downgrade, acceptances)?,
+                        ))
+                    })
+                };
+                let (requirer_accepts, (requirements_index, prerelease_acceptance_index)) =
+                    match accepts(prerelease) {
+                        Some(accepted) => (true, accepted),
+                        None => (false, accepts(&[PrereleaseAcceptance::Allow])?),
+                    };
+
+                let preference = Preference {
+                    unity_compatible: is_unity_compatible(&package),
+                    requirer_accepts,
+                    requirements_index: Reverse(requirements_index),
+                    prerelease_acceptance_index: Reverse(prerelease_acceptance_index),
+                    selected: selected == Some(version),
+                    version,
+                };
+                Some((preference, package))
+            })
+            .max_by(|(a, _), (b, _)| a.cmp(b))
+            .map(|(_, package)| package)
     }
+}
+
+/// The requirements we try to satisfy when we select the version of a dependency.
+struct Requirements<'r> {
+    ranges: Vec<&'r VersionRange>,
+    // Whether we accept the versions lower than the installed version.
+    allow_downgrade: bool,
+}
+
+impl Requirements<'_> {
+    /// Returns the index of the first of `acceptances` that accepts the version,
+    /// or None if the version doesn't satisfy the requirements.
+    fn accepts(
+        &self,
+        version: &Version,
+        is_downgrade: bool,
+        acceptances: &[PrereleaseAcceptance],
+    ) -> Option<usize> {
+        if is_downgrade && !self.allow_downgrade {
+            return None;
+        }
+        (acceptances.iter()).position(|&acceptance| {
+            (self.ranges.iter()).all(|range| range.match_pre(version, acceptance))
+        })
+    }
+}
+
+/// How preferable a version is as the dependency.
+///
+/// The fields are compared in the order, and we select the greatest one.
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+struct Preference<'v> {
+    // We prefer a conflict with other packages to a conflict with the unity.
+    unity_compatible: bool,
+    // Whether the requirer accepts the version, i.e. it's stable or an acceptable prerelease.
+    // We use a prerelease version the requirer doesn't accept only when it's the only way to
+    // use a version compatible with the unity, like VRChat SDK for Unity 6 (3.11.x-beta).
+    requirer_accepts: bool,
+    // The index of the first `Requirements` the version satisfies.
+    // Earlier ones contain more requirements, so we prefer smaller indices.
+    requirements_index: Reverse<usize>,
+    // The index of the first prerelease acceptance that accepts the version.
+    // The acceptances start with Deny unless the user allows prerelease,
+    // so we prefer stable versions in that case.
+    prerelease_acceptance_index: Reverse<usize>,
+    // We don't replace the version we selected without reason.
+    selected: bool,
+    // Finally, we prefer newer versions.
+    version: &'v Version,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -892,7 +1041,15 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
         context.add_dependency(&requirer, name, range, env, unity_version);
     }
 
+    // Replacing versions can cycle forever, so we give up after enough iterations.
+    // Each package is usually processed once or twice.
+    let mut iterations = 0;
     while let Some((x, force)) = context.pending_queue.next_package() {
+        iterations += 1;
+        if iterations > context.dependencies.len() * 5 {
+            log::warn!("package resolution did not settle; giving up");
+            break;
+        }
         log::debug!("processing package {} version {}", x.name(), x.version());
         let vpm_dependencies = &x.vpm_dependencies();
         let requirer = Requirer {

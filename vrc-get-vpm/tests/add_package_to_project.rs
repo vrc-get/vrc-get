@@ -1609,6 +1609,344 @@ fn prefer_version_satisfies_all_installing_packages() {
     })
 }
 
+#[test]
+fn prefer_version_conflict_over_unity_conflict() {
+    block_on(async {
+        // The project is for unity 2019 by default.
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        // The library 1.1.0 is the only version satisfies both 'new' and 'old',
+        // but it requires newer unity.
+        // The collection for tests returns the first match so newer versions come first.
+        let library_1_1_0: PackageManifest = serde_json::from_str(
+            r#"{"name":"com.anatawa12.library","version":"1.1.0","unity":"2022.3"}"#,
+        )
+        .unwrap();
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 2, 0),
+            ))
+            .add(library_1_1_0)
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 0, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.new", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=1.1.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.old", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "<1.2.0"),
+            )
+            .build();
+
+        let new = collection.get_package("com.anatawa12.new", Version::new(1, 0, 0));
+        let old = collection.get_package("com.anatawa12.old", Version::new(1, 0, 0));
+
+        let library_1_2_0 = collection.get_package("com.anatawa12.library", Version::new(1, 2, 0));
+        let library_1_0_0 = collection.get_package("com.anatawa12.library", Version::new(1, 0, 0));
+
+        // A version compatible with the unity is used even if it conflicts with one of them.
+        // The version selected for the package processed later wins.
+        for (packages, library, conflicting) in [
+            ([new, old], library_1_0_0, new),
+            ([old, new], library_1_2_0, old),
+        ] {
+            let resolve = project
+                .add_package_request(
+                    &collection,
+                    &packages,
+                    AddPackageOperation::InstallToDependencies,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_installing_to_both(&resolve, &new);
+            assert_installing_to_both(&resolve, &old);
+            assert_installing_to_locked_only(&resolve, &library);
+
+            assert_len!(resolve.package_changes(), 3);
+            assert_len!(resolve.remove_legacy_folders(), 0);
+            assert_len!(resolve.remove_legacy_files(), 0);
+
+            assert_len!(resolve.conflicts(), 1);
+            let library_conflict = resolve.conflicts().get("com.anatawa12.library").unwrap();
+            assert!(!library_conflict.conflicts_with_unity());
+            assert_eq!(
+                library_conflict.conflicting_packages(),
+                &[conflicting.name().into()]
+            );
+        }
+    })
+}
+
+#[test]
+fn keep_unity_compatible_version_over_requirement() {
+    block_on(async {
+        let base_version = "3.11.0-beta.1".parse::<Version>().unwrap();
+        let project = VirtualProjectBuilder::new()
+            .with_unity("6000.0.23f1", "1c4764c07fb4")
+            .add_dependency("com.vrchat.base", base_version.clone())
+            .add_locked("com.vrchat.base", base_version.clone(), &[])
+            .add_dependency("com.example.gesture", Version::new(3, 9, 0))
+            .add_locked(
+                "com.example.gesture",
+                Version::new(3, 9, 0),
+                &[("com.vrchat.base", ">=3.5.2")],
+            )
+            .build()
+            .await
+            .unwrap();
+
+        // The base for unity 6000 is only 3.11.0-beta.1, and the older gesture doesn't support it.
+        // The collection for tests returns the first match so newer versions come first.
+        let base_for_6000: PackageManifest = serde_json::from_str(
+            r#"{"name":"com.vrchat.base","version":"3.11.0-beta.1","unity":"6000.0"}"#,
+        )
+        .unwrap();
+        let base_for_2022: PackageManifest = serde_json::from_str(
+            r#"{"name":"com.vrchat.base","version":"3.10.0","unity":"2022.3"}"#,
+        )
+        .unwrap();
+        let collection = PackageCollectionBuilder::new()
+            .add(base_for_6000)
+            .add(base_for_2022)
+            .add(
+                PackageManifest::new("com.example.gesture", Version::new(3, 9, 0))
+                    .add_vpm_dependency("com.vrchat.base", ">=3.5.2"),
+            )
+            .add(
+                PackageManifest::new("com.example.gesture", Version::new(3, 8, 0))
+                    .add_vpm_dependency("com.vrchat.base", ">=3.5.2 <3.11.X"),
+            )
+            .build();
+
+        let gesture = collection.get_package("com.example.gesture", Version::new(3, 8, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[gesture],
+                AddPackageOperation::Downgrade,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // Downgrading the gesture usually downgrades its dependencies, but the base 3.10.0
+        // doesn't work with unity 6000 so we keep the installed base even if it conflicts.
+        assert_installing_to_both(&resolve, &gesture);
+
+        assert_len!(resolve.package_changes(), 1);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+
+        assert_len!(resolve.conflicts(), 1);
+        let base_conflict = resolve.conflicts().get("com.vrchat.base").unwrap();
+        assert!(!base_conflict.conflicts_with_unity());
+        assert_eq!(
+            base_conflict.conflicting_packages(),
+            &["com.example.gesture".into()]
+        );
+    })
+}
+
+#[test]
+fn select_unity_compatible_version_over_requirement() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .with_unity("6000.0.23f1", "1c4764c07fb4")
+            .build()
+            .await
+            .unwrap();
+
+        // The base for unity 6000 is only 3.11.0-beta.1, and the gesture doesn't support it.
+        // The collection for tests returns the first match so newer versions come first.
+        let base_for_6000: PackageManifest = serde_json::from_str(
+            r#"{"name":"com.vrchat.base","version":"3.11.0-beta.1","unity":"6000.0"}"#,
+        )
+        .unwrap();
+        let base_for_2022: PackageManifest = serde_json::from_str(
+            r#"{"name":"com.vrchat.base","version":"3.10.0","unity":"2022.3"}"#,
+        )
+        .unwrap();
+        let collection = PackageCollectionBuilder::new()
+            .add(base_for_6000)
+            .add(base_for_2022)
+            .add(
+                PackageManifest::new("com.example.gesture", Version::new(3, 8, 0))
+                    .add_vpm_dependency("com.vrchat.base", ">=3.5.2 <3.11.X"),
+            )
+            .build();
+
+        let gesture = collection.get_package("com.example.gesture", Version::new(3, 8, 0));
+        let base = collection.get_package(
+            "com.vrchat.base",
+            "3.11.0-beta.1".parse::<Version>().unwrap(),
+        );
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[gesture],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The base 3.10.0 satisfies the gesture, but it doesn't work with unity 6000,
+        // so we install the base for unity 6000 even if it conflicts with the gesture.
+        assert_installing_to_both(&resolve, &gesture);
+        assert_installing_to_locked_only(&resolve, &base);
+
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+
+        assert_len!(resolve.conflicts(), 1);
+        let base_conflict = resolve.conflicts().get("com.vrchat.base").unwrap();
+        assert!(!base_conflict.conflicts_with_unity());
+        assert_eq!(
+            base_conflict.conflicting_packages(),
+            &["com.example.gesture".into()]
+        );
+    })
+}
+
+#[test]
+fn select_unity_compatible_prerelease_version() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .with_unity("6000.0.23f1", "1c4764c07fb4")
+            .build()
+            .await
+            .unwrap();
+
+        // The base for unity 6000 is only 3.11.0-beta.1, and the tool is a stable package.
+        // The collection for tests returns the first match so newer versions come first.
+        let base_for_6000: PackageManifest = serde_json::from_str(
+            r#"{"name":"com.vrchat.base","version":"3.11.0-beta.1","unity":"6000.0"}"#,
+        )
+        .unwrap();
+        let base_for_2022: PackageManifest = serde_json::from_str(
+            r#"{"name":"com.vrchat.base","version":"3.10.0","unity":"2022.3"}"#,
+        )
+        .unwrap();
+        let collection = PackageCollectionBuilder::new()
+            .add(base_for_6000)
+            .add(base_for_2022)
+            .add(
+                PackageManifest::new("com.example.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", ">=3.7.0"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.example.tool", Version::new(1, 0, 0));
+        let base = collection.get_package(
+            "com.vrchat.base",
+            "3.11.0-beta.1".parse::<Version>().unwrap(),
+        );
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // The tool doesn't accept prerelease versions, but the base 3.10.0 doesn't work
+        // with unity 6000, so we install the prerelease base for unity 6000.
+        assert_installing_to_both(&resolve, &tool);
+        assert_installing_to_locked_only(&resolve, &base);
+
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+
+        assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn prefer_version_conflict_over_unaccepted_prerelease_version() {
+    block_on(async {
+        // 'old' doesn't support library 2.x.
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.old", Version::new(1, 0, 0))
+            .add_locked(
+                "com.anatawa12.old",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.library", "^1.0.0")],
+            )
+            .add_locked("com.anatawa12.library", Version::new(1, 1, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // Only 1.2.1-beta.1 satisfies both 'old' and 'new', e.g. 1.2.0 is yanked.
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(2, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                "1.2.1-beta.1".parse().unwrap(),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.library",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.old", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.new", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=1.2.0"),
+            )
+            .build();
+
+        let new = collection.get_package("com.anatawa12.new", Version::new(1, 0, 0));
+        let library = collection.get_package("com.anatawa12.library", Version::new(2, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[new],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // We don't install the prerelease version the packages don't accept
+        // only to resolve the conflict.
+        assert_installing_to_both(&resolve, &new);
+        assert_installing_to_locked_only(&resolve, &library);
+
+        assert_len!(resolve.package_changes(), 2);
+        assert_len!(resolve.remove_legacy_folders(), 0);
+        assert_len!(resolve.remove_legacy_files(), 0);
+
+        assert_len!(resolve.conflicts(), 1);
+        let library_conflict = resolve.conflicts().get("com.anatawa12.library").unwrap();
+        assert!(!library_conflict.conflicts_with_unity());
+        assert_eq!(
+            library_conflict.conflicting_packages(),
+            &["com.anatawa12.old".into()]
+        );
+    })
+}
+
 fn ignore_requirements_already_not_satisfied(upgrade_capped: bool) {
     block_on(async {
         // 'capped' doesn't support base 2.x, but the user is already ignoring that.
@@ -2525,6 +2863,56 @@ fn missing_dependency_of_replaced_version_is_not_reported() {
 
         assert_len!(resolve.package_changes(), 4);
         assert_len!(resolve.conflicts(), 0);
+    })
+}
+
+#[test]
+fn cyclic_version_replacement_terminates() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        // Each version of the library and the helper requires the version of the other
+        // that requires another version, so replacing versions never settles.
+        // The collection for tests returns the first match so newer versions come first.
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.helper", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.library", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.helper", "^2.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(2, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^2.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.helper", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", "^1.0.0"),
+            )
+            .add(
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.anatawa12.library", ">=1.0.0"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        // No combination satisfies everyone, so we must stop with a conflict.
+        assert_installing_to_both(&resolve, &tool);
+        assert_len!(resolve.package_changes(), 3);
+        assert!(!resolve.conflicts().is_empty());
     })
 }
 

@@ -55,6 +55,7 @@ plist = { version = "1", optional = true }
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 env_logger = "0.11.11"
+proptest = "1.12.0"
 
 [features]
 default = ["rustls"]

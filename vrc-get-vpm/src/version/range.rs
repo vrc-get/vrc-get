@@ -10,6 +10,7 @@
 use crate::version::*;
 use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 // TODO: TEST
 
@@ -113,6 +114,20 @@ impl VersionRange {
                 PartialVersion::from(version),
             )])],
         }
+    }
+
+    /// The range matches any version, same as `*`.
+    pub fn any() -> &'static VersionRange {
+        static ANY: LazyLock<VersionRange> = LazyLock::new(|| VersionRange {
+            comparators: vec![ComparatorSet(vec![Comparator::Star(PartialVersion {
+                major: Segment::STAR,
+                minor: Segment::NOT_EXISTS,
+                patch: Segment::NOT_EXISTS,
+                pre: Prerelease::EMPTY,
+                build: BuildMetadata::EMPTY,
+            })])],
+        });
+        &ANY
     }
 
     pub fn contains_pre(&self) -> bool {
@@ -1037,5 +1052,29 @@ mod tests {
         test_pre(">=1.0.0 <1.1.0", "1.1.0");
         test(">=1.0.0 <1.1.0", "1.1.0-pre");
         test(">=1.0.0 <1.1.0-pre", "1.1.0-pre");
+    }
+
+    #[test]
+    fn test_any() {
+        let any = VersionRange::any();
+        for version in ["0.0.0", "1.2.3", "100.0.0"] {
+            let version = Version::from_str(version).unwrap();
+            assert!(
+                any.match_pre(&version, PrereleaseAcceptance::Deny),
+                "{version}"
+            );
+            assert!(any.matches(&version), "{version}");
+        }
+        for version in ["0.0.0-0", "0.0.0-beta", "1.2.3-beta.1"] {
+            let version = Version::from_str(version).unwrap();
+            assert!(
+                any.match_pre(&version, PrereleaseAcceptance::Allow),
+                "{version}"
+            );
+            assert!(
+                !any.match_pre(&version, PrereleaseAcceptance::Deny),
+                "{version}"
+            );
+        }
     }
 }
