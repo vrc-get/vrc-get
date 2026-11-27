@@ -1017,7 +1017,7 @@ const PackageRow = memo(function PackageRow({
 	bulkUpdateAvailable: boolean;
 	onBulkUpdateCheckboxClick: (pkg: PackageRowInfo, shiftKey: boolean) => void;
 }) {
-	const cellClass = "p-3.5 compact:py-1";
+	const cellClass = "p-2.5 compact:py-1";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
@@ -1076,7 +1076,7 @@ const PackageRow = memo(function PackageRow({
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<div
-							className={`flex flex-col ${pkg.installed ? "" : "opacity-50"}`}
+							className={`flex flex-col ${pkg.installed ? "" : "opacity-50"} -my-1`}
 						>
 							<p className="font-normal">{pkg.displayName}</p>
 							<p className="font-normal opacity-50 text-sm compact:hidden">

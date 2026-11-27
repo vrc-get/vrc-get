@@ -28,7 +28,12 @@ import type React from "react";
 import { Suspense, useMemo } from "react";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
-import { HNavBar, VStack } from "@/components/layout";
+import {
+	HNavBar,
+	HNavBarButton,
+	HNavBarElementSlot,
+	VStack,
+} from "@/components/layout";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
@@ -244,11 +249,13 @@ function UnityVersionSelector({
 	detailsResult,
 	requestChangeUnityVersion,
 	unityVersions,
+	className,
 }: {
 	disabled?: boolean;
 	detailsResult: UseQueryResult<TauriProjectDetails>;
 	requestChangeUnityVersion: (version: string) => void;
 	unityVersions?: TauriUnityVersions;
+	className?: string;
 }) {
 	const unityVersionNames = useMemo(() => {
 		if (unityVersions == null) return null;
@@ -319,7 +326,7 @@ function UnityVersionSelector({
 			value={detailsResult.data?.unity_str ?? undefined}
 			onValueChange={requestChangeUnityVersion}
 		>
-			<SelectTrigger className={"compact:h-10"}>
+			<SelectTrigger className={className}>
 				{detailsResult.status === "success" ? (
 					(detailsResult.data.unity_str ?? "unknown")
 				) : (
@@ -581,21 +588,20 @@ function ProjectViewHeader({
 				<>
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<Button
-								className={"compact:h-10"}
+							<HNavBarButton
 								variant={"ghost"}
-								size={"sm"}
+								size={"icon"}
 								onClick={() => history.back()}
 							>
 								<ArrowLeft className={"w-5 h-5"} />
-							</Button>
+							</HNavBarButton>
 						</TooltipTrigger>
 						<TooltipContent>
 							{tc("projects:manage:tooltip:back to projects")}
 						</TooltipContent>
 					</Tooltip>
 
-					<div className={"pl-2 space-y-0 shrink min-w-0 compact:pl-0"}>
+					<div className={"pl-2 space-y-0 shrink min-w-0 compact:pl-0 -my-0.5"}>
 						<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">
 							{projectName}
 						</p>
@@ -626,12 +632,14 @@ function ProjectViewHeader({
 							{tc("projects:manage:unity version")}
 						</p>
 						<div className={"flex"}>
-							<UnityVersionSelector
-								disabled={isLoading}
-								detailsResult={detailsResult}
-								unityVersions={unityVersionsResult.data}
-								requestChangeUnityVersion={requestChangeUnityVersion}
-							/>
+							<HNavBarElementSlot>
+								<UnityVersionSelector
+									disabled={isLoading}
+									detailsResult={detailsResult}
+									unityVersions={unityVersionsResult.data}
+									requestChangeUnityVersion={requestChangeUnityVersion}
+								/>
+							</HNavBarElementSlot>
 						</div>
 					</div>
 					<div className={"grow-0 shrink-0 w-max"}>
@@ -830,20 +838,21 @@ function ProjectButton({
 	return (
 		<DropdownMenu>
 			<div className={"flex divide-x"}>
-				<OpenUnityButton
-					projectPath={projectPath}
-					unityVersion={unityVersion}
-					unityRevision={unityRevision}
-					className={"rounded-r-none pl-4 pr-3 compact:h-10"}
-				/>
-				<DropdownMenuTrigger
-					asChild
-					className={"rounded-l-none pl-2 pr-2 compact:h-10"}
-				>
-					<Button>
-						<ChevronDown className={"w-4 h-4"} />
-					</Button>
-				</DropdownMenuTrigger>
+				<HNavBarElementSlot>
+					<OpenUnityButton
+						projectPath={projectPath}
+						unityVersion={unityVersion}
+						unityRevision={unityRevision}
+						className={"rounded-r-none pl-4 pr-3"}
+					/>
+				</HNavBarElementSlot>
+				<HNavBarElementSlot>
+					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
+						<Button>
+							<ChevronDown className={"w-4 h-4"} />
+						</Button>
+					</DropdownMenuTrigger>
+				</HNavBarElementSlot>
 			</div>
 			<DropdownMenuContent>
 				<DropdownMenuContentBody
