@@ -1,3 +1,4 @@
 /target
 /artifacts
 /.cargo/config.local.toml
+*.proptest-regressions
