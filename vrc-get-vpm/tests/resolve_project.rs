@@ -189,6 +189,8 @@ fn resolve_dependency_installed_as_unlocked() {
 
         // The project requires the package to be locked,
         // so we install it even if it's installed as an unlocked package.
+        // The project is in an invalid state, so this is the current behavior,
+        // not a behavior we guarantee.
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
         assert_installing_to_both(&result, &package);
 
