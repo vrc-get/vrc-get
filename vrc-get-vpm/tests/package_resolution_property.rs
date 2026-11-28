@@ -80,7 +80,11 @@ fn setup() -> impl Strategy<Value = Setup> {
     );
     (
         prop::collection::vec(version, NAMES.len() * VERSIONS.len()),
-        prop::collection::vec((any::<prop::sample::Index>(), any::<bool>()), 0..=3),
+        // Each package is in the project in most cases, with one of the versions.
+        prop::collection::vec(
+            prop::option::weighted(0.7, (any::<prop::sample::Index>(), any::<bool>())),
+            NAMES.len(),
+        ),
     )
         .prop_filter_map("no packages", |(versions, project)| {
             let packages = (versions.into_iter().enumerate())
@@ -109,16 +113,19 @@ fn setup() -> impl Strategy<Value = Setup> {
                 project: vec![],
             };
 
-            // only existing versions can be installed, one version for each package
-            let mut project = (project.into_iter())
-                .map(|(index, in_dependencies)| {
-                    let (name, version) = setup.get(index);
-                    (name, version, in_dependencies)
+            // only existing versions can be in the project
+            setup.project = (project.into_iter().enumerate())
+                .filter_map(|(name, entry)| {
+                    let (index, in_dependencies) = entry?;
+                    let versions = (setup.packages.iter())
+                        .filter(|x| x.name == name)
+                        .collect::<Vec<_>>();
+                    if versions.is_empty() {
+                        return None;
+                    }
+                    Some((name, index.get(&versions).version, in_dependencies))
                 })
                 .collect::<Vec<_>>();
-            project.sort_by_key(|x| x.0);
-            project.dedup_by_key(|x| x.0);
-            setup.project = project;
 
             Some(setup)
         })
