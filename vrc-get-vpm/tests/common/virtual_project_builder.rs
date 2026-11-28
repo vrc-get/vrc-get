@@ -101,6 +101,13 @@ impl VirtualProjectBuilder {
         self.build_impl(get_temp_path("test_projects"))
     }
 
+    /// Builds the project at the path for the name instead of the caller's line,
+    /// for the tests building projects at the same line concurrently.
+    pub fn build_named(&self, name: &str) -> impl Future<Output = std::io::Result<UnityProject>> {
+        let path = format!("test_projects/{}_{name}", env!("CARGO_CRATE_NAME"));
+        self.build_impl(Path::new(env!("CARGO_TARGET_TMPDIR")).join(path))
+    }
+
     async fn build_impl(&self, project_path: PathBuf) -> std::io::Result<UnityProject> {
         let vpm_manifest = {
             let mut dependencies = serde_json::Map::new();
