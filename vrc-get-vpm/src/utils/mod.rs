@@ -13,6 +13,7 @@ mod deup_deserializer;
 mod extract_zip;
 mod save_controller;
 mod sha256_async_write;
+mod traverse_assets;
 
 use crate::io;
 use crate::io::{DirEntry, IoTrait};
@@ -34,6 +35,9 @@ use std::error::Error;
 use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
 use std::task::{Context, Poll, ready};
+pub(crate) use traverse_assets::Guid;
+pub(crate) use traverse_assets::find_assets;
+pub(crate) use traverse_assets::try_parse_meta;
 
 pub(crate) trait PathBufExt {
     fn joined(self, into: impl AsRef<Path>) -> Self;

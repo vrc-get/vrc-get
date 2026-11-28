@@ -13,6 +13,7 @@ mod alcom_updater_json;
 mod build_alcom;
 mod bundle_alcom;
 mod check_static_link;
+mod dev_alcom;
 mod sign_alcom_app;
 mod sign_alcom_updater;
 mod utils;
@@ -48,6 +49,7 @@ commands_def! {
     AlcomUpdaterJson = alcom_updater_json;
     BuildAlcom = build_alcom;
     BundleAlcom = bundle_alcom;
+    DevAlcom = dev_alcom;
     SignAlcomApp = sign_alcom_app;
     SignAlcomUpdater = sign_alcom_updater;
 }

@@ -81,10 +81,7 @@ export function CheckForUpdateMessage({
 									const downloadNew = s.downloaded + received;
 									return {
 										...s,
-										downloaded:
-											downloadNew > estimatedTotalSize
-												? estimatedTotalSize
-												: downloadNew,
+										downloaded: Math.min(downloadNew, estimatedTotalSize),
 										total: estimatedTotalSize,
 									};
 								});

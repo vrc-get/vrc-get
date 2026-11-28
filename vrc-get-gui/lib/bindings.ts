@@ -85,7 +85,7 @@ export const commands = {
 	projectRemovePackages: (projectPath: string, names: string[]) => __TAURI_INVOKE<TauriPendingProjectChanges>("project_remove_packages", { projectPath, names }),
 	projectApplyPendingChanges: (projectPath: string, changesVersion: number) => __TAURI_INVOKE<null>("project_apply_pending_changes", { projectPath, changesVersion }),
 	projectClearPendingChanges: () => __TAURI_INVOKE<null>("project_clear_pending_changes"),
-	projectMigrateProjectTo2022: (projectPath: string) => __TAURI_INVOKE<null>("project_migrate_project_to_2022", { projectPath }),
+	projectMigrateVrcUnity: (projectPath: string, version: TauriMigrateVrcUnityVersion) => __TAURI_INVOKE<null>("project_migrate_vrc_unity", { projectPath, version }),
 	projectCallUnityForMigration: (channel: string, projectPath: string, unityPath: string) => __TAURI_INVOKE<AsyncCallResult<string, TauriCallUnityForMigrationResult>>("project_call_unity_for_migration", { channel, projectPath, unityPath }),
 	projectMigrateProjectToVpm: (projectPath: string) => __TAURI_INVOKE<null>("project_migrate_project_to_vpm", { projectPath }),
 	projectOpenUnity: (projectPath: string, unityPath: string) => __TAURI_INVOKE<boolean>("project_open_unity", { projectPath, unityPath }),
@@ -161,6 +161,7 @@ export type GlobalInfo = {
 	checkForUpdates: boolean,
 	setupPages: ([SetupPages, string])[],
 	shouldInstallDeepLink: boolean,
+	registersAlcomScheme: boolean,
 };
 
 /**  Errors that is expected to be handled on the GUI side */
@@ -263,6 +264,7 @@ export type TauriEnvironmentSettings = {
 	default_project_path: string,
 	project_backup_path: string,
 	unity_hub: string,
+	unity_cli: string | null,
 	unity_paths: ([string, string, boolean])[],
 	show_prerelease_packages: boolean,
 	use_official_repository: boolean,
@@ -315,6 +317,8 @@ export type TauriImportTemplateResult_Serialize = {
 	imported: number,
 	duplicates: TauriImportDuplicated_Serialize[],
 };
+
+export type TauriMigrateVrcUnityVersion = "2022" | "6000.0";
 
 export type TauriPackage = {
 	source: TauriPackageSource,
@@ -442,6 +446,8 @@ export type TauriUnityVersions = {
 	unity_paths: ([string, string, boolean])[],
 	recommended_version: string,
 	install_recommended_version_link: string,
+	recommended_6000_0_version: string,
+	install_recommended_6000_0_version_link: string,
 };
 
 export type TauriUnityWindowActionResult = "BroughtToFront" | "FailedToBringToFront" | "WindowNotFound" | "Unsupported";
@@ -484,7 +490,9 @@ export type UnityHubAccessMethod =
 /**  Reads config files of Unity Hub */
 "ReadConfig" | 
 /**  Launches headless Unity Hub in background */
-"CallHub";
+"CallHub" | 
+/**  Calls the standalone Unity CLI */
+"CallCli";
 
 export type UpdaterStatus = 
 /**

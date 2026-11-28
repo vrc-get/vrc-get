@@ -31,4 +31,23 @@ export XDG_DATA_DIRS="$appdir/usr/shere:${XDG_DATA_DIRS:-/usr/local/share/:/usr/
 # run under /usr of appdir for webkit/enchant reloaction problem
 cd "$appdir/usr" || exit 1
 
+# libsystemd is likely to be installed on the host, and some host library may depend on libsystemd newer than we bundle
+# so we should not shadow host libsystemd if host is system with systemd. This is why libsystemd is not on the normal library path.
+#
+# However, there are some distributions does not use systemd as the init system, so no libsystemd on the system.
+# The webkitgtk we bundle depends on libsystemd for logging, so ALCOM could not start there.
+#
+# To support such distributions, we bundle copy of libsystemd separately, and enable them if system do not have it.
+#
+# LD_TRACE_LOADED_OBJECTS makes the host's dynamic loader resolve dependencies the same way as the real launch and list them,
+# without running any code of ALCOM or its libraries. The output format is not formally documented, but if the line is not matched
+# we only skip the fallback, so hosts with libsystemd are never affected.
+#
+# For note, glibc have reverted LD_TRACE_LOADED_OBJECTS format changes in 2.36 development, for cmake compatibility.
+# Therefore, we can expect glibc team to think changes to LD_TRACE_LOADED_OBJECTS format is a risky choice.
+if LD_TRACE_LOADED_OBJECTS=1 "$appdir/usr/bin/ALCOM" 2>/dev/null \
+  | grep -q '^[[:space:]]*libsystemd\.so\.0 => not found'; then
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH+$LD_LIBRARY_PATH:}$appdir/usr/lib/${debian_tuple}/fallback/libsystemd0"
+fi
+
 exec "$appdir/usr/bin/ALCOM" "$@"

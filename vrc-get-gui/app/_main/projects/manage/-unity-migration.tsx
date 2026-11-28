@@ -27,7 +27,11 @@ import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
+import {
+	compareUnityVersionString,
+	parseUnityVersion,
+	unityMajorName,
+} from "@/lib/version";
 
 export async function unityVersionChange({
 	version: targetUnityVersion,
@@ -139,13 +143,20 @@ export async function unityVersionChange({
 			data.kind === "upgradeMajor" &&
 			targetUnityVersion.startsWith("2022.")
 		) {
-			await commands.projectMigrateProjectTo2022(migrateProjectPath);
+			await commands.projectMigrateVrcUnity(migrateProjectPath, "2022");
+		} else if (
+			data.isVRC &&
+			data.kind === "upgradeMajor" &&
+			targetUnityVersion.startsWith("6000.0.")
+		) {
+			await commands.projectMigrateVrcUnity(migrateProjectPath, "6000.0");
 		}
 
 		const finalizeResult = await dialog.askClosing(
 			MigrationCallingUnityForMigrationDialog,
 			{
 				unityPath,
+				unityVersion: targetUnityVersion,
 				migrateProjectPath,
 				header,
 			},
@@ -159,7 +170,11 @@ export async function unityVersionChange({
 				toastError(tt("projects:toast:unity exits with non-zero"));
 				break;
 			case "FinishedSuccessfully":
-				toastSuccess(tt("projects:toast:unity migrated"));
+				toastSuccess(
+					tt("projects:toast:unity migrated", {
+						unityMajor: unityMajorName(targetUnityVersion),
+					}),
+				);
 				break;
 			default:
 				assertNever(finalizeResult);
@@ -215,7 +230,10 @@ function NoExactUnity2022Dialog({
 				<p>
 					{tc(
 						"projects:manage:dialog:exact version unity not found for patch migration description",
-						{ unity: expectedVersion },
+						{
+							unity: expectedVersion,
+							unityMajor: unityMajorName(expectedVersion),
+						},
 					)}
 				</p>
 			</div>
@@ -515,6 +533,17 @@ function findUnityForUnityChange(
 				installLink: unityVersions.install_recommended_version_link,
 				found: false,
 			};
+		} else if (
+			compareUnityVersionString(
+				targetUnityVersion,
+				unityVersions.recommended_6000_0_version,
+			) === 0
+		) {
+			return {
+				// This is using link to international version but china version of hub will handle international to china conversion
+				installLink: unityVersions.install_recommended_6000_0_version_link,
+				found: false,
+			};
 		} else {
 			return {
 				found: false,
@@ -529,11 +558,13 @@ function findUnityForUnityChange(
 
 function MigrationCallingUnityForMigrationDialog({
 	unityPath,
+	unityVersion,
 	migrateProjectPath,
 	dialog,
 	header,
 }: {
 	unityPath: string;
+	unityVersion: string;
 	migrateProjectPath: string;
 	dialog: DialogContext<"cancelled" | TauriCallUnityForMigrationResult>;
 	header: React.ReactNode;
@@ -572,7 +603,11 @@ function MigrationCallingUnityForMigrationDialog({
 		<>
 			<DialogTitle>{header}</DialogTitle>
 			<div>
-				<p>{tc("projects:manage:dialog:unity migrate finalizing...")}</p>
+				<p>
+					{tc("projects:manage:dialog:unity migrate finalizing...", {
+						unityMajor: unityMajorName(unityVersion),
+					})}
+				</p>
 				<p>{tc("projects:do not close")}</p>
 				{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 				<pre

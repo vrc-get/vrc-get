@@ -31,6 +31,7 @@ import {
 	ProjectSyncModeSelect,
 	ProjectSyncModeWarning,
 	ThemeSelector,
+	WarningMessage,
 } from "@/components/common-setting-parts";
 import { HNavBar, HNavBarText, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
@@ -40,6 +41,14 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	Tooltip,
 	TooltipContent,
@@ -99,8 +108,12 @@ function Settings() {
 
 	const updateUnityPaths = async () => {
 		updateUnityPathsTransition(async () => {
-			await commands.environmentUpdateUnityPathsFromUnityHub();
-			await queryClient.invalidateQueries(environmentGetSettings);
+			try {
+				await commands.environmentUpdateUnityPathsFromUnityHub();
+				await queryClient.invalidateQueries(environmentGetSettings);
+			} catch (e) {
+				toastThrownError(e);
+			}
 		});
 	};
 
@@ -212,12 +225,13 @@ function UnityInstallationsCard({
 }) {
 	const queryClient = useQueryClient();
 	const {
-		data: { unityPaths, unityHubAccessMethod },
+		data: { unityPaths, unityHubAccessMethod, unityCli },
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			unityPaths: data.unity_paths,
 			unityHubAccessMethod: data.unity_hub_access_method,
+			unityCli: data.unity_cli,
 		}),
 	});
 
@@ -354,18 +368,52 @@ function UnityInstallationsCard({
 				</tbody>
 			</ScrollableCardTable>
 			<div>
-				<label className={"flex items-center gap-2"}>
-					<Checkbox
-						checked={unityHubAccessMethod === "CallHub"}
-						onCheckedChange={(e) =>
-							setAccessMethod.mutate(e === true ? "CallHub" : "ReadConfig")
-						}
-					/>
-					{tc("settings:use legacy unity hub loading")}
-				</label>
+				<h3>{tc("settings:unity hub access method")}</h3>
 				<p className={"text-sm whitespace-normal"}>
-					{tc("settings:use legacy unity hub loading description")}
+					{tc("settings:unity hub access method description")}
 				</p>
+				<Select
+					value={unityHubAccessMethod}
+					onValueChange={(value) =>
+						setAccessMethod.mutate(value as UnityHubAccessMethod)
+					}
+				>
+					<SelectTrigger>
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							<SelectItem value={"ReadConfig"}>
+								{tc("settings:unity hub access method:read config")}
+							</SelectItem>
+							<SelectItem value={"CallHub"}>
+								{tc("settings:unity hub access method:call hub")}
+							</SelectItem>
+							<SelectItem value={"CallCli"}>
+								{tc("settings:unity hub access method:call cli")}
+							</SelectItem>
+						</SelectGroup>
+					</SelectContent>
+				</Select>
+				<div className="mb-2" />
+				{unityHubAccessMethod === "CallHub" && (
+					<WarningMessage>
+						{tc("settings:unity hub access method:warning:call hub")}
+					</WarningMessage>
+				)}
+				{unityHubAccessMethod === "CallCli" && (
+					<>
+						<WarningMessage>
+							{tc("settings:unity hub access method:warning:call cli")}
+						</WarningMessage>
+						<h3 className="mt-2">{tc("settings:unity cli path")}</h3>
+						<FilePathRow
+							path={unityCli ?? ""}
+							notFoundMessage={tt("settings:unity cli not found")}
+							withOpen={false}
+						/>
+					</>
+				)}
 			</div>
 		</SettingsCard>
 	);
@@ -526,7 +574,7 @@ function DefaultProjectPathCard() {
 		<SettingsCard>
 			<h2 className={"mb-2"}>{tc("settings:project management")}</h2>
 			<h3>{tc("settings:default project path")}</h3>
-			<p className={"whitespace-normal"}>
+			<p className={"whitespace-normal text-sm"}>
 				{tc("settings:default project path description")}
 			</p>
 			<FilePathRow
@@ -535,7 +583,7 @@ function DefaultProjectPathCard() {
 			/>
 			<ProjectPathWarnings projectPath={defaultProjectPath} />
 			<h3 className="mt-2">{tc("settings:projects:sync-mode")}</h3>
-			<p className={"whitespace-normal"}>
+			<p className={"whitespace-normal text-sm"}>
 				{tc("settings:projects:sync-mode:description")}
 			</p>
 			<ProjectSyncModeSelect projectListSyncMode={projectListSyncMode} />
@@ -921,10 +969,18 @@ function AlcomCard() {
 		},
 	});
 
+	const registersAlcomScheme = globalInfo.registersAlcomScheme;
+
 	const installVccProtocol = useMutation({
 		mutationFn: async () => await commands.deepLinkInstallVcc(),
 		onSuccess: () => {
-			toastSuccess(tc("settings:toast:vcc scheme installed"));
+			toastSuccess(
+				tc(
+					registersAlcomScheme
+						? "settings:toast:vcc and alcom scheme installed"
+						: "settings:toast:vcc scheme installed",
+				),
+			);
 		},
 		onError: (e) => {
 			console.error(e);
@@ -1003,7 +1059,11 @@ function AlcomCard() {
 								setUseAlcomForVccProtocol.mutate(value === true)
 							}
 						/>
-						{tc("settings:use alcom for vcc scheme")}
+						{tc(
+							registersAlcomScheme
+								? "settings:register vcc and alcom scheme handlers"
+								: "settings:use alcom for vcc scheme",
+						)}
 					</label>
 					<Button
 						className={"my-1"}
@@ -1013,10 +1073,14 @@ function AlcomCard() {
 						{tc("settings:register vcc scheme now")}
 					</Button>
 					<p className={"text-sm whitespace-normal"}>
-						{tc([
-							"settings:use vcc scheme description",
-							"settings:vcc scheme description",
-						])}
+						{tc(
+							registersAlcomScheme
+								? "settings:register vcc and alcom scheme handlers description"
+								: [
+										"settings:use vcc scheme description",
+										"settings:vcc scheme description",
+									],
+						)}
 					</p>
 				</div>
 			)}

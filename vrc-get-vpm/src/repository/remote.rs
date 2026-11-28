@@ -19,6 +19,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::pin::pin;
+use std::str::FromStr;
 use url::Url;
 
 type JsonMap = Map<String, Value>;
@@ -295,10 +296,19 @@ impl<'de> DeserializeSeed<'de> for PackageNameToVersions<'_> {
                 A: serde::de::MapAccess<'de>,
             {
                 let mut versions = HashMap::new();
-                while let Some(version) = map.next_key::<Version>()? {
-                    let manifest = map.next_value_seed(ErrorProofManifest(self.0, &version))?;
-                    if let Some(manifest) = manifest {
-                        versions.insert(version, manifest);
+                while let Some(version) = map.next_key::<String>()? {
+                    match Version::from_str(&version) {
+                        Ok(version) => {
+                            let manifest =
+                                map.next_value_seed(ErrorProofManifest(self.0, &version))?;
+                            if let Some(manifest) = manifest {
+                                versions.insert(version, manifest);
+                            }
+                        }
+                        Err(e) => {
+                            log::warn!("Error parsing package version for {}: {e}", self.0);
+                            map.next_value::<serde::de::IgnoredAny>()?;
+                        }
                     }
                 }
                 Ok(versions)

@@ -92,6 +92,7 @@
     "setup:steps card:SystemSetting": "System", //Needed truncation of "Config" to fit properly
     "setup:system-setting:heading": "System Einstellungen",
     "setup:system-setting:vcc scheme description": "Du kannst ALCOM statt VCC für vcc:// Links registrieren, um Paketquellen direkt hinzuzufügen. ALCOM und VCC teilen die gleiche Paketquellen-Liste, diese Einstellung erlaubt schnelleres Hinzufügen von Paketlisten ohne VCC öffnen zu müssen.",
+    "setup:system-setting:vcc and alcom scheme description": "Du kannst ALCOM für vcc:// und alcom:// Protokollaufrufe verwenden, um Paketquellen hinzuzufügen.",
     "setup:system-setting:macos bug message": "Für MacOS muss nichts weiter eingestellt werden. (Du solltest diese Seite nicht sehen, dies ist ein Bug. Bitte melde uns dies.)",
     "setup:system-setting:hostname-with-non-ascii": "Du verwendest nicht-ASCII Zeichen im Hostnamen (PC Name). <br/>Dies könnte zu Problemen mit neueren Unity Versionen führen.<br/>Es wird empfohlen deinen Hostnamen zu ASCII-Zeichen zu ändern.",
 
@@ -236,8 +237,8 @@
     "projects:manage:suggest resolve": "Das Projekt benötigt Pakete, welche nicht installiert sind. Es wird empfohlen diese zu installieren.",
     "projects:manage:button:resolve": "Pakete installieren",
 
-    "projects:manage:suggest unity migration": "Das Projekt verwendet Unity 2019, welches nicht mehr vom VRChat SDK unterstützt wird. Es wird empfohlen zu Unity 2022 zu migrieren.",
-    "projects:manage:suggest unity patch migration": "Das Projekt verwendet einen älteren Unity 2022 patch. VRChat empfiehlt zu einer neueren Version von Unity 2022 zu migrieren.",
+    "projects:manage:suggest unity migration": "Das Projekt verwendet Unity {{currentUnity}}, welches nicht mehr vom VRChat SDK unterstützt wird. Es wird empfohlen zu Unity {{targetUnity}} zu migrieren.",
+    "projects:manage:suggest unity patch migration": "Das Projekt verwendet einen älteren Unity {{unityMajor}} patch. VRChat empfiehlt zu einer neueren Version von Unity {{unityMajor}} zu migrieren.",
     "projects:manage:suggest unity china to international migration": "Dieses Projekt verwendet die Chinesische Version von Unity. Für die beste Kompatibilität mit VRChat empfehlen wir die Internationale Version.",
     "projects:manage:button:unity migrate": "Migriere Projekt",
 
@@ -316,11 +317,9 @@
 
     "projects:manage:dialog:unity migrate header": "Unity Migration",
     "projects:dialog:migrate unity2022 patch description": "Das Projekt wird zu Unity {{unity}} migriert.",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "Wir konnten nicht die genaue Unity 2022 Version finden. <br>Bitte installiere Unity {{unity}} über Unity Hub und starte ALCOM neu.",
-    "projects:manage:dialog:unity migrate finalizing...": "Starte Unity 2022 im Hintergrund, um die Migration abzuschließen...",
-    "projects:toast:unity migrate failed by unity not found": "Fehler beim Migrieren: Unity 2022 nicht gefunden",
-    "projects:toast:unity migration finalize failed by unity not found": "Fehler beim Abschluss der Migration: Unity 2022 nicht gefunden",
-    "projects:toast:unity migrated": "Das Projekt wurde zu Unity 2022 migriert",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "Wir konnten nicht die genaue Unity {{unityMajor}} Version finden. <br>Bitte installiere Unity {{unity}} über Unity Hub und starte ALCOM neu.",
+    "projects:manage:dialog:unity migrate finalizing...": "Starte Unity {{unityMajor}} im Hintergrund, um die Migration abzuschließen...",
+    "projects:toast:unity migrated": "Das Projekt wurde zu Unity {{unityMajor}} migriert",
 
     "projects:manage:dialog:confirm changes description": "Du bist dabei, die folgenden Änderungen vorzunehmen",
     "projects:manage:dialog:note breaking changes": "Einige Pakete haben inkompatible Änderungen. <br/>Deine Assets, Einstellungen und Tools in diesem Projekt sind hiermit möglicherweise inkompatibel. <br/>Prüfe Kompatibilität und upgrade auf eigene Gefahr.",
@@ -488,8 +487,15 @@
     "settings:toast:not unity": "Ungültige Unity-Datei",
     "settings:toast:unity already added": "Ausgewähltes Unity bereits vorhanden",
     "settings:toast:unity added": "Unity erfolgreich hinzugefügt!",
-    "settings:use legacy unity hub loading": "Verwende alte Unity Hub Installationserkennung",
-    "settings:use legacy unity hub loading description": "Die alte Installationserkennung ist möglicherweise zuverlässiger, benötigt aber wesentlich mehr Zeit.<br/>Diese alte Methode wird in Zukunft entfernt, bitte melde Probleme über 'Fehler melden' weiter unten.",
+    "settings:unity hub access method": "Unity Lademethode",
+    "settings:unity hub access method description": "Wie soll ALCOM die Liste der Unity Installationen abrufen?",
+    "settings:unity hub access method:read config": "Unity Hub Konfigurationsdaten lesen",
+    "settings:unity hub access method:call hub": "Unity Hub im Hintergrund starten",
+    "settings:unity hub access method:call cli": "Unity CLI verwenden",
+    "settings:unity hub access method:warning:call hub": "Unity Hub zu starten dauert etwas länger. Diese Option wird in der Zukunft möglicherweise entfernt.<br/>Solltest du diese Methode benutzen weil es Probleme beim Lesen der Konfigurationsdaten gibt, melde das bitte den Entwicklern. (Fehler Melden, weiter unten.)",
+    "settings:unity hub access method:warning:call cli": "Um Unity CLI zu verwenden, muss diese neben Unity Hub installiert sein. Diese Option wird in der Zukunft möglicherweise entfernt.<br/>Solltest du diese Methode benutzen weil es Probleme beim Lesen der Konfigurationsdaten gibt, melde das bitte den Entwicklern. (Fehler Melden, weiter unten.)",
+    "settings:unity cli path": "Unity CLI Pfad",
+    "settings:unity cli not found": "Unity CLI nicht gefunden",
 
     "settings:default unity arguments": "Standard-Befehlszeilenparameter von Unity",
     "settings:default unity arguments description": "Diese Befehlzeilenparameter werden benutzt wenn Unity über ALCOM geöffnet wird.",
@@ -577,8 +583,11 @@
 
     "settings:use alcom for vcc scheme": "Benutze ALCOM für das <code>vcc:</code> Protokoll",
     "settings:use vcc scheme description": "Das <code>vcc:</code> Protokoll wird verwendet, um VCC-Paketlisten direkt vom Browser aus hinzufügen zu können.<br>Als alternative zu VCC kann ALCOM diese Anfragen annehmen.<br>Wenn aktiviert, wird ALCOM das <code>vcc:</code> Protokoll beim start registrieren.<br>Wird VCC (neu)installiert oder geupdated, starte ALCOM neu oder klicke auf die Schaltfläche um die Registrierung wiederherzustellen.",
+    "settings:register vcc and alcom scheme handlers": "Registriere <code>vcc:</code> und <code>alcom:</code> Protokolle",
+    "settings:register vcc and alcom scheme handlers description": "Die <code>vcc:</code> und <code>alcom:</code> Protokolle werden verwendet um Paketquellen direkt über links im Browser zu importieren.<br>Für diesen Zweck kann ALCOM verwendet werden.<br>Ist dies aktiviert, wird ALCOM die <code>vcc:</code> und <code>alcom:</code> Protokolle beim Start registrieren.",
     "settings:register vcc scheme now": "Registrierung jetzt ausführen",
     "settings:toast:vcc scheme installed": "ALCOM wurde als Programm für <code>vcc:</code> Links registriert.",
+    "settings:toast:vcc and alcom scheme installed": "ALCOM wurde für das <code>vcc:</code> und <code>alcom:</code> Protokoll registriert.",
 
     "settings:licenses": "Lizenzen",
     "settings:licenses description": "Klicke <l>hier</l>, um die Lizenzen von Drittanbieter-Projekten zu sehen, die in ALCOM verwendet wurden.",

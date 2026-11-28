@@ -39,6 +39,7 @@
     "general:error:failed to create dir missing drive": "Не удалось создать каталог. Возможно, диск не подключен.",
 
     "general:created at": "Добавлено",
+
     "general:last modified": "Последнее изменение",
     "general:last modified:moments": "Только что",
     "general:last modified:minutes_one": "{{count}} минуту назад",
@@ -61,6 +62,7 @@
     "setup:entry:welcome description": "ALCOM - это помощник с открытым исходным кодом для авторов VRChat и других Unity-проектов.",
     "setup:next": "Далее",
     "setup:back": "Назад",
+//    "setup:new-setting-is-added": "Новая настройка добавлена!", // unused
 
     "setup:steps card:Appearance": "Внешний вид",
     "setup:appearance:heading": "Внешний вид",
@@ -90,6 +92,7 @@
     "setup:steps card:SystemSetting": "Системные настройки",
     "setup:system-setting:heading": "Системные настройки",
     "setup:system-setting:vcc scheme description": "Вы можете использовать ALCOM для обработки схемы vcc:// вместо VCC, чтобы устанавливать репозитории на ПК. ALCOM и VCC используют один и тот же список репозиториев, но с ALCOM можно быстро устанавливать без открытия VCC.",
+    "setup:system-setting:vcc and alcom scheme description": "Вы можете использовать ALCOM для схем vcc:// и alcom://, чтобы устанавливать репозитории на ПК.",
     "setup:system-setting:macos bug message": "В macOS здесь нечего настраивать. (Эта страница не должна отображаться, если она отображается - это ошибка)",
     "setup:system-setting:hostname-with-non-ascii": "В имени хоста (имени ПК) есть символы не из ASCII. Это может вызывать проблемы с Unity 2022.<br/>Настоятельно рекомендуется изменить имя ПК на ASCII-символы.",
 
@@ -117,7 +120,7 @@
     "projects:grid view": "Сетка",
     "projects:sort by": "Сортировать по:",
     "projects:error:load error": "Ошибка загрузки проектов: {{msg}}",
-    "projects:error:noexec filesystem": "Проект находится на файловой системе, смонтированной с флагом 'noexec'. Это не позволяет Unity загружать нативные плагины, что может привести к некорректной работе или повреждению ресурсов. Переместите проект на файловую систему без флага 'noexec'.",
+    "projects:error:noexec filesystem": "Проект находится на файловой системе, смонтированной с флагом 'noexec'. Это не позволяет Unity загружать нативные плагины, что может привести to некорректной работе или повреждению ресурсов. Переместите проект на файловую систему без флага 'noexec'.",
     "projects:toast:project added": "Проект успешно добавлен.",
     "projects:toast:project already exists": "Проект уже добавлен.",
 
@@ -147,7 +150,7 @@
     "projects:template-category:builtin": "Встроенные",
     "projects:template-category:alcom": "Пользовательские шаблоны",
     "projects:template-category:vcc": "Шаблоны VCC",
-    "projects:template-name:avatars": "VRChat Avatars",
+    "projects:template-name:avatars": "VRChat Avатары",
     "projects:template-name:worlds": "VRChat Worlds",
     "projects:template-name:blank": "Пустой",
     "projects:template:unity version": "Версия Unity:",
@@ -234,12 +237,13 @@
     "projects:manage:suggest resolve": "Некоторые обязательные пакеты для этого проекта не установлены.<br>Настоятельно рекомендуется установить эти пакеты.",
     "projects:manage:button:resolve": "Установить пакеты",
 
-    "projects:manage:suggest unity migration": "Ваш проект использует Unity 2019, которая больше не поддерживается VRChat SDK. VRChat рекомендует мигрировать проект на Unity 2022.",
-    "projects:manage:suggest unity patch migration": "Ваш проект использует немного устаревшую версию Unity 2022. VRChat рекомендует мигрировать проект на более новую версию Unity 2022.",
+    "projects:manage:suggest unity migration": "Ваш проект использует Unity {{currentUnity}}, которая больше не поддерживается VRChat SDK. VRChat рекомендует мигрировать проект на Unity {{targetUnity}}.",
+    "projects:manage:suggest unity patch migration": "Ваш проект использует немного устаревшую версию Unity {{unityMajor}}. VRChat рекомендует мигрировать проект на более новую версию Unity {{unityMajor}}.",
     "projects:manage:suggest unity china to international migration": "Ваш проект использует китайскую версию Unity. Для лучшей совместимости с VRChat рекомендуется использовать международную версию Unity.",
     "projects:manage:button:unity migrate": "Мигрировать проект",
 
     "projects:manage:manage packages": "Управление пакетами",
+    "projects:manage:hidden packages": "Скрытые пакеты",
     "projects:manage:tooltip:refresh packages": "Обновить пакеты",
     "projects:manage:button:upgrade all": "Обновить все (последние)",
     "projects:manage:button:upgrade all stable": "Обновить все (стабильные)",
@@ -247,7 +251,6 @@
     "projects:manage:button:package filters": "Фильтры пакетов",
     "projects:manage:menu:repository filter": "Фильтр репозиториев",
     "projects:manage:menu:other filters": "Другие фильтры",
-    "projects:manage:hidden packages": "Скрытые пакеты",
     "projects:manage:package": "Пакет",
     "projects:manage:installed": "Установлено",
     "projects:manage:latest": "Последняя версия",
@@ -314,11 +317,9 @@
 
     "projects:manage:dialog:unity migrate header": "Миграция Unity",
     "projects:dialog:migrate unity2022 patch description": "Проект будет мигрирован на Unity {{unity}}.",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "Не удалось найти рекомендуемую точную версию Unity 2022 для миграции патча.<br>Установите Unity {{unity}} через Unity Hub и перезапустите ALCOM.",
-    "projects:manage:dialog:unity migrate finalizing...": "Запуск Unity 2022 в фоне для завершения миграции...",
-    "projects:toast:unity migrate failed by unity not found": "Не удалось мигрировать проект: Unity 2022 не найдена",
-    "projects:toast:unity migration finalize failed by unity not found": "Не удалось завершить миграцию: Unity 2022 не найдена",
-    "projects:toast:unity migrated": "Проект мигрирован на Unity 2022",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "Не удалось найти рекомендуемую точную версию Unity {{unityMajor}} для миграции патча.<br>Установите Unity {{unity}} через Unity Hub и перезапустите ALCOM.",
+    "projects:manage:dialog:unity migrate finalizing...": "Запуск Unity {{unityMajor}} в фоне для завершения миграции...",
+    "projects:toast:unity migrated": "Проект мигрирован на Unity {{unityMajor}}",
 
     "projects:manage:dialog:confirm changes description": "Вы применяете следующие изменения к проекту.",
     "projects:manage:dialog:note breaking changes": "В пакетах есть потенциально несовместимые изменения.<br/>Ваши ресурсы, настройки и инструменты проекта могут оказаться несовместимыми.<br/>Проверьте информацию о совместимости и обновляйте осторожно.",
@@ -486,8 +487,15 @@
     "settings:toast:not unity": "Выбранный файл не является Unity.",
     "settings:toast:unity already added": "Выбранная Unity уже добавлена.",
     "settings:toast:unity added": "Unity успешно добавлена!",
-    "settings:use legacy unity hub loading": "Использовать старый способ загрузки из Unity Hub",
-    "settings:use legacy unity hub loading description": "Старый способ загрузки Unity из Unity Hub надежнее текущего нового способа, но занимает больше времени.<br/>В будущем старый способ будет удален, поэтому если с новым способом есть проблемы, сообщите разработчикам в разделе ниже.",
+    "settings:unity hub access method": "Способ загрузки установок Unity",
+    "settings:unity hub access method description": "Как ALCOM загружает список установленных версий Unity.",
+    "settings:unity hub access method:read config": "Читать конфигурационные файлы Unity Hub",
+    "settings:unity hub access method:call hub": "Запускать Unity Hub в фоновом режиме",
+    "settings:unity hub access method:call cli": "Вызывать Unity CLI",
+    "settings:unity hub access method:warning:call hub": "Запуск Unity Hub занимает много времени, и в будущем этот способ будет удалён.<br/>Если вы используете этот способ из-за проблем с чтением конфигурационных файлов, сообщите разработчикам в разделе ниже.",
+    "settings:unity hub access method:warning:call cli": "Для вызова Unity CLI требуется установить Unity CLI в дополнение к Unity Hub, и в будущем этот способ может быть удалён.<br/>Если вы используете этот способ из-за проблем с чтением конфигурационных файлов, сообщите разработчикам в разделе ниже.",
+    "settings:unity cli path": "Путь к Unity CLI",
+    "settings:unity cli not found": "Unity CLI не найден",
 
     "settings:default unity arguments": "Аргументы командной строки Unity по умолчанию",
     "settings:default unity arguments description": "Эти аргументы командной строки будут использоваться при открытии Unity из ALCOM.",
@@ -526,6 +534,7 @@
 
     "settings:show prerelease": "Показывать предрелизные пакеты",
     "settings:show prerelease description": "При включении этой опции предрелизные пакеты будут отображаться в списке пакетов. Кроме того, предрелизные пакеты будут использоваться при разрешении зависимостей.",
+
     "settings:dialog:show prerelease packages": "Показать предрелизные пакеты",
     "settings:dialog:show prerelease packages description": "Предрелизные пакеты могут содержать больше ошибок, чем стабильные пакеты.<br>Вы уверены, что хотите показывать предрелизные пакеты?",
     "settings:dialog:enable show prerelease packages": "Показать",
@@ -558,6 +567,7 @@
 
     "check update:dialog:title": "Обновления ALCOM",
     "check update:dialog:new version description": "Доступна новая версия ALCOM.",
+    // note: мы можем удалить сборку для macOS x86_64 позже. Это подготовка к этому удалению
     "check update:dialog:new version no platform description": "Доступна новая версия ALCOM, но ваша платформа больше не поддерживается.<br>Если ваша система поддерживает сборку для другой платформы, загрузите ее вручную.",
     "check update:dialog:new version not updatable description": "Доступна новая версия ALCOM.<br>Однако это приложение нельзя обновить автоматически.<br>Пожалуйста, установите новую версию вручную.",
     "check update:dialog:new version updater disabled base description": "Доступна новая версия ALCOM.",
@@ -573,8 +583,11 @@
 
     "settings:use alcom for vcc scheme": "Использовать ALCOM для схемы URL <code>vcc:</code>",
     "settings:use vcc scheme description": "Схема URL <code>vcc:</code> используется для открытия VCC и добавления репозитория из браузера.<br>Как альтернативу VCC вы можете использовать ALCOM как приложение для добавления репозиториев из браузера.<br>Если включено, ALCOM будет регистрировать обработчик схемы URL <code>vcc:</code> при запуске.<br>После (пере)установки/обновления VCC нужно перезапустить ALCOM или вручную зарегистрировать обработчик кнопкой выше, чтобы переопределить регистрацию VCC.",
+    "settings:register vcc and alcom scheme handlers": "Зарегистрировать обработчики схем URL <code>vcc:</code> и <code>alcom:</code>",
+    "settings:register vcc and alcom scheme handlers description": "Схемы URL <code>vcc:</code> и <code>alcom:</code> используются для добавления репозиториев из браузеров.<br>Вы можете использовать ALCOM как приложение для добавления репозиториев из браузеров.<br>Если эта настройка включена, ALCOM будет регистрировать обработчики схем URL <code>vcc:</code> и <code>alcom:</code> при запуске.",
     "settings:register vcc scheme now": "Зарегистрировать обработчик URL сейчас",
     "settings:toast:vcc scheme installed": "ALCOM зарегистрирован как обработчик схемы URL <code>vcc:</code>.",
+    "settings:toast:vcc and alcom scheme installed": "ALCOM зарегистрирован как обработчик схем URL <code>vcc:</code> и <code>alcom:</code>.",
 
     "settings:licenses": "Лицензии",
     "settings:licenses description": "Нажмите <l>здесь</l>, чтобы посмотреть лицензии проектов, используемых в ALCOM.",

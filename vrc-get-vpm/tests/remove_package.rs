@@ -28,10 +28,10 @@ fn basic_remove() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_removed(&result, "com.anatawa12.gists", RemoveReason::Requested);
     })
@@ -57,10 +57,10 @@ fn transitive_unused_remove() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
         assert_removed(&result, "com.vrchat.base", RemoveReason::Unused);
@@ -92,13 +92,135 @@ fn do_not_remove_transitively_when_untouched() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
         assert_removed(&result, "com.vrchat.base", RemoveReason::Unused);
+    })
+}
+
+#[test]
+fn do_not_remove_dependency_of_locked_only_package() {
+    block_on(async {
+        // The tool is locked but nobody requires it since the manifest is inconsistent.
+        // Both the avatars and the tool require the base, and the base requires the core.
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked(
+                "com.anatawa12.tool",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.core", "1.0.0")],
+            )
+            .add_locked("com.vrchat.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let result = project
+            .remove_request(&["com.vrchat.avatars"])
+            .await
+            .unwrap();
+
+        // We keep the tool so the tool needs the base.
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
+
+        assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
+    })
+}
+
+#[test]
+fn do_not_conflict_with_package_removed_as_unused() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_dependency("com.vrchat.core", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.core", "1.0.0")],
+            )
+            .add_locked("com.vrchat.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let result = project
+            .remove_request(&["com.vrchat.avatars", "com.vrchat.core"])
+            .await
+            .unwrap();
+
+        // The base requires the core, but the base is removed together since only
+        // the avatars requires it. So removing the core doesn't conflict with the base.
+        assert_len!(result.package_changes(), 3);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
+
+        assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
+        assert_removed(&result, "com.vrchat.core", RemoveReason::Requested);
+        assert_removed(&result, "com.vrchat.base", RemoveReason::Unused);
+    })
+}
+
+#[test]
+fn remove_dependency_of_removed_package_even_if_the_package_is_required() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_dependency("com.vrchat.base", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.core", "1.0.0")],
+            )
+            .add_locked("com.vrchat.core", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let result = project.remove_request(&["com.vrchat.base"]).await.unwrap();
+
+        // The avatars requires the base so removing the base is a conflict.
+        // The core was only for the base, so nobody requires it after removing the base.
+        assert_len!(result.package_changes(), 2);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+
+        assert_removed(&result, "com.vrchat.base", RemoveReason::Requested);
+        assert_removed(&result, "com.vrchat.core", RemoveReason::Unused);
+
+        assert_len!(result.conflicts(), 1);
+        let base_conflict = result.conflicts().get("com.vrchat.base").unwrap();
+        assert_eq!(
+            base_conflict.conflicting_packages(),
+            &["com.vrchat.avatars".into()]
+        );
     })
 }
 
@@ -134,10 +256,10 @@ fn remove_referenced_legacy_package() {
             .await
             .unwrap();
 
-        assert_eq!(result.package_changes().len(), 1);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
+        assert_len!(result.package_changes(), 1);
+        assert_len!(result.remove_legacy_folders(), 0);
+        assert_len!(result.remove_legacy_files(), 0);
+        assert_len!(result.conflicts(), 0);
 
         assert_removed(
             &result,

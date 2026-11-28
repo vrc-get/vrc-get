@@ -15,16 +15,47 @@ The format is based on [Keep a Changelog].
   - This is exactly same as previous `repositories.txt` file, but with a distinct file extension for importing with double click.
   - You still can import files without `.alcomrepositories` as before, and export as `.txt` file, but the default file extension is changed.
 - Added a setting to disable the built-in VRChat Official and Curated repositories. [`#3197`](https://github.com/vrc-get/vrc-get/pull/3197)
+- Unity CLI can now be used to load the list of Unity installations `#3137`
+  - Unity CLI is an additional install on top of Unity Hub, so reading Unity Hub configuration files stays the default.
+  - Downgrading ALCOM after selecting this method resets the GUI settings, since older builds cannot read the new value.
+- The position of the main window is now reserved `#3316`
+  - This is not supported on Wayland since the position of windows is managed by the compositor.
+- VCC 2.5.0 Features compatibility
+  - This release adds Unity 6000.0 VRCSDK support. `#3336` `#3350`
+- `alcom://` URL scheme as an ALCOM-specific alias of `vcc://` `#3334`
+  - This is intended for repositories entirely depends on vrc-get extension of VPM.
+  - This is registered automatically on macOS, Windows, and linux package manager distributions.
+  - For AppImage, this is registered along with `vcc://` when you enable the URL scheme setting.
 
 ### Changed
 - Updated GUI components to shadcn/ui New York style [`#3143`](https://github.com/vrc-get/vrc-get/pull/3143)
 - Changed license of this project to MPL-2.0 `#3231`
-- Changed how the Project List is managed `#3184`
+- Changed how the Project List is managed `#3184` `#3347` `#3353`
   - Added a project list for ALCOM and logic to sync it with VCC's project list.
   - Added a configuration option for the project list syncing mode.
 - Use display name from Unity Hub on the Project List `#2657`
 - Show the project name in the backup progress dialog and the remove project dialog `#3278`
 - Show the backup file name in the toast shown after creating a backup `#3279`
+- Reverted part of logic for MSIX version of Unity Hub, that are no longer necessary for Unity Hub 4.0 `#3321`
+  - ALCOM had support for sandboxed AppData, but Unity has disabled sandboxed AppData in Unity Hub 4.0.
+- VPM Repositories with invalid version name will be accepted `#3325`
+  - Package versions with invalid version names wll be ignored instead.
+- Improved how packages and their dependencies are installed, upgraded, and removed `#3358` `#3378`
+  - Versions of packages no longer change unexpectedly when installing or upgrading packages.
+    - Other packages in your project are no longer downgraded, unless you downgrade the package that requires them.
+    - Packages are always installed with the version you selected.
+    - You'll see a version conflict instead if those versions don't work together.
+  - You'll see fewer version conflicts.
+    - If some version of a dependency works with all packages in your project, that version is installed instead of the newest one.
+    - Conflicts with packages that are removed together as unused are no longer reported.
+  - Installed packages are kept more consistent with what your project requires.
+    - Packages you don't need are no longer installed or reinstalled when installing packages.
+    - Packages are no longer removed as unused while another package in your project still requires them.
+    - Dependencies of the removed package are now removed even if another package still requires the removed package.
+  - Installing multiple packages at once no longer skips a package installed as an unlocked package.
+  - Versions that work with the Unity version of your project are preferred, even if they conflict with other packages.
+    - For example, VRChat SDK 3.11.x-beta for Unity 6 is installed even if another package requires an older SDK.
+    - Prerelease versions are installed this way only if no stable version works with the Unity version.
 
 ### Deprecated
 
@@ -36,6 +67,12 @@ The format is based on [Keep a Changelog].
 - Adjust button layout in Project Row `#3158`
 - The bulk action bar in Manage Packages now animates smoothly when selecting or deselecting packages `#3166`
 - Open Unity Hub in some places does not work `#3274`
+- GUI Crashes on error with "Reload Unity from Unity Hub" `#3322`
+- Unity 2021.3.45f2 could not be added because its version string was rejected as invalid `#3204`
+- AppImage doesn't function on distributions without systemd `#3323`
+- Project backups now honor the low and high ZIP compression settings `#3324`
+- Migrating Unity version hangs forever when Unity outputs non UTF-8 text `#3356`
+  - This typically happens on Windows with non-English system locale.
 
 ### Security
 

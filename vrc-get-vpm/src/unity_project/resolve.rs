@@ -11,7 +11,7 @@ use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-use crate::unity_project::package_resolution::MissingDependencies;
+use crate::unity_project::package_resolution::{MissingDependencies, Request};
 use crate::unity_project::{
     LockedDependencyInfo, PendingProjectChanges, package_resolution, pending_project_changes,
 };
@@ -158,42 +158,51 @@ impl UnityProject {
         changes: &mut pending_project_changes::Builder<'env>,
         missing_dependencies: &mut MissingDependencies,
     ) -> Result<(), ResolvePackageErr> {
-        let mut to_install = vec![];
+        let mut requests = vec![];
         let mut install_names = HashSet::new();
 
         for (name, range) in self.manifest.dependencies() {
             if self.manifest.get_locked(name).is_none() {
-                if let Some(pkg) = env.find_package_by_name(
+                let range = range.as_range();
+                requests.push(Request::Range {
                     name,
-                    VersionSelector::range_for(
-                        Some(self.unity_version()),
-                        &range.as_range(),
-                        PrereleaseAcceptance::allow_or_minimum(range.as_range().contains_pre()),
-                    ),
-                ) {
-                    to_install.push(pkg);
-                } else {
-                    missing_dependencies.add(name, &range.as_range());
-                }
+                    prerelease: if range.contains_pre() {
+                        // The project requires a prerelease version,
+                        // so we select prerelease versions as same as stable versions.
+                        &[PrereleaseAcceptance::Allow]
+                    } else {
+                        // We use a stable version if possible,
+                        // but a prerelease version is better than nothing.
+                        &[PrereleaseAcceptance::Deny, PrereleaseAcceptance::Allow]
+                    },
+                    range,
+                });
                 install_names.insert(name);
             }
         }
 
-        if to_install.is_empty() {
+        if requests.is_empty() {
             return Ok(());
         }
 
-        let allow_prerelease = to_install.iter().any(|x| !x.version().pre.is_empty());
+        // The project requires the packages to be locked, so we install them
+        // even if they are installed as unlocked packages.
+        // The unlocked packages will be replaced, so we don't tell the resolver about them.
+        let unlocked_packages = (self.unlocked_packages.iter()).filter(|(dir, unlocked)| {
+            !install_names.contains(dir.as_ref())
+                && !(unlocked.as_ref()).is_some_and(|x| install_names.contains(x.name()))
+        });
 
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
             self.manifest.all_locked(),
-            self.unlocked_packages.iter(),
+            unlocked_packages,
             |pkg| self.manifest.get_locked(pkg),
             Some(self.unity_version()),
             env,
-            to_install,
-            allow_prerelease,
+            requests,
+            false,
+            false,
             missing_dependencies,
         );
 
@@ -274,42 +283,29 @@ impl UnityProject {
             );
         }
 
-        let unlocked_dependencies = unlocked_dependencies_versions
+        let requests = unlocked_dependencies_versions
             .into_iter()
-            .filter_map(|(pkg_name, packages)| {
-                let ranges = packages
-                    .iter()
-                    .map(|(range, _)| range)
-                    .copied()
-                    .collect::<Vec<_>>();
+            .map(|(pkg_name, packages)| {
                 let allow_prerelease = packages.iter().any(|(_, pre)| *pre);
-                if let Some(pkg) = env.find_package_by_name(
-                    pkg_name,
-                    VersionSelector::ranges_for(
-                        Some(self.unity_version),
-                        &ranges,
-                        PrereleaseAcceptance::allow_or_minimum(allow_prerelease),
-                    ),
-                ) {
-                    Some(pkg)
-                } else {
-                    missing_dependencies.add(
-                        pkg_name,
-                        &ranges
-                            .iter()
-                            .copied()
-                            .cloned()
-                            .reduce(|x, range| x.intersect(&range))
-                            .unwrap(),
-                    );
-                    None
+                Request::Range {
+                    name: pkg_name.as_ref(),
+                    // The version must satisfy all unlocked packages that require the package.
+                    range: (packages.iter())
+                        .map(|(range, _)| (*range).clone())
+                        .reduce(|x, range| x.intersect(&range))
+                        .unwrap(),
+                    prerelease: if allow_prerelease {
+                        // Some of the packages are prerelease,
+                        // so we select prerelease versions as same as stable versions.
+                        &[PrereleaseAcceptance::Allow]
+                    } else {
+                        // Otherwise, we select prerelease versions only if
+                        // the packages require a prerelease version.
+                        &[PrereleaseAcceptance::Minimum]
+                    },
                 }
             })
             .collect::<Vec<_>>();
-
-        let allow_prerelease = unlocked_dependencies
-            .iter()
-            .any(|x| !x.version().pre.is_empty());
 
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
@@ -318,8 +314,9 @@ impl UnityProject {
             |pkg| virtual_locked_dependencies.get(pkg).cloned(),
             Some(self.unity_version()),
             env,
-            unlocked_dependencies,
-            allow_prerelease,
+            requests,
+            false,
+            false,
             missing_dependencies,
         );
 

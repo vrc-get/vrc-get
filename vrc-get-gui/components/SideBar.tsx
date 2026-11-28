@@ -22,7 +22,7 @@ import {
 	List,
 	Package,
 	Settings,
-	SwatchBook,
+	Wrench,
 } from "lucide-react";
 import type React from "react";
 import {
@@ -92,15 +92,7 @@ export function SideBar({ className }: { className?: string }) {
 				/>
 				<SideBarItem href={"/settings"} text={tc("settings")} icon={Settings} />
 				<SideBarItem href={"/log"} text={tc("logs")} icon={AlignLeft} />
-				{isDev && <DevRestartSetupButton />}
-				{isDev && (
-					<SideBarItem
-						href={"/dev-palette"}
-						text={"UI Palette (dev only)"}
-						icon={SwatchBook}
-					/>
-				)}
-				{isDev && <StyleQuickAccess />}
+				{isDev && <DevMenu />}
 				<div className={"grow"} />
 				{isBadHostName.data && <BadHostNameDialogButton />}
 				<SideBarButton
@@ -175,19 +167,6 @@ function BadHostNameDialogButton() {
 	);
 }
 
-function DevRestartSetupButton() {
-	const navigate = useNavigate();
-	const onClick = async () => {
-		await commands.environmentClearSetupProcess();
-		navigate({ to: "/setup/appearance" });
-	};
-	return (
-		<SideBarButton icon={Settings} onClick={onClick}>
-			Restart Setup (dev only)
-		</SideBarButton>
-	);
-}
-
 function SideBarButton({
 	icon,
 	showIconOnlyWhenCompact,
@@ -222,19 +201,35 @@ function SideBarButton({
 	);
 }
 
-export function StyleQuickAccess() {
+function DevMenu() {
+	const navigate = useNavigate();
+
 	return (
 		<Popover>
 			<PopoverTrigger asChild>
-				<SideBarButton icon={SwatchBook}>
-					Style Settings (dev only)
-				</SideBarButton>
+				<SideBarButton icon={Wrench}>(Dev)</SideBarButton>
 			</PopoverTrigger>
-			<PopoverContent className="w-96 flex flex-col gap-3 [&>label]:flex-col [&>label]:items-start [&>div]:space-y-1">
+			<PopoverContent
+				side="right"
+				align="start"
+				className="w-96 flex flex-col gap-3 [&>label]:flex-col [&>label]:items-start [&>div]:space-y-1 [&>button]:justify-start max-h-[80vh] overflow-y-auto"
+			>
+				<span className={"font-bold text-lg"}>Dev Menu</span>
 				<LanguageSelector />
 				<ThemeSelector />
 				<GuiAnimationSwitch />
 				<GuiCompactSwitch />
+				<Button
+					onClick={async () => {
+						await commands.environmentClearSetupProcess();
+						navigate({ to: "/setup/appearance" });
+					}}
+				>
+					Restart Setup
+				</Button>
+				<Button onClick={() => navigate({ to: "/dev-palette" })}>
+					Open UI Palette
+				</Button>
 			</PopoverContent>
 		</Popover>
 	);

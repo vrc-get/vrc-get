@@ -11,8 +11,44 @@ use crate::traits::PackageCollection;
 use crate::unity_project::LockedDependencyInfo;
 use crate::version::{DependencyRange, PrereleaseAcceptance, UnityVersion, Version, VersionRange};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
+use std::cmp::Reverse;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
+
+/// The package requested to install from outside of the dependency resolution.
+pub(crate) enum Request<'env, 'a> {
+    /// The package the user selected the version of.
+    ///
+    /// We always install this version, and never replace it with another version.
+    Package(PackageInfo<'env>),
+    /// The locked package the user selected the locked version of.
+    ///
+    /// We keep the locked version, and never replace it with another version.
+    KeepLocked(&'a str),
+    /// The package required by the project or installed packages, but not installed.
+    ///
+    /// We select the version in the same way as dependencies of installing packages,
+    /// so we can replace it with another version to satisfy other packages.
+    Range {
+        name: &'a str,
+        range: VersionRange,
+        // The acceptances of prerelease versions we try in order.
+        // We select the newest version with the first acceptance some version satisfies.
+        prerelease: &'a [PrereleaseAcceptance],
+    },
+}
+
+/// The one that requires a package; an installing package or the one that made a request.
+struct Requirer<'a> {
+    // The name of the package. This is empty for requests.
+    name: &'a str,
+    // The acceptances of prerelease versions we try in order to select the dependencies.
+    prerelease: &'a [PrereleaseAcceptance],
+    // Dependencies are downgraded only along with the package that requires them.
+    // Installing or upgrading a package never downgrades other packages;
+    // the unsatisfied requirement is reported as a conflict instead.
+    allow_downgrade: bool,
+}
 
 struct PackageQueue<'a> {
     force_count: usize,
@@ -30,7 +66,7 @@ impl<'a> PackageQueue<'a> {
     pub(crate) fn next_package(&mut self) -> Option<(PackageInfo<'a>, bool)> {
         let force = self.force_count > 0;
         self.force_count = self.force_count.saturating_sub(1);
-        self.pending_queue.pop_back().map(|x| (x, force))
+        self.pending_queue.pop_front().map(|x| (x, force))
     }
 
     fn find_pending_package(&self, name: &str) -> Option<&PackageInfo<'a>> {
@@ -51,6 +87,15 @@ where
     pub pending_queue: PackageQueue<'env>,
     dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
     unlocked_names: HashSet<&'a str>,
+    // The packages the user selected the version of.
+    // We never replace them with another version.
+    requested: HashSet<&'a str>,
+    // The installed packages that become unused and should be removed.
+    unused: Vec<&'a str>,
+    // The dependencies we couldn't find, with the requirer ("" for requests).
+    // The requirer can be replaced or stop being used later, so we keep the requirer
+    // to report only the dependencies of the packages we actually install.
+    missing: Vec<(&'a str, &'a str, &'a VersionRange)>,
 }
 
 struct Legacy<'env>(&'env [Box<str>]);
@@ -66,8 +111,13 @@ impl Default for Legacy<'_> {
 struct DependencyInfo<'env, 'a> {
     using: Option<PackageInfo<'env>>,
     current: Option<&'a Version>,
+    // The version installed before this resolution. Unlike `current`, this never changes.
+    installed: Option<&'a Version>,
     // "" key for root dependencies
     requirements: HashMap<&'a str, &'a VersionRange>,
+    // The sources of requirements that were not satisfied by the installed version
+    // before this resolution, in other words, the requirements the user is already ignoring.
+    ignored_sources: HashSet<&'a str>,
     dependencies: HashSet<&'a str>,
 
     modern_packages: HashSet<&'a str>,
@@ -87,7 +137,9 @@ where
         DependencyInfo {
             using: None,
             current: None,
+            installed: None,
             requirements,
+            ignored_sources: HashSet::new(),
             dependencies: HashSet::new(),
 
             modern_packages: HashSet::new(),
@@ -125,17 +177,22 @@ where
     pub(crate) fn set_using_info(&mut self, version: &'a Version, dependencies: HashSet<&'a str>) {
         self.allow_pre |= !version.pre.is_empty();
         self.current = Some(version);
+        self.installed = Some(version);
         self.dependencies = dependencies;
     }
 }
 
 impl<'env> ResolutionContext<'env, '_> {
     fn new(allow_prerelease: bool, packages: Vec<PackageInfo<'env>>) -> Self {
+        let requested = packages.iter().map(|pkg| pkg.name()).collect();
         let mut this = Self {
             dependencies: HashMap::new(),
             pending_queue: PackageQueue::new(packages),
             allow_prerelease,
             unlocked_names: HashSet::new(),
+            requested,
+            unused: Vec::new(),
+            missing: Vec::new(),
         };
 
         for pkg in &this.pending_queue.pending_queue {
@@ -251,6 +308,8 @@ where
         let legacy_packages = package.legacy_packages();
         let name = package.name();
 
+        // We selected the prerelease version for someone, so it must not be a conflict.
+        entry.allow_pre |= package.version().is_pre();
         entry.current = Some(package.version());
         entry.using = Some(package);
 
@@ -266,6 +325,7 @@ where
         for dep in &old_dependencies {
             self.dependencies.get_mut(*dep).unwrap().remove_range(name);
         }
+        self.missing.retain(|&(requirer, _, _)| requirer != name);
         for (dependency, range) in vpm_dependencies.iter() {
             self.dependencies
                 .entry(dependency)
@@ -309,6 +369,15 @@ where
             return false;
         }
 
+        // The user requested the version so we must not replace it with another version.
+        // The requirement is reported as a conflict if the requested version doesn't satisfy it.
+        if self.requested.contains(name) {
+            log::debug!(
+                "processing package {name}: dependency {name} version {range}: requested package"
+            );
+            return false;
+        }
+
         let mut install = true;
         let allow_prerelease =
             PrereleaseAcceptance::allow_or_minimum(entry.allow_pre || self.allow_prerelease);
@@ -335,6 +404,234 @@ where
 
         install
     }
+
+    /// Returns true if the requirements from the `source` should be satisfied.
+    fn is_active_source(&self, source: &str) -> bool {
+        self.dependencies
+            .get(source)
+            .map(|x| !x.is_legacy())
+            .unwrap_or_default()
+    }
+
+    /// Remembers the requirements that are not satisfied by the installed packages.
+    ///
+    /// This must be called after adding all installed packages and before adding new packages.
+    pub(crate) fn mark_ignored_requirements(&mut self) {
+        for info in self.dependencies.values_mut() {
+            let Some(installed) = info.installed else {
+                continue;
+            };
+            let allow_prerelease =
+                PrereleaseAcceptance::allow_or_minimum(info.allow_pre || self.allow_prerelease);
+
+            info.ignored_sources = info
+                .requirements
+                .iter()
+                .filter(|(_, range)| !range.match_pre(installed, allow_prerelease))
+                .map(|(&source, _)| source)
+                .collect();
+        }
+    }
+
+    /// Returns all requirements for the package we currently know.
+    fn requirements_for(&self, name: &str) -> Vec<&'a VersionRange> {
+        self.dependencies[name]
+            .requirements
+            .iter()
+            .filter(|&(&source, _)| self.is_active_source(source))
+            .map(|(_, &range)| range)
+            .collect()
+    }
+
+    /// Returns the requirements for the package except for ones the user is already ignoring.
+    ///
+    /// The requirement is ignored if it was not satisfied before this resolution and
+    /// the installed version still doesn't satisfy it, like exceeded upper bound of
+    /// supported versions. The requirement from the `requester` is never ignored.
+    fn unignored_requirements_for(&self, name: &str, requester: &str) -> Vec<&'a VersionRange> {
+        let info = &self.dependencies[name];
+        let allow_prerelease =
+            PrereleaseAcceptance::allow_or_minimum(info.allow_pre || self.allow_prerelease);
+
+        info.requirements
+            .iter()
+            .filter(|&(&source, _)| self.is_active_source(source))
+            .filter(|&(&source, &range)| {
+                source == requester
+                    || !info.ignored_sources.contains(source)
+                    || info
+                        .installed
+                        .is_none_or(|installed| range.match_pre(installed, allow_prerelease))
+            })
+            .map(|(_, &range)| range)
+            .collect()
+    }
+
+    /// Returns true if installing the `version` lowers the version of the installed package.
+    pub(crate) fn is_downgrade(&self, name: &str, version: &Version) -> bool {
+        self.dependencies
+            .get(name)
+            .and_then(|info| info.installed)
+            .is_some_and(|installed| version < installed)
+    }
+
+    /// Stops using the packages that became unnecessary while resolving.
+    ///
+    /// A package can be replaced with another version after we process its dependencies.
+    /// The packages only the replaced version requires are still marked as using then.
+    /// A package can also get back to the installed version, which needs no installation.
+    pub(crate) fn remove_unnecessary_packages<'l: 'a>(
+        &mut self,
+        get_locked: &impl Fn(&str) -> Option<LockedDependencyInfo<'l>>,
+        env: &'env impl PackageCollection,
+    ) {
+        // Stop using the packages that got back to the installed version.
+        // Requesting the installed version means reinstalling it, so we keep that.
+        let reverted = (self.dependencies.iter())
+            .filter(|&(name, info)| {
+                !self.requested.contains(name)
+                    && (info.using).is_some_and(|using| info.installed == Some(using.version()))
+            })
+            .map(|(&name, _)| name)
+            .collect::<Vec<_>>();
+
+        for name in reverted {
+            self.stop_using(name, get_locked, env);
+        }
+
+        // Collect necessary packages: requested packages, dependencies of the project,
+        // unlocked packages, and the packages required by necessary packages.
+        // Installed packages are not always necessary since they can be unused after this.
+        let necessary = self.collect_required(
+            (self.requested.iter().copied())
+                .chain(self.dependencies[""].requirements.keys().copied())
+                .chain(self.unlocked_names.iter().copied()),
+        );
+
+        // Stop using the other packages since nobody requires them.
+        let unnecessary = (self.dependencies.iter())
+            .filter(|&(name, info)| info.using.is_some() && !necessary.contains(name))
+            .map(|(&name, _)| name)
+            .collect::<Vec<_>>();
+
+        for name in unnecessary {
+            log::debug!("package {name} is not necessary anymore");
+            self.stop_using(name, get_locked, env);
+        }
+    }
+
+    /// Collects the packages required by the `roots`. The result includes the `roots`.
+    fn collect_required(&self, roots: impl Iterator<Item = &'a str>) -> HashSet<&'a str> {
+        let mut required = HashSet::new();
+        let mut queue = roots.collect::<VecDeque<_>>();
+
+        while let Some(name) = queue.pop_front() {
+            if !required.insert(name) {
+                continue;
+            }
+            let Some(info) = self.dependencies.get(name) else {
+                continue;
+            };
+            if info.is_legacy() {
+                // modern packages are used instead of the legacy package
+                queue.extend(&info.modern_packages);
+            } else {
+                queue.extend(&info.dependencies);
+            }
+        }
+
+        required
+    }
+
+    /// Stops using the new version of the package, and gets back to as it was installed.
+    fn stop_using<'l: 'a>(
+        &mut self,
+        name: &'a str,
+        get_locked: &impl Fn(&str) -> Option<LockedDependencyInfo<'l>>,
+        env: &'env impl PackageCollection,
+    ) {
+        let info = self.dependencies.get_mut(name).unwrap();
+        info.using = None;
+        info.current = info.installed;
+        let dependencies = std::mem::take(&mut info.dependencies);
+        let legacy_packages = std::mem::take(&mut info.legacy_packages);
+
+        // The version is not used so its requirements must not be reported as conflicts.
+        for dependency in dependencies {
+            let dependency = self.dependencies.get_mut(dependency).unwrap();
+            dependency.requirements.remove(name);
+        }
+        for legacy in legacy_packages.0 {
+            let legacy = self.dependencies.get_mut(legacy.as_ref()).unwrap();
+            legacy.modern_packages.remove(name);
+        }
+
+        if let Some(locked) = get_locked(name) {
+            self.add_locked_dependency(locked, env);
+        }
+    }
+
+    /// Finds the installed packages that become unused, and forgets their requirements.
+    ///
+    /// The package is unused if nobody requires it anymore, and it was required by
+    /// the packages we replace or remove. We never remove other packages nobody requires.
+    /// Such packages exist if the manifest is inconsistent, and they might be necessary.
+    /// We keep them as they are, so the packages they require are not unused.
+    pub(crate) fn remove_unused_packages<'l: 'a>(
+        &mut self,
+        get_locked: &impl Fn(&str) -> Option<LockedDependencyInfo<'l>>,
+    ) {
+        // Collect the packages that were required by the packages we replace or remove.
+        let mut removable = HashSet::<&'a str>::new();
+        let mut queue = (self.dependencies.iter())
+            .filter(|(_, info)| info.using.is_some() || info.is_legacy())
+            .map(|(&name, _)| name)
+            .collect::<VecDeque<_>>();
+
+        while let Some(name) = queue.pop_front() {
+            if let Some(locked) = get_locked(name)
+                && removable.insert(name)
+            {
+                queue.extend(locked.dependencies().keys().map(|x| x.as_ref()));
+            }
+        }
+
+        // Collect the packages in use: dependencies of the project, unlocked packages,
+        // the packages we install, the installed packages we never remove,
+        // and the packages required by them.
+        let in_use = self.collect_required(
+            (self.dependencies[""].requirements.keys().copied())
+                .chain(self.unlocked_names.iter().copied())
+                .chain(
+                    (self.dependencies.iter())
+                        .filter(|&(name, info)| {
+                            info.using.is_some()
+                                || (info.installed.is_some() && !removable.contains(name))
+                        })
+                        .map(|(&name, _)| name),
+                ),
+        );
+
+        // The package we replace or remove are not unused packages.
+        let unused = (removable.into_iter())
+            .filter(|name| !in_use.contains(name))
+            .filter(|name| !self.dependencies[name].is_legacy())
+            .collect::<Vec<_>>();
+
+        for name in unused {
+            log::debug!("package {name} is unused");
+
+            // The package will be removed so its requirements must not be reported as conflicts.
+            let info = self.dependencies.get_mut(name).unwrap();
+            info.current = None;
+            for dependency in std::mem::take(&mut info.dependencies) {
+                let dependency = self.dependencies.get_mut(dependency).unwrap();
+                dependency.requirements.remove(name);
+            }
+
+            self.unused.push(name);
+        }
+    }
 }
 
 impl<'env> ResolutionContext<'env, '_> {
@@ -348,12 +645,7 @@ impl<'env> ResolutionContext<'env, '_> {
                 let conflicts_with_this = info
                     .requirements
                     .iter()
-                    .filter(|&(&source, _)| {
-                        self.dependencies
-                            .get(source)
-                            .map(|x| !x.is_legacy())
-                            .unwrap_or_default()
-                    })
+                    .filter(|&(&source, _)| self.is_active_source(source))
                     .filter(|(_, range)| {
                         !range.match_pre(
                             version,
@@ -386,6 +678,8 @@ impl<'env> ResolutionContext<'env, '_> {
             .map(|(&name, _)| name.into())
             .collect();
 
+        let unused_packages = self.unused.iter().map(|&name| name.into()).collect();
+
         let new_packages = self
             .dependencies
             .into_values()
@@ -397,6 +691,7 @@ impl<'env> ResolutionContext<'env, '_> {
             new_packages,
             conflicts,
             found_legacy_packages,
+            unused_packages,
         }
     }
 }
@@ -407,6 +702,9 @@ pub struct PackageResolutionResult<'env> {
     pub conflicts: HashMap<Box<str>, Vec<Box<str>>>,
     // list of names of legacy packages we found
     pub found_legacy_packages: Vec<Box<str>>,
+    // list of names of installed packages that become unused.
+    // This is always empty unless `remove_unused` is specified.
+    pub unused_packages: Vec<Box<str>>,
 }
 
 pub struct MissingDependencies {
@@ -440,6 +738,224 @@ impl MissingDependencies {
     }
 }
 
+impl<'env, 'a> ResolutionContext<'env, 'a>
+where
+    'env: 'a,
+{
+    /// Selects the version of the `dependency` for the `requirer`,
+    /// and adds it to the queue if we have to install it.
+    fn add_dependency(
+        &mut self,
+        requirer: &Requirer<'a>,
+        dependency: &'a str,
+        range: &'a VersionRange,
+        env: &'env impl PackageCollection,
+        unity_version: Option<UnityVersion>,
+    ) {
+        let name = requirer.name;
+        log::debug!("processing package {name}: dependency {dependency} version {range}");
+
+        if !self.should_add_package(dependency, range) {
+            return;
+        }
+
+        let selected = self.selected_version(dependency);
+        let Some(found) =
+            self.select_version(requirer, dependency, range, env, unity_version, selected)
+        else {
+            self.missing.push((name, dependency, range));
+            return;
+        };
+
+        if selected == Some(found.version()) {
+            log::debug!(
+                "processing package {name}: dependency {dependency} version {range}: \
+                keeping selected version {}",
+                found.version()
+            );
+        } else if !requirer.allow_downgrade && self.is_downgrade(dependency, found.version()) {
+            log::debug!(
+                "processing package {name}: dependency {dependency} version {range}: \
+                keeping installed version since {} is downgrade",
+                found.version()
+            );
+        } else {
+            self.pending_queue.add_pending_package(found);
+        }
+    }
+
+    /// Returns the version we selected for the package, or the installed version.
+    fn selected_version(&self, name: &str) -> Option<&'a Version> {
+        (self.pending_queue.find_pending_package(name))
+            .map(|package| package.version())
+            .or(self.dependencies[name].current)
+    }
+
+    /// Selects the most preferable version of the `dependency` for the `requirer`.
+    /// See [`Preference`] for how we compare versions.
+    ///
+    /// Returns None if no version satisfies the requirer even if we ignore the unity.
+    fn select_version(
+        &self,
+        requirer: &Requirer<'a>,
+        dependency: &'a str,
+        range: &'a VersionRange,
+        env: &'env impl PackageCollection,
+        unity_version: Option<UnityVersion>,
+        selected: Option<&Version>,
+    ) -> Option<PackageInfo<'env>> {
+        let prerelease = if self.allow_prerelease {
+            // prerelease is allowed, so we find the best match
+            &[PrereleaseAcceptance::Allow]
+        } else {
+            requirer.prerelease
+        };
+        // === Whether we can resolve the dependency ===
+        // This is the only place we return None. After this check, some version satisfies
+        // the requirer, so the last requirements below accept it and we always select a version.
+
+        let candidates = (env.find_packages(dependency))
+            .filter(|package| !package.is_yanked())
+            .collect::<Vec<_>>();
+
+        // We can't resolve if no version satisfies the requirer, even if we ignore the unity.
+        let satisfies_requirer = |package: &PackageInfo| {
+            (prerelease.iter()).any(|&acceptance| range.match_pre(package.version(), acceptance))
+        };
+        if !candidates.iter().any(satisfies_requirer) {
+            return None;
+        }
+
+        // === Which version we select ===
+
+        // We prefer a conflict with other packages to a conflict with the unity, so we ignore
+        // the requirements no version compatible with the unity satisfies.
+        // If no version is compatible with the unity, we ignore nothing and use incompatible ones.
+        let is_unity_compatible = |package: &PackageInfo| {
+            unity_version.is_none_or(|unity| crate::unity_compatible(package.package_json(), unity))
+        };
+        let compatible = candidates
+            .iter()
+            .filter(|x| is_unity_compatible(x))
+            .collect::<Vec<_>>();
+        let satisfiable = |range: &VersionRange| {
+            compatible.is_empty()
+                || (compatible.iter())
+                    .any(|package| range.match_pre(package.version(), PrereleaseAcceptance::Allow))
+        };
+        let requirements = |ranges: Vec<&'a VersionRange>, allow_downgrade| {
+            let mut ranges = (ranges.into_iter())
+                .filter(|range| satisfiable(range))
+                .collect::<Vec<_>>();
+            // An empty list of ranges accepts prerelease versions regardless of the acceptance,
+            // so we use a range accepting any version instead.
+            if ranges.is_empty() {
+                ranges.push(VersionRange::any());
+            }
+            Requirements {
+                ranges,
+                allow_downgrade,
+            }
+        };
+
+        // The requirements we try to satisfy, from the most preferable one.
+        let allow_downgrade = requirer.allow_downgrade;
+        let requirements = [
+            // The requirements from all packages we know, not to make a conflict if possible.
+            requirements(self.requirements_for(dependency), allow_downgrade),
+            // Without the requirements the user is already ignoring.
+            requirements(
+                self.unignored_requirements_for(dependency, requirer.name),
+                allow_downgrade,
+            ),
+            // Only the requirement of the requirer.
+            // We allow downgrade here, but `add_dependency` keeps the installed version
+            // if the requirer doesn't allow downgrade.
+            requirements(vec![range], true),
+        ];
+
+        (candidates.into_iter())
+            .filter_map(|package| {
+                let version = package.version();
+                let is_downgrade = self.is_downgrade(dependency, version);
+                let accepts = |acceptances: &[PrereleaseAcceptance]| {
+                    (requirements.iter().enumerate()).find_map(|(index, requirements)| {
+                        Some((
+                            index,
+                            requirements.accepts(version, is_downgrade, acceptances)?,
+                        ))
+                    })
+                };
+                let (requirer_accepts, (requirements_index, prerelease_acceptance_index)) =
+                    match accepts(prerelease) {
+                        Some(accepted) => (true, accepted),
+                        None => (false, accepts(&[PrereleaseAcceptance::Allow])?),
+                    };
+
+                let preference = Preference {
+                    unity_compatible: is_unity_compatible(&package),
+                    requirer_accepts,
+                    requirements_index: Reverse(requirements_index),
+                    prerelease_acceptance_index: Reverse(prerelease_acceptance_index),
+                    selected: selected == Some(version),
+                    version,
+                };
+                Some((preference, package))
+            })
+            .max_by(|(a, _), (b, _)| a.cmp(b))
+            .map(|(_, package)| package)
+    }
+}
+
+/// The requirements we try to satisfy when we select the version of a dependency.
+struct Requirements<'r> {
+    ranges: Vec<&'r VersionRange>,
+    // Whether we accept the versions lower than the installed version.
+    allow_downgrade: bool,
+}
+
+impl Requirements<'_> {
+    /// Returns the index of the first of `acceptances` that accepts the version,
+    /// or None if the version doesn't satisfy the requirements.
+    fn accepts(
+        &self,
+        version: &Version,
+        is_downgrade: bool,
+        acceptances: &[PrereleaseAcceptance],
+    ) -> Option<usize> {
+        if is_downgrade && !self.allow_downgrade {
+            return None;
+        }
+        (acceptances.iter()).position(|&acceptance| {
+            (self.ranges.iter()).all(|range| range.match_pre(version, acceptance))
+        })
+    }
+}
+
+/// How preferable a version is as the dependency.
+///
+/// The fields are compared in the order, and we select the greatest one.
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+struct Preference<'v> {
+    // We prefer a conflict with other packages to a conflict with the unity.
+    unity_compatible: bool,
+    // Whether the requirer accepts the version, i.e. it's stable or an acceptable prerelease.
+    // We use a prerelease version the requirer doesn't accept only when it's the only way to
+    // use a version compatible with the unity, like VRChat SDK for Unity 6 (3.11.x-beta).
+    requirer_accepts: bool,
+    // The index of the first `Requirements` the version satisfies.
+    // Earlier ones contain more requirements, so we prefer smaller indices.
+    requirements_index: Reverse<usize>,
+    // The index of the first prerelease acceptance that accepts the version.
+    // The acceptances start with Deny unless the user allows prerelease,
+    // so we prefer stable versions in that case.
+    prerelease_acceptance_index: Reverse<usize>,
+    // We don't replace the version we selected without reason.
+    selected: bool,
+    // Finally, we prefer newer versions.
+    version: &'v Version,
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn collect_adding_packages<'a, 'env>(
     dependencies: impl Iterator<Item = (&'a str, &'a DependencyRange)>,
@@ -448,11 +964,28 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
     get_locked: impl Fn(&str) -> Option<LockedDependencyInfo<'a>>,
     unity_version: Option<UnityVersion>,
     env: &'env impl PackageCollection,
-    packages: Vec<PackageInfo<'env>>,
+    requests: Vec<Request<'env, 'a>>,
     allow_prerelease: bool,
+    remove_unused: bool,
     missing_dependencies: &mut MissingDependencies,
 ) -> PackageResolutionResult<'env> {
+    let mut packages = vec![];
+    let mut keep_locked = vec![];
+    let mut range_requests = vec![];
+    for request in requests {
+        match request {
+            Request::Package(package) => packages.push(package),
+            Request::KeepLocked(name) => keep_locked.push(name),
+            Request::Range {
+                name,
+                range,
+                prerelease,
+            } => range_requests.push((name, range, prerelease)),
+        }
+    }
+
     let mut context = ResolutionContext::<'env, '_>::new(allow_prerelease, packages);
+    context.requested.extend(keep_locked);
 
     // first, add dependencies
     let root_dependencies = dependencies
@@ -496,85 +1029,64 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
         }
     }
 
+    context.mark_ignored_requirements();
+
+    // Select the versions for the requests with ranges like dependencies of installing packages.
+    for (name, range, prerelease) in &range_requests {
+        let requirer = Requirer {
+            name: "",
+            prerelease,
+            allow_downgrade: false,
+        };
+        context.add_dependency(&requirer, name, range, env, unity_version);
+    }
+
+    // Replacing versions can cycle forever, so we give up after enough iterations.
+    // Each package is usually processed once or twice.
+    let mut iterations = 0;
     while let Some((x, force)) = context.pending_queue.next_package() {
+        iterations += 1;
+        if iterations > context.dependencies.len() * 5 {
+            log::warn!("package resolution did not settle; giving up");
+            break;
+        }
         log::debug!("processing package {} version {}", x.name(), x.version());
-        let name = x.name();
         let vpm_dependencies = &x.vpm_dependencies();
+        let requirer = Requirer {
+            name: x.name(),
+            prerelease: if x.version().is_pre() {
+                // if the package is prerelease, allow prerelease, but prefer stable
+                &[
+                    PrereleaseAcceptance::Deny,
+                    PrereleaseAcceptance::Minimum,
+                    PrereleaseAcceptance::Allow,
+                ]
+            } else {
+                // if the package is stable, prefer stable, and allow minimum
+                &[PrereleaseAcceptance::Deny, PrereleaseAcceptance::Minimum]
+            },
+            allow_downgrade: context.is_downgrade(x.name(), x.version()),
+        };
 
         if context.add_package(x, force) {
             // add new dependencies
             for (dependency, range) in vpm_dependencies.iter() {
-                log::debug!("processing package {name}: dependency {dependency} version {range}");
-
-                if context.should_add_package(dependency, range) {
-                    fn get_package<'env>(
-                        env: &'env impl PackageCollection,
-                        dependency: &str,
-                        unity_version: Option<UnityVersion>,
-                        range: &VersionRange,
-                        allow_prerelease: PrereleaseAcceptance,
-                    ) -> Option<PackageInfo<'env>> {
-                        env.find_package_by_name(
-                            dependency,
-                            VersionSelector::range_for(unity_version, range, allow_prerelease),
-                        )
-                    }
-
-                    struct PackageFinder<'env, 'a, C: PackageCollection> {
-                        dependency: &'a str,
-                        env: &'env C,
-                        range: &'env VersionRange,
-                    }
-
-                    impl<'env, C: PackageCollection> PackageFinder<'env, '_, C> {
-                        fn find(
-                            &self,
-                            unity_version: Option<UnityVersion>,
-                            allow_prerelease: PrereleaseAcceptance,
-                        ) -> Option<PackageInfo<'env>> {
-                            get_package(
-                                self.env,
-                                self.dependency,
-                                unity_version,
-                                self.range,
-                                allow_prerelease,
-                            )
-                        }
-                    }
-
-                    let finder = PackageFinder {
-                        dependency,
-                        env,
-                        range,
-                    };
-
-                    let found = if allow_prerelease {
-                        // prerelease is allowed, so we find the best match
-                        (finder.find(unity_version, PrereleaseAcceptance::Allow))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
-                    } else if x.version().is_pre() {
-                        // if the package is prerelease, allow prerelease, but prefer stable
-                        (finder.find(unity_version, PrereleaseAcceptance::Deny))
-                            .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Minimum))
-                            .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Allow))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Allow))
-                    } else {
-                        // if the package is stable, prefer stable, and allow minimum
-                        (finder.find(unity_version, PrereleaseAcceptance::Deny))
-                            .or_else(|| finder.find(unity_version, PrereleaseAcceptance::Minimum))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Deny))
-                            .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum))
-                    };
-
-                    if let Some(found) = found {
-                        context.pending_queue.add_pending_package(found);
-                    } else {
-                        missing_dependencies.add(dependency, range);
-                    }
-                }
+                context.add_dependency(&requirer, dependency, range, env, unity_version);
             }
+        }
+    }
+
+    context.remove_unnecessary_packages(&get_locked, env);
+    if remove_unused {
+        context.remove_unused_packages(&get_locked);
+    }
+
+    // Report only the missing dependencies of the packages we actually install.
+    for &(requirer, dependency, range) in &context.missing {
+        let installing = (context.dependencies.get(requirer))
+            .is_some_and(|info| info.using.is_some() && !info.is_legacy());
+        if requirer.is_empty() || installing {
+            missing_dependencies.add(dependency, range);
         }
     }
 

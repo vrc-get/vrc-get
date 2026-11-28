@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get-gui"
-version = "1.2.0-beta.1"
+version = "1.2.0-beta.3"
 description = "A fast open-source alternative of VRChat Creator Companion"
 
 homepage.workspace = true
@@ -33,7 +33,7 @@ arc-swap = "1"
 log = { version = "0.4", features = [ "std", "kv" ] }
 chrono = { version = "0.4", features = [ "serde" ] }
 ringbuffer = "0.16"
-tokio = { version = "1", features = ["process"] }
+tokio = { version = "1", features = ["process", "macros"] }
 tokio-util = "0.7"
 fs_extra = "1"
 indexmap = "2"
@@ -61,7 +61,7 @@ yoke = { version = "0.8", features = ["derive"] }
 atomicbox = "0.4"
 stable_deref_trait = "1"
 itertools = "0.15"
-sysinfo = "0.39.3"
+sysinfo = "0.40.3"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
@@ -83,7 +83,7 @@ wayland-client = "0.31"
 wayland-protocols-wlr = { version = "0.3", features = ["client"] }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31", features = ["fs", "mount"] }
+nix = { version = "0.32", features = ["fs", "mount"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

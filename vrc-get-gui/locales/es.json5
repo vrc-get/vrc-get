@@ -92,6 +92,7 @@
     "setup:steps card:SystemSetting": "Otros ajustes",
     "setup:system-setting:heading": "Configuraciones del sistema",
     "setup:system-setting:vcc scheme description": "Puedes usar ALCOM para el esquema vcc:// en lugar de VCC para instalar repositorios en tu PC. ALCOM y VCC compartirán la misma lista de repositorios, pero usar ALCOM te permitirá una instalación rápida sin abrir VCC.",
+    "setup:system-setting:vcc and alcom scheme description": "Puedes usar los protocolos vcc:// and alcom:// en ALCOM para instalar repositorios en tu sistema.",
     "setup:system-setting:macos bug message": "No hay nada que configurar en macOS. (Esta página no debería mostrarse, mostrar esta página es un error)",
     "setup:system-setting:hostname-with-non-ascii": "Tu nombre de host (Nombre del PC) contiene caracteres no ASCII. Esto puede causar problemas con Unity 2022.<br/>Se recomienda encarecidamente cambiar el nombre de tu PC a caracteres ASCII.",
 
@@ -199,15 +200,15 @@
     "projects:toast:project migrated": "El proyecto se migró con éxito.",
 
     "projects:dialog:backup header": "Copia de seguridad del proyecto",
-    "projects:dialog:creating backup...": "Creando una copia de seguridad...",
+    "projects:dialog:creating backup of...": "Creando una copia de seguridad de <b>{{name}}</b>...",
     "projects:dialog:proceed k/n": "Procesando {{count}}/{{total}} elementos",
     "projects:toast:backup canceled": "La copia de seguridad fue cancelada.",
-    "projects:toast:backup succeeded": "La copia de seguridad se creó con éxito.",
+    "projects:toast:backup succeeded with name": "La copia de seguridad para {{name}} se creó con éxito.",
 
     "projects:dialog:warn removing project": "Estás a punto de eliminar el proyecto <b>{{name}}</b>. ¿Estás seguro?",
     "projects:button:remove from list": "Eliminar de la lista",
     "projects:button:remove directory": "Eliminar el directorio",
-    "projects:dialog:removing...": "Eliminando el proyecto...",
+    "projects:dialog:removing project...": "Eliminando el proyecto <b>{{name}}</b>...",
     "projects:toast:project removed": "El proyecto se eliminó con éxito.",
 
     "projects:set project display name": "Asignar alias del proyecto",
@@ -236,8 +237,8 @@
     "projects:manage:suggest resolve": "Algunos paquetes requeridos para este proyecto no están instalados.<br>Se recomienda encarecidamente instalar los paquetes.",
     "projects:manage:button:resolve": "Instalar paquetes",
 
-    "projects:manage:suggest unity migration": "Tu proyecto está usando Unity 2019, que ya no es compatible con VRChat SDK. VRChat recomienda que migres tu proyecto a Unity 2022.",
-    "projects:manage:suggest unity patch migration": "Tu proyecto está usando una versión un poco más antigua de Unity 2022. VRChat recomienda que migres tu proyecto a una versión más reciente de Unity 2022.",
+    "projects:manage:suggest unity migration": "Tu proyecto está usando Unity {{currentUnity}}, que ya no es compatible con VRChat SDK. VRChat recomienda que migres tu proyecto a Unity {{targetUnity}}.",
+    "projects:manage:suggest unity patch migration": "Tu proyecto está usando una versión un poco más antigua de Unity {{unityMajor}}. VRChat recomienda que migres tu proyecto a una versión más reciente de Unity {{unityMajor}}.",
     "projects:manage:suggest unity china to international migration": "Tu proyecto está usando la versión China de Unity. Recomendamos usar la versión internacional de Unity para una mejor compatibilidad con VRChat.",
     "projects:manage:button:unity migrate": "Migrar proyecto",
 
@@ -316,11 +317,9 @@
 
     "projects:manage:dialog:unity migrate header": "Migración de Unity",
     "projects:dialog:migrate unity2022 patch description": "El proyecto se migrará a Unity {{unity}}.",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "No se pudo encontrar la versión recomendada exacta de Unity 2022 para la migración de parches.<br/>Por favor, instala Unity {{unity}} con Unity Hub y reinicia ALCOM.",
-    "projects:manage:dialog:unity migrate finalizing...": "Iniciando Unity 2022 en segundo plano para finalizar la migración...",
-    "projects:toast:unity migrate failed by unity not found": "Error al migrar el proyecto: Unity 2022 no encontrado",
-    "projects:toast:unity migration finalize failed by unity not found": "Error al finalizar la migración: Unity 2022 no encontrado",
-    "projects:toast:unity migrated": "El proyecto se migró a Unity 2022",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "No se pudo encontrar la versión recomendada exacta de Unity {{unityMajor}} para la migración de parches.<br/>Por favor, instala Unity {{unity}} con Unity Hub y reinicia ALCOM.",
+    "projects:manage:dialog:unity migrate finalizing...": "Iniciando Unity {{unityMajor}} en segundo plano para finalizar la migración...",
+    "projects:toast:unity migrated": "El proyecto se migró a Unity {{unityMajor}}",
 
     "projects:manage:dialog:confirm changes description": "Estás aplicando los siguientes cambios al proyecto.",
     "projects:manage:dialog:note breaking changes": "Hay cambios que pueden afectar la compatibilidad. <br/>Algunos assets, configuraciones o herramientas podrían no funcionar como se espera. Revisa la información de compatibilidad y procede con cuidado.<br/>Si encuentras algún problema después de la actualización, intenta revertir a la versión anterior del paquete.",
@@ -488,8 +487,15 @@
     "settings:toast:not unity": "El archivo seleccionado no es Unity.",
     "settings:toast:unity already added": "La instalación de Unity ya fue agregada.",
     "settings:toast:unity added": "Unity se agregó con éxito.",
-    "settings:use legacy unity hub loading": "Usar método antiguo de carga de Unity Hub",
-    "settings:use legacy unity hub loading description": "El método antiguo de carga de Unity Hub es más confiable para cargar la lista de Unity desde Unity Hub que el nuevo método actual, pero el método antiguo tomará más tiempo.<br/>El método antiguo se eliminará en el futuro, por lo que si hay algún problema con el nuevo método, informe al desarrollador en la sección a continuación.",
+    "settings:unity hub access method": "Método de carga por Unity Hub",
+    "settings:unity hub access method description": "Como ALCOM va a cargar la lista de instalaciones de Unity",
+    "settings:unity hub access method:read config": "Leer el archivo de ajustes de Unity Hub",
+    "settings:unity hub access method:call hub": "Abrir Unity Hub en segundo plano",
+    "settings:unity hub access method:call cli": "Abrir Unity CLI",
+    "settings:unity hub access method:warning:call hub": "El método antiguo de carga de Unity Hub es más confiable para cargar la lista de Unity desde Unity Hub que el nuevo método actual, pero el método antiguo tomará más tiempo.<br/>El método antiguo se eliminará en el futuro, por lo que si hay algún problema con el nuevo método, informe al desarrollador en la sección a continuación.",
+    "settings:unity hub access method:warning:call cli": "El método de carga por Unity CLI requiere de tener instalado el mismo en conjunto con Unity Hub, y este método puede ser removido en el futuro.<br/>Si usas este método por problemas leyendo el archivo de ajustes, por favor informe al desarrollador en al sección a continuación.",
+    "settings:unity cli path": "Ruta a Unity CLI",
+    "settings:unity cli not found": "Unity CLI no encontrado",
 
     "settings:default unity arguments": "Argumentos de línea de comandos predeterminados de Unity",
     "settings:default unity arguments description": "Esos argumentos de línea de comandos se utilizarán al abrir Unity desde ALCOM.",
@@ -577,8 +583,11 @@
 
     "settings:use alcom for vcc scheme": "Usar ALCOM para el esquema URL <code>vcc:</code>",
     "settings:use vcc scheme description": "El esquema URL <code>vcc:</code> se utiliza para abrir VCC y agregar un repositorio desde los navegadores web.<br>Como alternativa a VCC, puede usar ALCOM como una aplicación para agregar repositorios desde los navegadores web.<br>Si esto está habilitado, ALCOM registrará el manejador del esquema URL <code>vcc:</code> al iniciar.<br>Después de (re)instalar/actualizar VCC, debe reiniciar ALCOM o registrarlo manualmente con el botón de arriba para anular el registro de VCC.",
+    "settings:register vcc and alcom scheme handlers": "Registrar manejos de protocolos <code>vcc:</code> y <code>alcom:</code>",
+    "settings:register vcc and alcom scheme handlers description": "Los protocolos <code>vcc:</code> y <code>alcom:</code> son usados para agregar repositorios desde navegadores web.<br>Puedes usar ALCOM como programa para agregar repositorios desde tu navegador.<br>Si este ajuste está activado, ALCOM va a registrar y manejar dichos protocolos.",
     "settings:register vcc scheme now": "Registrar esquema URL ahora",
     "settings:toast:vcc scheme installed": "ALCOM se registró como el gestor del esquema URL <code>vcc:</code>.",
+    "settings:toast:vcc and alcom scheme installed": "ALCOM fue registrado como controlador para los protocolos <code>vcc:</code> and <code>alcom:</code>.",
 
     "settings:licenses": "Licencias",
     "settings:licenses description": "Haga clic <l>aquí</l> para ver las licencias de los proyectos utilizados en ALCOM.",

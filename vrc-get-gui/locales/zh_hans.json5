@@ -85,7 +85,8 @@
 
     "setup:steps card:SystemSetting": "系统配置",
     "setup:system-setting:heading": "系统配置",
-    "setup:system-setting:vcc scheme description": "您可以使 ALCOM 代替 VCC 来处理 <code>vcc://</code> 快捷方式，以将存储库安装到您的电脑上。ALCOM 和 VCC 将共享相同的存储库列表，但使用 ALCOM 可以让您在不打开 VCC 的情况下快速安装存储库。",
+    "setup:system-setting:vcc scheme description": "ALCOM 将代替 VCC 来处理 <code>vcc://</code> 快捷方式，以添加存储库到您的电脑上。ALCOM 和 VCC 将共享相同的存储库列表，但使用 ALCOM 可以让您在不打开 VCC 的情况下快速安装存储库。",
+    "setup:system-setting:vcc and alcom scheme description": "ALCOM 将同时处理 vcc:// 和 alcom:// 快捷方式，以添加存储库到您的电脑上。",
     "setup:system-setting:macos bug message": "在 macOS 上无需配置此功能。 (这个页面不应该被显示，显示此页面是一个错误)",
     "setup:system-setting:hostname-with-non-ascii": "您在设备名称中使用了非 ASCII 字符。<br/>这可能会导致 Unity 2022 出现问题。<br/>强烈建议您使用 ASCII 字符来命名设备。",
 
@@ -230,8 +231,8 @@
     "projects:manage:suggest resolve": "项目所需的某些软件包未安装。<br>强烈建议修复软件包缺失问题。",
     "projects:manage:button:resolve": "安装软件包",
 
-    "projects:manage:suggest unity migration": "您的项目使用的是 VRChat SDK 不再支持的 Unity 2019。VRChat 建议您将项目迁移到 Unity 2022。",
-    "projects:manage:suggest unity patch migration": "您的项目使用的是较旧版本的 Unity 2022。VRChat 建议您将项目迁移到较新版本的 Unity 2022。",
+    "projects:manage:suggest unity migration": "您的项目使用的是 VRChat SDK 不再支持的 Unity {{currentUnity}}。VRChat 建议您将项目迁移到 Unity {{targetUnity}}。",
+    "projects:manage:suggest unity patch migration": "您的项目使用的是较旧版本的 Unity {{unityMajor}}。VRChat 建议您将项目迁移到较新版本的 Unity {{unityMajor}}。",
     "projects:manage:suggest unity china to international migration": "您的项目使用的是中国版 Unity。我们建议您将项目迁移到国际版 Unity，以便更好地兼容 VRChat。",
     "projects:manage:button:unity migrate": "迁移项目",
 
@@ -311,9 +312,7 @@
     "projects:dialog:migrate unity2022 patch description": "项目将被迁移至 Unity {{unity}}。",
     "projects:manage:dialog:exact version unity not found for patch migration description": "我们无法找到正确的 Unity 版本用于修补迁移。请使用 Unity Hub 安装 Unity {{unity}}，然后重新启动 ALCOM。",
     "projects:manage:dialog:unity migrate finalizing...": "正在后台启动 Unity 以完成迁移...",
-    "projects:toast:unity migrate failed by unity not found": "迁移项目失败： 未找到 Unity 2022",
-    "projects:toast:unity migration finalize failed by unity not found": "未能完成迁移： 未找到 Unity 2022",
-    "projects:toast:unity migrated": "项目已迁移至 Unity 2022",
+    "projects:toast:unity migrated": "项目已迁移至 Unity {{unityMajor}}",
 
     "projects:manage:dialog:confirm changes description": "您正在对项目进行以下更改。",
     "projects:manage:dialog:note breaking changes": "部分软件包存在破坏性变更。<br/>项目中的资产、配置和工具可能不兼容。<br/>请查阅兼容性信息，谨慎升级。",
@@ -478,8 +477,15 @@
     "settings:toast:not unity": "所选文件不是有效的 Unity 可执行文件。",
     "settings:toast:unity already added": "所选的 Unity 版本已经添加过了。",
     "settings:toast:unity added": "添加 Unity 成功！",
-    "settings:use legacy unity hub loading": "使用旧版方法获取 Unity Hub",
-    "settings:use legacy unity hub loading description": "旧版方法会比目前默认的新方法更加可靠，但会花费更多时间。<br/>这将会在未来被移除，所以如果您遇到任何问题，请及时向开发者反馈。",
+    "settings:unity hub access method": "获取已安装的 Unity 的方式",
+    "settings:unity hub access method description": "决定 ALCOM 如何获取已安装 Unity。",
+    "settings:unity hub access method:read config": "从 Unity Hub 的配置文件获取",
+    "settings:unity hub access method:call hub": "在后台启动 Unity Hub 获取",
+    "settings:unity hub access method:call cli": "使用 Unity CLI 获取",
+    "settings:unity hub access method:warning:call hub": "启动 Unity Hub 需要一些时间。该方法会在未来被移除。<br/>如果您是因为“从 Unity Hub 的配置文件获取”方式不工作而使用该方式，请使用下方的“在 GitHub 上创建问题”按钮向开发者反馈。",
+    "settings:unity hub access method:warning:call cli": "使用 Unity CLI 获取需要同时安装 Unity CLI 和 Unity Hub。该方式可能会在未来被移除。<br/>如果您是因为“从 Unity Hub 的配置文件获取”方式不工作而使用该方式，请使用下方的“在 GitHub 上创建问题”按钮向开发者反馈。",
+    "settings:unity cli path": "Unity CLI 路径",
+    "settings:unity cli not found": "在您的电脑上找不到 Unity CLI",
 
     "settings:default unity arguments": "默认的 Untiy 命令行参数",
     "settings:default unity arguments description": "ALCOM 启动 Unity 时将使用这些命令行参数。",
@@ -565,10 +571,13 @@
     "check update:dialog:downloading...": "正在下载更新...",
     "check update:dialog:relaunching...": "正在重启 ALCOM...",
 
-    "settings:use alcom for vcc scheme": "使 ALCOM 关联 URL 快捷方式 <code>vcc://</code>",
-    "settings:use vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为 URL 快捷方式 <code>vcc://</code> 唤起的默认应用程序，以从浏览器快捷添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式。<code>vcc://</code><br>每当 VCC 安装/重装/更新时，您都需要重启 ALCOM 或通过手动点击设置界面的按钮来覆盖 VCC 的对 URL 快捷方式的注册。",
+    "settings:use alcom for vcc scheme": "使 ALCOM 处理 URL 快捷方式 <code>vcc://</code>",
+    "settings:use vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，您可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为处理 URL 快捷方式 <code>vcc://</code> 的默认应用程序，以快捷从浏览器添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式 <code>vcc://</code>。<br>每当 VCC 安装/重装/更新时，您都需要重启 ALCOM 或通过手动点击设置界面的按钮来覆盖 VCC 的对 URL 快捷方式的注册。",
+    "settings:register vcc and alcom scheme handlers": "使 ALCOM 处理 URL 快捷方式 <code>vcc:</code> 和 <code>alcom:</code>",
+    "settings:register vcc and alcom scheme handlers description": "通过 URL 快捷方式 <code>vcc:</code> 和 <code>alcom:</code> ，您可以从浏览器启动 ALCOM 来添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式 <code>vcc:</code> 和 <code>alcom:</code>。",
     "settings:register vcc scheme now": "立即注册 URL 快捷方式",
     "settings:toast:vcc scheme installed": "ALCOM 已被注册为 URL 快捷方式 <code>vcc://</code> 的默认启动程序。",
+    "settings:toast:vcc and alcom scheme installed": "ALCOM 已被注册为 URL 快捷方式 <code>vcc:</code> 和 <code>alcom:</code> 的默认启动程序。",
 
     "settings:licenses": "许可证",
     "settings:licenses description": "单击 <l>此处</l> 查看 ALCOM 中使用的相关组件的许可证",

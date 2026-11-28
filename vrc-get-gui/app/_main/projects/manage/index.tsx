@@ -66,7 +66,11 @@ import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
+import {
+	compareUnityVersionString,
+	parseUnityVersion,
+	unityMajorName,
+} from "@/lib/version";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
@@ -385,6 +389,14 @@ function MigrationCards({
 			detailsResult.unity_str,
 			unityVersionsResult.recommended_version,
 		) !== 0;
+	const isMigrationTo6000_0Recommended = detailsResult.unity[0] === 2022;
+	const is6000_0PatchMigrationRecommended =
+		detailsResult.unity[0] === 6000 &&
+		detailsResult.unity[1] === 0 &&
+		compareUnityVersionString(
+			detailsResult.unity_str,
+			unityVersionsResult.recommended_6000_0_version,
+		) !== 0;
 
 	const isChinaToInternationalMigrationRecommended =
 		parseUnityVersion(detailsResult.unity_str)?.chinaIncrement != null;
@@ -392,7 +404,9 @@ function MigrationCards({
 	return (
 		<>
 			{isMigrationTo2022Recommended && (
-				<SuggestMigrateTo2022Card
+				<SuggestMajorMigrationCard
+					currentUnity={unityMajorName(currentUnity)}
+					targetUnity={unityMajorName(unityVersionsResult.recommended_version)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
@@ -403,11 +417,41 @@ function MigrationCards({
 				/>
 			)}
 			{is2022PatchMigrationRecommended && (
-				<Suggest2022PatchMigrationCard
+				<SuggestPatchMigrationCard
+					unityMajor={unityMajorName(unityVersionsResult.recommended_version)}
 					disabled={isLoading}
 					onMigrateRequested={() =>
 						requestChangeUnityVersion(
 							unityVersionsResult.recommended_version,
+							true,
+						)
+					}
+				/>
+			)}
+			{isMigrationTo6000_0Recommended && (
+				<SuggestMajorMigrationCard
+					currentUnity={unityMajorName(currentUnity)}
+					targetUnity={unityMajorName(
+						unityVersionsResult.recommended_6000_0_version,
+					)}
+					disabled={isLoading}
+					onMigrateRequested={() =>
+						requestChangeUnityVersion(
+							unityVersionsResult.recommended_6000_0_version,
+							true,
+						)
+					}
+				/>
+			)}
+			{is6000_0PatchMigrationRecommended && (
+				<SuggestPatchMigrationCard
+					unityMajor={unityMajorName(
+						unityVersionsResult.recommended_6000_0_version,
+					)}
+					disabled={isLoading}
+					onMigrateRequested={() =>
+						requestChangeUnityVersion(
+							unityVersionsResult.recommended_6000_0_version,
 							true,
 						)
 					}
@@ -429,17 +473,24 @@ function MigrationCards({
 	);
 }
 
-function SuggestMigrateTo2022Card({
+function SuggestMajorMigrationCard({
+	currentUnity,
+	targetUnity,
 	disabled,
 	onMigrateRequested,
 }: {
+	currentUnity: string;
+	targetUnity: string;
 	disabled?: boolean;
 	onMigrateRequested: () => void;
 }) {
 	return (
 		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
-				{tc("projects:manage:suggest unity migration")}
+				{tc("projects:manage:suggest unity migration", {
+					currentUnity,
+					targetUnity,
+				})}
 			</p>
 			<div className={"grow shrink-0 w-2"} />
 			<Button
@@ -453,17 +504,19 @@ function SuggestMigrateTo2022Card({
 	);
 }
 
-function Suggest2022PatchMigrationCard({
+function SuggestPatchMigrationCard({
+	unityMajor,
 	disabled,
 	onMigrateRequested,
 }: {
+	unityMajor: string;
 	disabled?: boolean;
 	onMigrateRequested: () => void;
 }) {
 	return (
 		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
-				{tc("projects:manage:suggest unity patch migration")}
+				{tc("projects:manage:suggest unity patch migration", { unityMajor })}
 			</p>
 			<div className={"grow shrink-0 w-2"} />
 			<Button

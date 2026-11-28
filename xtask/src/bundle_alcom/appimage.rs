@@ -6,17 +6,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org.
  */
-
 use super::{BundleContext, create_tar_gz};
 use crate::bundle_alcom::linux::*;
 use crate::utils;
 use crate::utils::command::CommandExt;
 use crate::utils::rustc::rustc_host_triple;
 use crate::utils::{download_file_cached, make_executable, target_arch};
-use anyhow::{Context, Result};
-use std::fs;
+use anyhow::{Context, Result, bail};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
+use std::{fs, io};
 
 // appimage versions we currently used
 const APPIMAGETOOL_VERSION: &str = "1.9.1";
@@ -190,17 +190,9 @@ pub fn prepare_system_libraries(ctx: &BundleContext<'_>, appimage_root: &Path) -
         if metadata.is_symlink() {
             let link = fs::read_link(absolute).context("reading symlink")?;
             if link.is_absolute() {
-                panic!("absolute")
+                panic!("absolute symlink")
             }
-            cfg_select! {
-                unix => {
-                    std::os::unix::fs::symlink(link, appimage_root.join(path))
-                        .with_context(|| format!("copying {path}"))?;
-                }
-                _ => {
-                    panic!("symlink is not available");
-                }
-            }
+            symlink(link, appimage_root.join(path)).with_context(|| format!("copying {path}"))?;
         } else if metadata.is_dir() {
             match fs::create_dir(appimage_root.join(path)) {
                 Err(ref e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
@@ -226,6 +218,15 @@ pub fn prepare_system_libraries(ctx: &BundleContext<'_>, appimage_root: &Path) -
         .context("removing enchant gstreamer helper")?;
     fs::remove_dir_all(appimage_root.join("usr/share/lintian"))
         .context("removing enchant gstreamer helper")?;
+
+    prepare_fallback_libraries(
+        ctx,
+        appimage_root,
+        sysroot,
+        &required_packages,
+        &system_packages,
+    )
+    .context("copying fallback libraries")?;
 
     // replace '/usr/lib' with '././/lib' for webkit and enchant.
     // Those libraries do not support relocation through env variable so we replace with
@@ -255,6 +256,167 @@ pub fn install_icons(ctx: &BundleContext<'_>, icons_base: &Path) -> Result<()> {
         .with_context(|| format!("copying icon {size}.png"))?;
     }
     Ok(())
+}
+
+/// Libraries that are normally provided by the system and should not be provided by the AppImage
+/// for other system libraries compatibility, but are missing entirely on some distributions.
+/// Each one is copied into its own `usr/lib/<triple>fallback/<package>` directory,
+/// which AppRun adds to `LD_LIBRARY_PATH` only when the host does not provide it (tested with `LD_TRACE_LOADED_OBJECTS`).
+///
+/// These must NOT be bundled the usual way: `LD_LIBRARY_PATH` is searched before the
+/// system's `ld.so` cache, so a normally bundled copy would shadow the host's library on
+/// every distribution that does have it. That is the same failure mode as #2596, where the
+/// bundled wayland-client conflicted with the host's EGL/NVIDIA stack.
+static FALLBACK_LIBRARIES: &[&str] = &[
+    // systemd-less distributions (Void Linux, Artix, Devuan, ...) have no libsystemd.so.0,
+    // which our bundled libdbus-1, libwebkit2gtk-4.1 and libjavascriptcoregtk-4.1 link.
+    // libsystemd.so.0 APIs used by them are not harmful without systemd running.
+    "libsystemd0",
+];
+
+fn prepare_fallback_libraries(
+    ctx: &BundleContext<'_>,
+    appimage_root: &Path,
+    sysroot: &Path,
+    bundled_packages: &[String],
+    system_packages: &HashSet<String>,
+) -> Result<()> {
+    for library in FALLBACK_LIBRARIES {
+        prepare_fallback_library(
+            ctx,
+            appimage_root,
+            sysroot,
+            library,
+            bundled_packages,
+            system_packages,
+        )
+        .with_context(|| format!("copying fallback library {library}"))?;
+    }
+    Ok(())
+}
+
+fn prepare_fallback_library(
+    ctx: &BundleContext<'_>,
+    appimage_root: &Path,
+    sysroot: &Path,
+    library: &str,
+    bundled_packages: &[String],
+    system_packages: &HashSet<String>,
+) -> Result<()> {
+    // the fallback library is a system library, so it has to be excluded from the system
+    // package set for the dependency walk to consider it at all.
+    let mut lookup_packages = system_packages.clone();
+    lookup_packages.remove(library);
+
+    let packages = list_deps::collect_dependency_packages([library.to_owned()], &lookup_packages)
+        .context("resolving dependencies of fallback library")?;
+
+    let packages = (packages.into_iter())
+        .filter(|package| !bundled_packages.contains(package))
+        .collect::<Vec<_>>();
+
+    if packages.len() != 1 || packages[0] != library {
+        bail!("fallback library {library} has more than one dependency. {packages:?}");
+    }
+
+    println!("Bundling {library} as a fallback, which includes");
+
+    let files = list_deps::collect_files_to_bundle(&packages)?;
+
+    let debian_triple = ctx.debian_triple();
+
+    let fallback_image_dir = format!("usr/lib/{debian_triple}/fallback/{library}");
+    let original_library_dir = format!("usr/lib/{debian_triple}");
+    let allowed_prefixes = [
+        // binaries
+        &original_library_dir,
+        // bundle documents
+        "usr/share/doc",
+    ];
+
+    fs::create_dir_all(appimage_root.join(&fallback_image_dir))
+        .context("creating fallback directory")?;
+
+    for original_path in &files {
+        let absolute = sysroot.join(original_path);
+        let metadata = absolute
+            .symlink_metadata()
+            .context("reading symlink metadata")?;
+
+        struct PathMapInfo<'a> {
+            suffix: &'a Path,
+            mapped_path: String,
+        }
+
+        let original_as_path = Path::new(original_path);
+
+        let map_info = if let Ok(suffix) = original_as_path.strip_prefix(&original_library_dir) {
+            Some(PathMapInfo {
+                suffix,
+                mapped_path: format!(
+                    "{fallback_image_dir}/{suffix}",
+                    suffix = suffix.to_str().unwrap()
+                ),
+            })
+        } else if allowed_prefixes.iter().any(|prefix| {
+            original_as_path.starts_with(prefix) || Path::new(prefix).starts_with(original_as_path)
+        }) {
+            None
+        } else {
+            bail!("Disallowed path: {}", original_path)
+        };
+        let appimage_path = map_info.as_ref().map_or(original_path, |x| &x.mapped_path);
+
+        if appimage_path != original_path {
+            println!("  {original_path} -> {appimage_path}");
+        } else {
+            println!("  {original_path}");
+        }
+
+        if metadata.is_symlink() {
+            // flatten the link target too, everything lives in one directory now
+            let mut link = fs::read_link(&absolute).context("reading symlink")?;
+            if link.is_absolute() {
+                panic!("absolute symlink")
+            }
+            if let Some(map_info) = &map_info {
+                let suffix_components = map_info.suffix.components().count();
+                let link_parent_count = link
+                    .components()
+                    .filter(|x| matches!(x, std::path::Component::ParentDir))
+                    .count();
+                if link_parent_count >= suffix_components {
+                    // add '../' component
+                    link = PathBuf::from("../..").join(link);
+                }
+            }
+            symlink(link, appimage_root.join(appimage_path))
+                .with_context(|| format!("copying {original_path}"))?;
+        } else if metadata.is_dir() {
+            match fs::create_dir(appimage_root.join(appimage_path)) {
+                Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => Ok(()),
+                e => e,
+            }
+            .with_context(|| format!("copying {original_path}"))?;
+        } else {
+            fs::copy(&absolute, appimage_root.join(appimage_path))
+                .with_context(|| format!("copying {original_path}"))?;
+        }
+    }
+
+    Ok(())
+}
+
+#[inline]
+fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
+    cfg_select! {
+        unix => {
+            std::os::unix::fs::symlink(original, link)
+        }
+        _ => {
+            panic!("symlink is not available");
+        }
+    }
 }
 
 /// Ensures `appimagetool` is available in the target cache directory.
@@ -356,6 +518,7 @@ mod list_deps {
         "libnghttp2-14",
         "libpsl5",
         "libsqlite3-0",
+        // For systemd-less distributions compatibility, we additionally ship a copy of libsystemd.so.0 as fallback. see FALLBACK_LIBRARIES above
         "libsystemd0",
         "libtasn1-6",
         "libwayland-client0",
@@ -366,6 +529,8 @@ mod list_deps {
         // include libwoff1
         // include libxslt1.1
         "libgdk-pixbuf-2.0-0",
+        "liblz4-1",
+        "libzstd1",
     ];
 
     fn is_ignored_dep(dependant: &str, dependency: &str) -> bool {

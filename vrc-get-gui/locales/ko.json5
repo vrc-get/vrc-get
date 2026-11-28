@@ -235,8 +235,8 @@
     "projects:manage:suggest resolve": "이 프로젝트에 필요한 일부 패키지가 설치되어 있지 않습니다. 누락된 패키지를 설치할 것을 강력히 권장합니다.",
     "projects:manage:button:resolve": "패키지 설치",
 
-    "projects:manage:suggest unity migration": "이 프로젝트는 VRChat SDK가 더 이상 지원하지 않는 Unity 2019 버전을 사용하고 있습니다. VRChat은 프로젝트를 Unity 2022 버전으로 마이그레이션할 것을 권장합니다.",
-    "projects:manage:suggest unity patch migration": "이 프로젝트는 다소 오래된 Unity 2022 버전을 사용하고 있습니다. VRChat은 더 최신 Unity 2022 버전으로 마이그레이션할 것을 권장합니다.",
+    "projects:manage:suggest unity migration": "이 프로젝트는 VRChat SDK가 더 이상 지원하지 않는 Unity {{currentUnity}} 버전을 사용하고 있습니다. VRChat은 프로젝트를 Unity {{targetUnity}} 버전으로 마이그레이션할 것을 권장합니다.",
+    "projects:manage:suggest unity patch migration": "이 프로젝트는 다소 오래된 Unity {{unityMajor}} 버전을 사용하고 있습니다. VRChat은 더 최신 Unity {{unityMajor}} 버전으로 마이그레이션할 것을 권장합니다.",
     "projects:manage:suggest unity china to international migration": "이 프로젝트는 중국 버전 Unity를 사용하고 있습니다. VRChat과의 호환성을 위해 국제 버전 Unity를 사용할 것을 권장합니다.",
     "projects:manage:button:unity migrate": "프로젝트 마이그레이션",
 
@@ -316,11 +316,9 @@
 
     "projects:manage:dialog:unity migrate header": "Unity 버전 마이그레이션",
     "projects:dialog:migrate unity2022 patch description": "프로젝트를 Unity {{unity}} 버전으로 마이그레이션합니다.",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "마이그레이션에 권장되는 정확한 Unity 2022 버전을 찾을 수 없습니다.<br>Unity Hub에서 Unity {{unity}} 버전을 설치한 후 ALCOM을 다시 시작해 주세요.",
-    "projects:manage:dialog:unity migrate finalizing...": "Unity 2022 버전을 백그라운드에서 실행하여 마이그레이션을 마무리하는 중입니다...",
-    "projects:toast:unity migrate failed by unity not found": "프로젝트 마이그레이션에 실패했습니다: Unity 2022 버전을 찾을 수 없습니다.",
-    "projects:toast:unity migration finalize failed by unity not found": "마이그레이션을 완료하지 못했습니다: Unity 2022 버전을 찾을 수 없습니다.",
-    "projects:toast:unity migrated": "프로젝트를 Unity 2022 버전으로 마이그레이션했습니다.",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "마이그레이션에 권장되는 정확한 Unity {{unityMajor}} 버전을 찾을 수 없습니다.<br>Unity Hub에서 Unity {{unity}} 버전을 설치한 후 ALCOM을 다시 시작해 주세요.",
+    "projects:manage:dialog:unity migrate finalizing...": "Unity {{unityMajor}} 버전을 백그라운드에서 실행하여 마이그레이션을 마무리하는 중입니다...",
+    "projects:toast:unity migrated": "프로젝트를 Unity {{unityMajor}} 버전으로 마이그레이션했습니다.",
 
     "projects:manage:dialog:confirm changes description": "이 프로젝트에 다음 변경 사항을 적용하려고 합니다.",
     "projects:manage:dialog:note breaking changes": "호환성에 영향을 줄 수 있는 변경 사항이 포함되어 있습니다.<br>일부 에셋, 설정 또는 도구가 예상대로 작동하지 않을 수 있습니다.<br>호환성 정보를 확인하고 주의해서 업데이트해 주세요.<br>업데이트 후 문제가 발생하면 이전 패키지 버전으로 되돌려 보세요.",

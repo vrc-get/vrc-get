@@ -7,7 +7,7 @@
  * file, You can obtain one at http://mozilla.org.
  */
 
-use crate::unity_project::package_resolution::MissingDependencies;
+use crate::unity_project::package_resolution::{MissingDependencies, Request};
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::unity_project::{PendingProjectChanges, package_resolution};
@@ -292,22 +292,42 @@ impl UnityProject {
 
         debug!("Resolving dependencies");
 
+        // The user selected the locked version of these packages, so we keep the version
+        // as we do for the packages we install.
+        let keep_locked = (packages.iter())
+            .filter(|request| (adding_packages.iter()).all(|x| x.name() != request.name()))
+            .filter(|request| {
+                (self.manifest.get_locked(request.name()))
+                    .is_some_and(|locked| locked.version() == request.version())
+            })
+            .map(|request| Request::KeepLocked(request.name()))
+            .collect::<Vec<_>>();
+
         let mut missing_dependencies = MissingDependencies::new();
         let result = package_resolution::collect_adding_packages(
-            self.manifest.dependencies().map(|(name, original_range)| {
-                if let Some(new_range) = changes.get_dependencies(name) {
-                    (name, new_range)
-                } else {
-                    (name, original_range)
-                }
-            }),
+            (self.manifest.dependencies())
+                .map(|(name, original_range)| {
+                    if let Some(new_range) = changes.get_dependencies(name) {
+                        (name, new_range)
+                    } else {
+                        (name, original_range)
+                    }
+                })
+                .chain(
+                    (changes.adding_dependencies())
+                        .filter(|(name, _)| self.manifest.get_dependency(name).is_none()),
+                ),
             self.manifest.all_locked(),
             self.unlocked_packages.iter(),
             |pkg| self.manifest.get_locked(pkg),
             Some(self.unity_version()),
             env,
-            adding_packages,
+            (adding_packages.into_iter())
+                .map(Request::Package)
+                .chain(keep_locked)
+                .collect(),
             allow_prerelease,
+            true,
             &mut missing_dependencies,
         );
         if !missing_dependencies.is_empty() {
@@ -345,6 +365,11 @@ impl UnityProject {
         {
             debug!("removing legacy package {name}");
             changes.remove(name, RemoveReason::Legacy);
+        }
+
+        for name in result.unused_packages {
+            debug!("removing unused package {name}");
+            changes.remove(name, RemoveReason::Unused);
         }
 
         debug!("Building changes (finding legacy assets, checking conflicts)");

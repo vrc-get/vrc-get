@@ -86,6 +86,7 @@
     "setup:steps card:SystemSetting": "システム設定",
     "setup:system-setting:heading": "システム設定",
     "setup:system-setting:vcc scheme description": "<code>vcc:</code>から始まるURLは、ブラウザからVCCを起動してVPMリポジトリを追加するためのリンクです。<br>ALCOMとVCCはリポジトリ一覧を共有していますが、ALCOMを <code>vcc:</code> URLと紐付けることで、ブラウザからALCOMを起動してVPMリポジトリを追加することができるようになります。",
+    "setup:system-setting:vcc and alcom scheme description": "<code>vcc:</code>や <code>alcom:</code>から始まるURLは、ブラウザからVPMリポジトリを追加するためのリンクです。<br>ALCOMをこれらのURLと紐付けることで、ブラウザからALCOMを起動してVPMリポジトリを追加することができるようになります。",
     "setup:system-setting:macos bug message": "macOS向けの設定項目は特にありません。<br>(このページは表示されないはずなので、表示されている場合はバグです)",
     "setup:system-setting:hostname-with-non-ascii": "PC名(ホスト名)に非ASCII文字(半角英数字や半角記号等ではない文字)が使用されています。<br>これはUnityで問題を引き起こす場合があります。<br>半角英数字のPC名(ホスト名)に変更することを強くお勧めします。",
 
@@ -230,8 +231,8 @@
     "projects:manage:suggest resolve": "このプロジェクトに必要なパッケージの一部がインストールされていません。不足しているパッケージをインストールすることを強くお勧めします。",
     "projects:manage:button:resolve": "パッケージをインストール",
 
-    "projects:manage:suggest unity migration": "このプロジェクトは、VRChat SDKによるサポートが終了したUnity 2019を使用しています。VRChatはUnity 2022に移行することを推奨しています。",
-    "projects:manage:suggest unity patch migration": "このプロジェクトは少し古いバージョンのUnity 2022を使用しています。VRChatはより新しいバージョンのUnity 2022に移行することを推奨しています。",
+    "projects:manage:suggest unity migration": "このプロジェクトは、VRChat SDKによるサポートが終了したUnity {{currentUnity}}を使用しています。VRChatはUnity {{targetUnity}}に移行することを推奨しています。",
+    "projects:manage:suggest unity patch migration": "このプロジェクトは少し古いバージョンのUnity {{unityMajor}}を使用しています。VRChatはより新しいバージョンのUnity {{unityMajor}}に移行することを推奨しています。",
     "projects:manage:suggest unity china to international migration": "このプロジェクトは中国版Unityを使用しています。VRChatとの互換性のために、通常版Unityを使用することを推奨します。",
     "projects:manage:button:unity migrate": "プロジェクトを移行",
 
@@ -310,11 +311,9 @@
 
     "projects:manage:dialog:unity migrate header": "Unityバージョンを移行",
     "projects:dialog:migrate unity2022 patch description": "プロジェクトをUnity {{unity}}に移行します。",
-    "projects:manage:dialog:exact version unity not found for patch migration description": "推奨バージョンに一致するUnity 2022が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
-    "projects:manage:dialog:unity migrate finalizing...": "Unity 2022をバックグラウンドで起動し、移行の完了処理を行っています...",
-    "projects:toast:unity migrate failed by unity not found": "プロジェクト移行に失敗しました: Unity 2022がありません",
-    "projects:toast:unity migration finalize failed by unity not found": "プロジェクト移行の完了処理を行えませんでした: Unity 2022がありません",
-    "projects:toast:unity migrated": "プロジェクトをUnity 2022に移行しました。",
+    "projects:manage:dialog:exact version unity not found for patch migration description": "推奨バージョンに一致するUnity {{unityMajor}}が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
+    "projects:manage:dialog:unity migrate finalizing...": "Unity {{unityMajor}}をバックグラウンドで起動し、移行の完了処理を行っています...",
+    "projects:toast:unity migrated": "プロジェクトをUnity {{unityMajor}}に移行しました。",
 
     "projects:manage:dialog:confirm changes description": "このプロジェクトに以下の変更を加えようとしています。",
     "projects:manage:dialog:note breaking changes": "互換性に影響を与える変更が含まれています。<br>アセットや設定、その他のツールなどの動作が変化する可能性があるため、更新の際は、当該パッケージの互換性に関する情報にご注意ください。<br>更新後に何らかの問題が発生した場合は、パッケージのバージョンを元に戻してみてください。",
@@ -477,8 +476,15 @@
     "settings:toast:not unity": "選択されたファイルはUnityではありません。",
     "settings:toast:unity already added": "選択されたUnityは既に登録されています。",
     "settings:toast:unity added": "選択されたUnityを登録しました。",
-    "settings:use legacy unity hub loading": "Unity Hubを使用して読み込む(廃止予定)",
-    "settings:use legacy unity hub loading description": "Unity Hubを使用したUnityリストの読み込みは、信頼性は高いですが処理に時間が掛かります。<br>この手法は近いうちに廃止される予定のため、新しい手法で何か問題が発生した場合は、ALCOM開発チームにご報告ください。",
+    "settings:unity hub access method": "Unityリストの取得方法",
+    "settings:unity hub access method description": "",
+    "settings:unity hub access method:read config": "Unity Hubの設定ファイルを読み込む",
+    "settings:unity hub access method:call hub": "Unity Hubをバックグラウンドで起動する",
+    "settings:unity hub access method:call cli": "Unity CLIを呼び出す",
+    "settings:unity hub access method:warning:call hub": "Unity Hubを起動してのUnityリストの取得は、処理に時間が掛かります。この手法は将来的に廃止される予定です。<br>Unity Hubの設定ファイルを読み込む手法で問題が発生している場合は、ALCOM開発チームにご報告ください。",
+    "settings:unity hub access method:warning:call cli": "Unity CLIを呼び出す手法は、Unity Hubに加えてUnity CLIのインストールが必要です。この手法は将来的に削除される可能性があります。<br>Unity Hubの設定ファイルを読み込む手法で問題が発生している場合は、ALCOM開発チームにご報告ください。",
+    "settings:unity cli path": "Unity CLIの場所",
+    "settings:unity cli not found": "Unity CLIが見つかりません",
 
     "settings:default unity arguments": "デフォルトのUnityコマンドライン引数",
     "settings:default unity arguments description": "これらのコマンドライン引数は、ALCOMからUnityを起動する際に使用されます。",
@@ -570,8 +576,11 @@
 
     "settings:use alcom for vcc scheme": "ALCOMと <code>vcc:</code> URLを紐付ける",
     "settings:use vcc scheme description": "<code>vcc:</code>から始まるURLは、ブラウザからVCCを起動してVPMリポジトリを追加するためのリンクです。<br>ALCOMとVCCはリポジトリ一覧を共有していますが、ALCOMを <code>vcc:</code> URLと紐付けることで、ブラウザからALCOMを起動してVPMリポジトリを追加することができるようになります。<br>この設定を有効にすると、ALCOMの起動時に紐付けが行われるようになりますが、VCCを(再)インストールしたりアップデートしたりした場合は、ALCOMを再起動するか「今すぐ紐付ける」ボタンを押してVCCによる紐付けを上書きする必要があります。",
+    "settings:register vcc and alcom scheme handlers": "ALCOMと <code>vcc:</code> / <code>alcom:</code> URLを紐付ける",
+    "settings:register vcc and alcom scheme handlers description": "<code>vcc:</code>や<code>alcom:</code>から始まるURLは、ブラウザからVPMリポジトリを追加するためのリンクです。<br>この設定を有効にすると、ALCOMの起動時にこれらのURLとの紐付けが行われ、ブラウザからALCOMを起動してVPMリポジトリを追加することができるようになります。",
     "settings:register vcc scheme now": "今すぐ紐付ける",
     "settings:toast:vcc scheme installed": "ALCOMと <code>vcc:</code> URLを紐付けました。",
+    "settings:toast:vcc and alcom scheme installed": "ALCOMと <code>vcc:</code> / <code>alcom:</code> URLを紐付けました。",
 
     "settings:licenses": "ライセンス",
     "settings:licenses description": "ALCOMで利用しているプロジェクトのライセンスを表示するには、<l>ここをクリック</l>",
