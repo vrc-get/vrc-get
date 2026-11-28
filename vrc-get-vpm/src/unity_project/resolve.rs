@@ -229,14 +229,22 @@ impl UnityProject {
         changes: &mut pending_project_changes::Builder<'env>,
         missing_dependencies: &mut MissingDependencies,
     ) -> Result<(), ResolvePackageErr> {
-        if self.unlocked_packages().is_empty() {
+        // The unlocked packages we are installing to locked will be replaced, so we ignore them.
+        let unlocked_packages = (self.unlocked_packages.iter())
+            .filter(|(dir, unlocked)| {
+                changes.get_installing(dir).is_none()
+                    && !(unlocked.as_ref())
+                        .is_some_and(|x| changes.get_installing(x.name()).is_some())
+            })
+            .collect::<Vec<_>>();
+
+        if unlocked_packages.is_empty() {
             // if there are no unlocked packages, early return
             return Ok(());
         }
 
         // set of packages already installed as unlocked
-        let unlocked_names: HashSet<_> = self
-            .unlocked_packages()
+        let unlocked_names: HashSet<_> = unlocked_packages
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .map(|x| x.name())
@@ -248,8 +256,7 @@ impl UnityProject {
         }
 
         // then, process dependencies of unlocked packages.
-        let dependencies_of_unlocked_packages = self
-            .unlocked_packages
+        let dependencies_of_unlocked_packages = unlocked_packages
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .flat_map(|pkg| {
@@ -305,12 +312,19 @@ impl UnityProject {
                     },
                 }
             })
+            // We don't replace the versions we selected for the dependencies, so the results
+            // of them are kept valid. Other requirements for them are reported as conflicts.
+            .chain(
+                changes
+                    .get_all_installing()
+                    .map(|x| Request::KeepLocked(x.name())),
+            )
             .collect::<Vec<_>>();
 
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
             virtual_locked_dependencies.values().cloned(),
-            self.unlocked_packages.iter(),
+            unlocked_packages.iter().copied(),
             |pkg| virtual_locked_dependencies.get(pkg).cloned(),
             Some(self.unity_version()),
             env,
