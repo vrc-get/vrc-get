@@ -54,17 +54,23 @@ struct PackageSpec {
     new_unity: bool,
 }
 
+/// The repository and the project.
 #[derive(Debug, Clone)]
-struct Case {
+struct Setup {
     // Sorted from newer to older since the collection for tests returns the first match.
     packages: Vec<PackageSpec>,
     // (name, version, in dependencies)
-    installed: Vec<(usize, usize, bool)>,
+    project: Vec<(usize, usize, bool)>,
+}
+
+#[derive(Debug, Clone)]
+struct Case {
+    setup: Setup,
     // (name, version)
     requests: Vec<(usize, usize)>,
 }
 
-fn case() -> impl Strategy<Value = Case> {
+fn setup() -> impl Strategy<Value = Setup> {
     // Most versions exist and depend on most other packages, so versions are often replaced,
     // which is where the resolution gets complicated.
     let version = (
@@ -75,9 +81,8 @@ fn case() -> impl Strategy<Value = Case> {
     (
         prop::collection::vec(version, NAMES.len() * VERSIONS.len()),
         prop::collection::vec((any::<prop::sample::Index>(), any::<bool>()), 0..=3),
-        prop::collection::vec(any::<prop::sample::Index>(), 1..=2),
     )
-        .prop_filter_map("no packages", |(versions, installed, requests)| {
+        .prop_filter_map("no packages", |(versions, project)| {
             let packages = (versions.into_iter().enumerate())
                 .filter(|(_, (exists, _, _))| *exists)
                 .map(|(index, (_, dependencies, new_unity))| {
@@ -99,31 +104,81 @@ fn case() -> impl Strategy<Value = Case> {
                 return None;
             }
 
-            let get = |index: prop::sample::Index| {
-                let package = index.get(&packages);
-                (package.name, package.version)
+            let mut setup = Setup {
+                packages,
+                project: vec![],
             };
 
-            // only existing versions can be installed or requested, one version for each package
-            let mut installed = (installed.into_iter())
+            // only existing versions can be installed, one version for each package
+            let mut project = (project.into_iter())
                 .map(|(index, in_dependencies)| {
-                    let (name, version) = get(index);
+                    let (name, version) = setup.get(index);
                     (name, version, in_dependencies)
                 })
                 .collect::<Vec<_>>();
-            installed.sort_by_key(|x| x.0);
-            installed.dedup_by_key(|x| x.0);
+            project.sort_by_key(|x| x.0);
+            project.dedup_by_key(|x| x.0);
+            setup.project = project;
 
-            let mut requests = requests.into_iter().map(get).collect::<Vec<_>>();
+            Some(setup)
+        })
+}
+
+fn case() -> impl Strategy<Value = Case> {
+    (
+        setup(),
+        prop::collection::vec(any::<prop::sample::Index>(), 1..=2),
+    )
+        .prop_map(|(setup, requests)| {
+            // only existing versions can be requested, one version for each package
+            let mut requests = (requests.into_iter())
+                .map(|index| setup.get(index))
+                .collect::<Vec<_>>();
             requests.sort_by_key(|x| x.0);
             requests.dedup_by_key(|x| x.0);
 
-            Some(Case {
-                packages,
-                installed,
-                requests,
-            })
+            Case { setup, requests }
         })
+}
+
+impl Setup {
+    /// Returns the name and the version of a package in the repository.
+    fn get(&self, index: prop::sample::Index) -> (usize, usize) {
+        let package = index.get(&self.packages);
+        (package.name, package.version)
+    }
+
+    fn spec(&self, name: usize, version: &Version) -> &PackageSpec {
+        (self.packages.iter())
+            .find(|x| x.name == name && &self::version(x.version) == version)
+            .unwrap()
+    }
+
+    fn collection(&self) -> PackageCollection {
+        let mut collection = PackageCollectionBuilder::new();
+        for spec in &self.packages {
+            collection = collection.add(manifest(spec));
+        }
+        collection.build()
+    }
+
+    fn project(&self, collection: &PackageCollection) -> VirtualProjectBuilder {
+        let mut project = VirtualProjectBuilder::new();
+        for &(name, version_index, in_dependencies) in &self.project {
+            let package = collection.get_package(NAMES[name], version(version_index));
+            let dependencies = (package.vpm_dependencies().iter())
+                .map(|(name, range)| (name.as_ref(), range.to_string()))
+                .collect::<Vec<_>>();
+            let dependencies = (dependencies.iter())
+                .map(|(name, range)| (*name, range.as_str()))
+                .collect::<Vec<_>>();
+            project.add_locked(NAMES[name], version(version_index), &dependencies);
+            if in_dependencies {
+                project.add_dependency(NAMES[name], version(version_index));
+            }
+        }
+        project
+    }
 }
 
 fn manifest(spec: &PackageSpec) -> PackageManifest {
@@ -145,13 +200,13 @@ fn version(index: usize) -> Version {
     VERSIONS[index].parse().unwrap()
 }
 
-/// Runs the resolution for the case, and checks the result.
+/// Runs the resolution and checks the result.
 ///
 /// The resolution runs on another thread to fail instead of hanging if it never terminates.
-fn run(case: Case) -> Result<(), TestCaseError> {
+fn run(check: impl FnOnce() -> Result<(), String> + Send + 'static) -> Result<(), TestCaseError> {
     let (sender, receiver) = mpsc::channel();
     std::thread::spawn(move || {
-        let result = check(&case);
+        let result = check();
         sender.send(result).ok();
     });
     match receiver.recv_timeout(TIMEOUT) {
@@ -165,27 +220,9 @@ fn run(case: Case) -> Result<(), TestCaseError> {
     }
 }
 
-fn check(case: &Case) -> Result<(), String> {
-    let mut collection = PackageCollectionBuilder::new();
-    for spec in &case.packages {
-        collection = collection.add(manifest(spec));
-    }
-    let collection = collection.build();
-
-    let mut project = VirtualProjectBuilder::new();
-    for &(name, version_index, in_dependencies) in &case.installed {
-        let package = collection.get_package(NAMES[name], version(version_index));
-        let dependencies = (package.vpm_dependencies().iter())
-            .map(|(name, range)| (name.as_ref(), range.to_string()))
-            .collect::<Vec<_>>();
-        let dependencies = (dependencies.iter())
-            .map(|(name, range)| (*name, range.as_str()))
-            .collect::<Vec<_>>();
-        project.add_locked(NAMES[name], version(version_index), &dependencies);
-        if in_dependencies {
-            project.add_dependency(NAMES[name], version(version_index));
-        }
-    }
+fn check_add_package_request(case: &Case) -> Result<(), String> {
+    let collection = case.setup.collection();
+    let project = case.setup.project(&collection);
 
     let requests = (case.requests.iter())
         .map(|&(name, version_index)| collection.get_package(NAMES[name], version(version_index)))
@@ -219,46 +256,13 @@ fn check_result(
     requests: &[PackageInfo],
     result: &PendingProjectChanges,
 ) -> Result<(), String> {
-    let describe = || describe_changes(result);
-
-    // The packages installed after applying the changes.
-    let mut installed = HashMap::<&str, Version>::new();
-    for &(name, version_index, _) in &case.installed {
-        installed.insert(NAMES[name], version(version_index));
-    }
-    for (name, change) in result.package_changes() {
-        if let Some(install) = change.as_install() {
-            if let Some(package) = install.install_package() {
-                installed.insert(name, package.version().clone());
-            }
-        } else {
-            installed.remove(name.as_ref());
-        }
-    }
-    let changed = |name: &str| {
-        (result.package_changes().get(name)).is_some_and(|change| {
-            change.as_remove().is_some()
-                || (change.as_install()).is_some_and(|x| x.install_package().is_some())
-        })
-    };
-    let dependencies_of = |name: &str| -> &[(usize, usize)] {
-        let version = &installed[name];
-        let spec = (case.packages.iter())
-            .find(|x| NAMES[x.name] == name && &self::version(x.version) == version)
-            .unwrap();
-        &spec.dependencies
-    };
-    let range = |index: usize| -> VersionRange { RANGES[index].parse().unwrap() };
-    // The installed prerelease versions are selected or accepted by someone,
-    // so they never conflict with ranges containing them, like the resolution does.
-    let satisfies = |range_index: usize, version: &Version| {
-        range(range_index).match_pre(version, PrereleaseAcceptance::Allow)
-    };
+    let outcome = Outcome::new(&case.setup, result);
+    let describe = || outcome.describe();
 
     // The requested versions are installed.
     // If the newer version is installed, we keep it and only add the package to dependencies.
     for request in requests {
-        match installed.get(request.name()) {
+        match outcome.installed.get(request.name()) {
             Some(version) if version >= request.version() => {}
             _ => {
                 return Err(format!(
@@ -271,74 +275,8 @@ fn check_result(
         }
     }
 
-    // The requirements related to the changes are satisfied, or reported as conflicts.
-    for &name in installed.keys() {
-        for &(dependency, range_index) in dependencies_of(name) {
-            let dependency = NAMES[dependency];
-            if !changed(name) && !changed(dependency) {
-                // We never check the requirements we don't touch.
-                continue;
-            }
-            let Some(dependency_version) = installed.get(dependency) else {
-                return Err(format!(
-                    "{dependency} required by {name} is not installed\n{}",
-                    describe()
-                ));
-            };
-            let reported = (result.conflicts().get(dependency))
-                .is_some_and(|x| x.conflicting_packages().iter().any(|x| x.as_ref() == name));
-            if !satisfies(range_index, dependency_version) && !reported {
-                return Err(format!(
-                    "{dependency} {dependency_version} doesn't satisfy {} required by {name}, \
-                    but not reported as a conflict\n{}",
-                    RANGES[range_index],
-                    describe()
-                ));
-            }
-        }
-    }
-
-    // The reported conflicts are real.
-    for (dependency, conflict) in result.conflicts() {
-        // We report the existing conflicts only with new conflicts of the same dependency,
-        // and never re-report the existing conflicts the changes are unrelated to.
-        let has_new_conflict = changed(dependency)
-            || (conflict.conflicting_packages().iter()).any(|name| changed(name));
-        if !has_new_conflict {
-            return Err(format!(
-                "{dependency} is reported as conflict but has no new conflict\n{}",
-                describe()
-            ));
-        }
-        for name in conflict.conflicting_packages() {
-            if name.is_empty() {
-                // The requirement from the project
-                continue;
-            }
-            let Some(dependency_version) = installed.get(dependency.as_ref()) else {
-                return Err(format!(
-                    "{dependency} is reported as conflict but not installed\n{}",
-                    describe()
-                ));
-            };
-            if !installed.contains_key(name.as_ref()) {
-                return Err(format!(
-                    "{name} is reported as conflicting with {dependency} but not installed\n{}",
-                    describe()
-                ));
-            }
-            let requirement = (dependencies_of(name).iter())
-                .find(|&&(x, _)| NAMES[x] == dependency.as_ref())
-                .map(|&(_, range_index)| range_index);
-            if requirement.is_none_or(|x| satisfies(x, dependency_version)) {
-                return Err(format!(
-                    "{name} is reported as conflicting with {dependency} {dependency_version}, \
-                    but it is not\n{}",
-                    describe()
-                ));
-            }
-        }
-    }
+    outcome.check_requirements()?;
+    outcome.check_conflicts()?;
 
     // We install a prerelease version nobody accepts only to use a version compatible with
     // the unity, so we never do that if all the versions are compatible.
@@ -353,14 +291,14 @@ fn check_result(
             continue;
         }
         // Prerelease packages accept any prerelease versions.
-        let accepted = case.packages.iter().any(|requirer| {
+        let accepted = case.setup.packages.iter().any(|requirer| {
             (requirer.dependencies.iter()).any(|&(dependency, range_index)| {
                 NAMES[dependency] == name.as_ref()
                     && (self::version(requirer.version).is_pre()
                         || range(range_index).match_pre(version, PrereleaseAcceptance::Minimum))
             })
         });
-        let all_compatible = (case.packages.iter())
+        let all_compatible = (case.setup.packages.iter())
             .filter(|x| NAMES[x.name] == name.as_ref())
             .all(|x| !x.new_unity);
         if !accepted && all_compatible {
@@ -374,6 +312,141 @@ fn check_result(
     Ok(())
 }
 
+fn range(index: usize) -> VersionRange {
+    RANGES[index].parse().unwrap()
+}
+
+/// Returns whether the version satisfies the range.
+///
+/// The installed prerelease versions are selected or accepted by someone,
+/// so they never conflict with ranges containing them, like the resolution does.
+fn satisfies(range_index: usize, version: &Version) -> bool {
+    range(range_index).match_pre(version, PrereleaseAcceptance::Allow)
+}
+
+/// The project after applying the changes.
+struct Outcome<'a> {
+    setup: &'a Setup,
+    result: &'a PendingProjectChanges<'a>,
+    // The packages installed after applying the changes.
+    installed: HashMap<&'a str, Version>,
+}
+
+impl<'a> Outcome<'a> {
+    fn new(setup: &'a Setup, result: &'a PendingProjectChanges<'a>) -> Self {
+        let mut installed = HashMap::<&str, Version>::new();
+        for &(name, version_index, _) in &setup.project {
+            installed.insert(NAMES[name], version(version_index));
+        }
+        for (name, change) in result.package_changes() {
+            if let Some(install) = change.as_install() {
+                if let Some(package) = install.install_package() {
+                    installed.insert(name, package.version().clone());
+                }
+            } else {
+                installed.remove(name.as_ref());
+            }
+        }
+        Self {
+            setup,
+            result,
+            installed,
+        }
+    }
+
+    fn describe(&self) -> impl std::fmt::Display {
+        describe_changes(self.result)
+    }
+
+    /// Returns whether the package is installed or removed.
+    fn changed(&self, name: &str) -> bool {
+        (self.result.package_changes().get(name)).is_some_and(|change| {
+            change.as_remove().is_some()
+                || (change.as_install()).is_some_and(|x| x.install_package().is_some())
+        })
+    }
+
+    fn dependencies_of(&self, name: &str) -> &'a [(usize, usize)] {
+        let index = NAMES.iter().position(|&x| x == name).unwrap();
+        &self.setup.spec(index, &self.installed[name]).dependencies
+    }
+
+    /// Checks the requirements related to the changes are satisfied, or reported as conflicts.
+    fn check_requirements(&self) -> Result<(), String> {
+        for &name in self.installed.keys() {
+            for &(dependency, range_index) in self.dependencies_of(name) {
+                let dependency = NAMES[dependency];
+                if !self.changed(name) && !self.changed(dependency) {
+                    // We never check the requirements we don't touch.
+                    continue;
+                }
+                let Some(dependency_version) = self.installed.get(dependency) else {
+                    return Err(format!(
+                        "{dependency} required by {name} is not installed\n{}",
+                        self.describe()
+                    ));
+                };
+                let reported = (self.result.conflicts().get(dependency))
+                    .is_some_and(|x| (x.conflicting_packages().iter()).any(|x| x.as_ref() == name));
+                if !satisfies(range_index, dependency_version) && !reported {
+                    return Err(format!(
+                        "{dependency} {dependency_version} doesn't satisfy {} required by {name}, \
+                        but not reported as a conflict\n{}",
+                        RANGES[range_index],
+                        self.describe()
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Checks the reported conflicts are real.
+    fn check_conflicts(&self) -> Result<(), String> {
+        for (dependency, conflict) in self.result.conflicts() {
+            // We report the existing conflicts only with new conflicts of the same dependency,
+            // and never re-report the existing conflicts the changes are unrelated to.
+            let has_new_conflict = self.changed(dependency)
+                || (conflict.conflicting_packages().iter()).any(|name| self.changed(name));
+            if !has_new_conflict {
+                return Err(format!(
+                    "{dependency} is reported as conflict but has no new conflict\n{}",
+                    self.describe()
+                ));
+            }
+            for name in conflict.conflicting_packages() {
+                if name.is_empty() {
+                    // The requirement from the project
+                    continue;
+                }
+                let Some(dependency_version) = self.installed.get(dependency.as_ref()) else {
+                    return Err(format!(
+                        "{dependency} is reported as conflict but not installed\n{}",
+                        self.describe()
+                    ));
+                };
+                if !self.installed.contains_key(name.as_ref()) {
+                    return Err(format!(
+                        "{name} is reported as conflicting with {dependency} but not installed\n{}",
+                        self.describe()
+                    ));
+                }
+                let requirement = (self.dependencies_of(name).iter())
+                    .find(|&&(x, _)| NAMES[x] == dependency.as_ref())
+                    .map(|&(_, range_index)| range_index);
+                if requirement.is_none_or(|x| satisfies(x, dependency_version)) {
+                    return Err(format!(
+                        "{name} is reported as conflicting with {dependency} {dependency_version}, \
+                        but it is not\n{}",
+                        self.describe()
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         cases: 4096,
@@ -382,6 +455,6 @@ proptest! {
 
     #[test]
     fn add_package_request(case in case()) {
-        run(case)?;
+        run(move || check_add_package_request(&case))?;
     }
 }
