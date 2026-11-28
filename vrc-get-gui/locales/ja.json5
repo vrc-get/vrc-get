@@ -523,6 +523,11 @@
     "settings:show prerelease": "プレリリース版のパッケージを表示する",
     "settings:show prerelease description": "この設定を有効にすると、パッケージのバージョン一覧にプレリリース版のものが表示されるようになり、パッケージの依存関係を解決する際にもそれらが使用されるようになります。<br>プレリリース版のパッケージは正式リリース前の動作確認等に用いられるものであり、安定版よりバグに遭遇しやすくなります。",
 
+    "settings:experimental features": "実験的な機能",
+    "settings:experimental features description": "以下の設定は実験段階であり、今後変更される可能性があります。",
+    "settings:disable official repository": "VRChat Officialリポジトリを無効にする",
+    "settings:disable curated repository": "VRChat Curatedリポジトリを無効にする",
+
     "settings:dialog:show prerelease packages": "プレリリース版のパッケージを表示する",
     "settings:dialog:show prerelease packages description": "プレリリース版のパッケージを使用すると、安定版よりバグに遭遇しやすくなります。<br>プレリリース版のパッケージを表示してもよろしいですか？",
     "settings:dialog:enable show prerelease packages": "表示する",

@@ -139,6 +139,7 @@ function Settings() {
 				<BackupCard />
 				<PackagesCard />
 				<AppearanceCard />
+				<ExperimentalFeaturesCard />
 				<FilesAndFoldersCard />
 				<AlcomCard />
 				<SystemInformationCard />
@@ -694,13 +695,9 @@ function BackupCard() {
 function PackagesCard() {
 	const queryClient = useQueryClient();
 
-	const {
-		data: { showPrereleasePackages },
-	} = useSuspenseQuery({
+	const { data: showPrereleasePackages } = useSuspenseQuery({
 		...environmentGetSettings,
-		select: (data) => ({
-			showPrereleasePackages: data.show_prerelease_packages,
-		}),
+		select: (data) => data.show_prerelease_packages,
 	});
 
 	const clearPackageCache = useMutation({
@@ -775,6 +772,86 @@ function AppearanceCard() {
 			<ThemeSelector />
 			<GuiAnimationSwitch />
 			<GuiCompactSwitch />
+		</SettingsCard>
+	);
+}
+
+function ExperimentalFeaturesCard() {
+	const queryClient = useQueryClient();
+
+	const {
+		data: { disableOfficialRepository, disableCuratedRepository },
+	} = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => ({
+			disableOfficialRepository: !data.use_official_repository,
+			disableCuratedRepository: !data.use_curated_repository,
+		}),
+	});
+
+	const setDisableOfficialRepository = useMutation({
+		mutationFn: async (disabled: boolean) =>
+			await commands.environmentSetUseOfficialRepository(!disabled),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries(environmentGetSettings),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
+			]);
+		},
+	});
+
+	const setDisableCuratedRepository = useMutation({
+		mutationFn: async (disabled: boolean) =>
+			await commands.environmentSetUseCuratedRepository(!disabled),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries(environmentGetSettings),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
+			]);
+		},
+	});
+
+	return (
+		<SettingsCard className={"flex flex-col gap-4"}>
+			<h2>{tc("settings:experimental features")}</h2>
+			<p className={"text-sm whitespace-normal font-semibold"}>
+				{tc("settings:experimental features description")}
+			</p>
+			<div className={"flex flex-col gap-2"}>
+				<h3>{tc("settings:packages")}</h3>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={disableOfficialRepository}
+						onCheckedChange={(value) =>
+							setDisableOfficialRepository.mutate(value === true)
+						}
+					/>
+					{tc("settings:disable official repository")}
+				</label>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={disableCuratedRepository}
+						onCheckedChange={(value) =>
+							setDisableCuratedRepository.mutate(value === true)
+						}
+					/>
+					{tc("settings:disable curated repository")}
+				</label>
+			</div>
 		</SettingsCard>
 	);
 }

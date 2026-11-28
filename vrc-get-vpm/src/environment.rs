@@ -101,6 +101,8 @@ pub async fn cleanup_repos_folder(
     settings: &Settings,
     io: &DefaultEnvironmentIo,
 ) -> io::Result<()> {
+    // TODO: Reconsider ownership of the built-in repository caches. They are currently
+    // preserved when ignored because VCC uses the same cache files.
     let mut uesr_repo_file_names = HashSet::<OsString>::from_iter([
         OsString::from("vrc-official.json"),
         OsString::from("vrc-curated.json"),
