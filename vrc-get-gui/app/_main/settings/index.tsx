@@ -126,6 +126,7 @@ function Settings() {
 				<BackupCard />
 				<PackagesCard />
 				<AppearanceCard />
+				<ExperimentalFeaturesCard />
 				<FilesAndFoldersCard />
 				<AlcomCard />
 				<SystemInformationCard />
@@ -646,19 +647,9 @@ function BackupCard() {
 function PackagesCard() {
 	const queryClient = useQueryClient();
 
-	const {
-		data: {
-			showPrereleasePackages,
-			disableOfficialRepository,
-			disableCuratedRepository,
-		},
-	} = useSuspenseQuery({
+	const { data: showPrereleasePackages } = useSuspenseQuery({
 		...environmentGetSettings,
-		select: (data) => ({
-			showPrereleasePackages: data.show_prerelease_packages,
-			disableOfficialRepository: !data.use_official_repository,
-			disableCuratedRepository: !data.use_curated_repository,
-		}),
+		select: (data) => data.show_prerelease_packages,
 	});
 
 	const clearPackageCache = useMutation({
@@ -701,6 +692,55 @@ function PackagesCard() {
 		},
 	});
 
+	return (
+		<SettingsCard className={"flex flex-col gap-4"}>
+			<h2>{tc("settings:packages")}</h2>
+			<div className={"flex flex-row flex-wrap gap-2"}>
+				<Button onClick={() => clearPackageCache.mutate()}>
+					{tc("settings:clear package cache")}
+				</Button>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={showPrereleasePackages}
+						onCheckedChange={(e) => setShowPrerelease.mutate(e === true)}
+					/>
+					{tc("settings:show prerelease")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>
+					{tc("settings:show prerelease description")}
+				</p>
+			</div>
+		</SettingsCard>
+	);
+}
+
+function AppearanceCard() {
+	return (
+		<SettingsCard className={"flex flex-col gap-2"}>
+			<h2>{tc("settings:appearance")}</h2>
+			<LanguageSelector />
+			<ThemeSelector />
+			<GuiAnimationSwitch />
+			<GuiCompactSwitch />
+		</SettingsCard>
+	);
+}
+
+function ExperimentalFeaturesCard() {
+	const queryClient = useQueryClient();
+
+	const {
+		data: { disableOfficialRepository, disableCuratedRepository },
+	} = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => ({
+			disableOfficialRepository: !data.use_official_repository,
+			disableCuratedRepository: !data.use_curated_repository,
+		}),
+	});
+
 	const setDisableOfficialRepository = useMutation({
 		mutationFn: async (disabled: boolean) =>
 			await commands.environmentSetUseOfficialRepository(!disabled),
@@ -739,30 +779,12 @@ function PackagesCard() {
 
 	return (
 		<SettingsCard className={"flex flex-col gap-4"}>
-			<h2>{tc("settings:packages")}</h2>
-			<div className={"flex flex-row flex-wrap gap-2"}>
-				<Button onClick={() => clearPackageCache.mutate()}>
-					{tc("settings:clear package cache")}
-				</Button>
-			</div>
-			<div>
-				<label className={"flex items-center gap-2"}>
-					<Checkbox
-						checked={showPrereleasePackages}
-						onCheckedChange={(e) => setShowPrerelease.mutate(e === true)}
-					/>
-					{tc("settings:show prerelease")}
-				</label>
-				<p className={"text-sm whitespace-normal"}>
-					{tc("settings:show prerelease description")}
-				</p>
-			</div>
-			<div>
-				<p className={"text-sm whitespace-normal font-semibold"}>
-					{tc("settings:vrchat repositories experimental")}
-				</p>
-			</div>
-			<div>
+			<h2>{tc("settings:experimental features")}</h2>
+			<p className={"text-sm whitespace-normal font-semibold"}>
+				{tc("settings:experimental features description")}
+			</p>
+			<div className={"flex flex-col gap-2"}>
+				<h3>{tc("settings:packages")}</h3>
 				<label className={"flex items-center gap-2"}>
 					<Checkbox
 						checked={disableOfficialRepository}
@@ -772,8 +794,6 @@ function PackagesCard() {
 					/>
 					{tc("settings:disable official repository")}
 				</label>
-			</div>
-			<div>
 				<label className={"flex items-center gap-2"}>
 					<Checkbox
 						checked={disableCuratedRepository}
@@ -784,18 +804,6 @@ function PackagesCard() {
 					{tc("settings:disable curated repository")}
 				</label>
 			</div>
-		</SettingsCard>
-	);
-}
-
-function AppearanceCard() {
-	return (
-		<SettingsCard className={"flex flex-col gap-2"}>
-			<h2>{tc("settings:appearance")}</h2>
-			<LanguageSelector />
-			<ThemeSelector />
-			<GuiAnimationSwitch />
-			<GuiCompactSwitch />
 		</SettingsCard>
 	);
 }

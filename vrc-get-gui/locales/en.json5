@@ -529,7 +529,8 @@
     "settings:show prerelease": "Show Prerelease Packages",
     "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list, and they will be used when resolving dependencies.<br>Prerelease packages may have more bugs than stable packages.",
 
-    "settings:vrchat repositories experimental": "The option to disable built-in VRChat repositories is experimental and may change in the future.",
+    "settings:experimental features": "Experimental Features",
+    "settings:experimental features description": "The following options are experimental and may change in the future.",
     "settings:disable official repository": "Disable built-in VRChat Official repository",
     "settings:disable curated repository": "Disable built-in VRChat Curated repository",
 
